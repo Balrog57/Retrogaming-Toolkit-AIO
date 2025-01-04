@@ -1,0 +1,43 @@
+# Créateur de Fichiers Batch pour Jeux
+
+Ce projet offre une interface graphique moderne pour créer facilement des fichiers batch spécifiques pour trois types de jeux :
+- Jeux normaux (non-Steam, non-Epic).
+- Jeux Steam.
+- Jeux Epic Games.
+
+## Fonctionnalités
+
+### Jeux Normaux
+- Spécifiez le nom du fichier batch.
+- Entrez le chemin relatif au jeu.
+- Fournissez le nom de l'exécutable du jeu.
+- Génère un fichier batch qui exécute directement le jeu.
+
+### Jeux Steam
+- Spécifiez le nom du fichier batch.
+- Entrez l'ID Steam du jeu.
+- Fournissez le nom de l'exécutable pour surveillance.
+- Génère un fichier batch qui lance le jeu via Steam, surveille son exécution et ferme Steam une fois le jeu terminé.
+
+### Jeux Epic Games
+- Spécifiez le nom du fichier batch.
+- Fournissez le nom de l'exécutable du jeu.
+- Sélectionnez le fichier `.url` associé au jeu.
+- Génère un fichier batch qui lance le jeu via Epic Games, surveille son exécution et gère les délais de fermeture.
+
+## Utilisation
+
+1. Lancez le programme.
+2. Remplissez les champs spécifiques pour le type de jeu souhaité.
+   - Par exemple, pour un jeu Steam, fournissez l'ID Steam et le nom de l'exécutable.
+3. Cliquez sur le bouton correspondant pour générer le fichier batch.
+4. Le fichier batch sera sauvegardé dans le répertoire courant avec le nom que vous avez spécifié.
+
+## Interface Utilisateur
+
+L'interface utilisateur est divisée en trois sections principales, chacune entourée d'un cadre distinct pour faciliter la navigation :
+- Création de batch pour jeux normaux.
+- Création de batch pour jeux Steam.
+- Création de batch pour jeux Epic Games.
+
+Chaque section contient des champs clairement étiquetés avec des exemples pour guider l'utilisateur.

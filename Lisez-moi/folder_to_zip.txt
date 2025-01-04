@@ -1,0 +1,14 @@
+# folder_to_zip
+
+**folder_to_zip** est un outil simple et efficace pour compresser des fichiers de jeux (ISO, CUE, GDI, etc.) en fichiers ZIP. Les fichiers d'origine sont supprimés après compression.
+
+## Fonctionnalités
+
+- **Compression en ZIP** : Compresse tous les fichiers d'un dossier individuellement en fichiers ZIP.
+- **Suppression des originaux** : Les fichiers d'origine sont supprimés après compression.
+- **Interface conviviale** : Sélectionnez un dossier source et lancez la compression en un clic.
+
+## Utilisation
+
+1. **Sélectionnez le dossier source** : Cliquez sur "Parcourir..." pour choisir le dossier contenant les fichiers à compresser.
+2. **Lancez la compression** : Cliquez sur "ZIP" pour compresser les fichiers et supprimer les originaux.

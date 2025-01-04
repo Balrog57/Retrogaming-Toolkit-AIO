@@ -1,0 +1,96 @@
+**Assistant de Création de Liste de Jeux**
+
+L'Assistant de Création de Liste de Jeux est un outil conçu pour faciliter la gestion et la mise à jour des listes de jeux au format XML. Il permet d'enrichir les informations manquantes en utilisant le presse-papiers pour un échange de données fluide. Le script offre des fonctionnalités de fusion avec des sauvegardes existantes et de génération de fichiers listant les jeux manquants, offrant une solution complète pour maintenir des listes de jeux à jour et organisées.
+
+---
+
+## **Fonctionnalités**
+
+### **Gestion des fichiers XML**
+- Charge des fichiers XML existants ou en crée de nouveaux si nécessaire.
+- Assure une base de données de jeux toujours accessible.
+
+### **Identification des jeux manquants**
+- Compare deux listes de jeux pour identifier les jeux absents.
+- Permet de cibler les éléments nécessitant une mise à jour.
+
+### **Enrichissement via le presse-papiers**
+- Copie les jeux manquants dans le presse-papiers pour un enrichissement manuel.
+- Intègre automatiquement les données enrichies une fois collées.
+
+### **Fusion des données**
+- Fusionne les données enrichies avec la liste de jeux existante.
+- Garantit une intégration fluide et précise des nouvelles informations.
+
+### **Sauvegarde et restauration**
+- Sauvegarde la liste mise à jour.
+- Permet de fusionner les données avec des sauvegardes précédentes pour une gestion des versions.
+
+### **Génération de fichiers de jeux manquants**
+- Crée un fichier texte listant les jeux manquants.
+- Facilite le suivi et la résolution des lacunes dans la liste de jeux.
+
+### **Interface utilisateur améliorée**
+- Interface moderne et intuitive avec un thème personnalisé.
+- Barre de progression pour suivre l'avancement du traitement.
+- Messages clairs et notifications visuelles pour guider l'utilisateur.
+
+### **Gestion robuste des erreurs**
+- Validation des données XML pour éviter les erreurs de syntaxe.
+- Gestion des erreurs avec des messages détaillés et des notifications.
+- Reprise en cas d'erreur sans interruption du processus.
+
+---
+
+## **Utilisation**
+
+### **1. Configuration**
+- Sélectionnez le fichier de liste de jeux via l'interface utilisateur.
+
+### **2. Exécution**
+- Lancez le processus pour charger les listes de jeux et identifier les éléments manquants.
+
+### **3. Enrichissement**
+- Les jeux manquants sont copiés dans le presse-papiers pour un enrichissement manuel.
+- Une fois les données collées, le script les intègre automatiquement.
+
+### **4. Finalisation**
+- Le script met à jour la liste de jeux, génère un fichier de jeux manquants, et sauvegarde les modifications.
+
+---
+
+## **Interface Utilisateur**
+
+L'interface utilisateur a été conçue pour être intuitive et agréable à utiliser. Elle comprend :
+
+- **Console de sortie** : Affiche les logs en temps réel pour suivre l'avancement du processus.
+- **Barre de progression** : Montre l'avancement du traitement des jeux.
+- **Boutons de contrôle** : Permet de démarrer, arrêter ou mettre en pause le processus.
+- **Barre de statut** : Affiche l'état actuel du processus (Prêt, En cours, En pause, Arrêté).
+- **Configuration des fichiers** : Permet de sélectionner les fichiers de liste de jeux et de liste mise à jour.
+
+---
+
+## **Logs**
+
+Les activités du script sont enregistrées dans un fichier de log (`assisted_gamelist_creator.log`), permettant un suivi détaillé des opérations et facilitant le débogage en cas de besoin.
+
+---
+
+## **Avertissements**
+
+- **Format des données** : Assurez-vous que les données XML collées dans le presse-papiers sont bien formées pour éviter des erreurs de traitement.
+- **Délai d'attente** : Le script attend un certain temps pour que les données soient collées dans le presse-papiers. Si le délai est dépassé, il passe à la suite.
+
+---
+
+## **Améliorations récentes**
+
+- **Interface utilisateur modernisée** : Utilisation d'un thème moderne et d'une barre de progression.
+- **Gestion des erreurs améliorée** : Validation des données XML et gestion des erreurs avec des messages clairs.
+- **Fenêtre redimensionnable** : La fenêtre s'adapte à la taille de l'écran et affiche tout le contenu dès l'ouverture.
+- **Notifications visuelles** : Les erreurs et les succès sont affichés dans des boîtes de dialogue pour une meilleure visibilité.
+
+---
+
+Cet outil est particulièrement utile pour les utilisateurs qui gèrent des listes de jeux et souhaitent les maintenir à jour de manière efficace et organisée.
