@@ -5,8 +5,8 @@ import customtkinter as ctk
 from tkinter import messagebox
 
 # Configuration de l'apparence et du thème
-ctk.set_appearance_mode("dark")  # Mode sombre
-ctk.set_default_color_theme("blue")  # Thème de couleur bleu
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
 def is_64bit():
     """Detect if the system is 64-bit."""
@@ -16,10 +16,9 @@ def run_installer(file, args=""):
     """Run an installer file with optional arguments in a separate process."""
     try:
         print(f"Running {file}...")
-        # Encadrer le chemin du fichier avec des guillemets pour gérer les espaces
         command = f'"{file}" {args}'
         process = subprocess.Popen(command, shell=True)
-        process.wait()  # Attendre la fin du processus
+        process.wait()
         if process.returncode == 0:
             print(f"{file} installed successfully.")
             return True
@@ -31,9 +30,13 @@ def run_installer(file, args=""):
         return False
 
 def install_dependencies():
-    """Install all dependencies asynchronously."""
-    # Chemin relatif vers le sous-dossier "install_dependencies"
-    install_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "install_dependencies")
+    """Install all dependencies."""
+    # Chemin vers le dossier des dépendances
+    deps_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "install_dependencies")
+    
+    if not os.path.exists(deps_dir):
+        messagebox.showerror("Erreur", f"Le dossier des dépendances n'existe pas: {deps_dir}")
+        return
 
     # Define the installers
     installers = {
@@ -57,7 +60,7 @@ def install_dependencies():
             "vcredist2015_2017_2019_2022_x64.exe": "/passive /norestart",
         })
 
-    # Demander confirmation avant de lancer les installations
+    # Demander confirmation
     confirm = messagebox.askyesno("Confirmation", "Voulez-vous lancer l'installation des dépendances ?")
     if not confirm:
         print("Installation annulée par l'utilisateur.")
@@ -66,12 +69,12 @@ def install_dependencies():
     # Install all runtimes
     success = True
     for file, args in installers.items():
-        file_path = os.path.join(install_dir, file)
+        file_path = os.path.join(deps_dir, file)
         if os.path.exists(file_path):
             if not run_installer(file_path, args):
                 success = False
         else:
-            print(f"{file} not found in {install_dir}. Skipping...")
+            print(f"{file} not found in {deps_dir}. Skipping...")
             success = False
 
     if success:

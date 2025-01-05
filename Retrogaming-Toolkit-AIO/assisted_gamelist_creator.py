@@ -6,7 +6,8 @@ import customtkinter as ctk
 from customtkinter import filedialog
 import re
 from copy import deepcopy
-import tkinter as tk
+import tkinter as tk  # Gardé pour certaines fonctionnalités spécifiques
+from tkinter import messagebox  # Import de messagebox pour les boîtes de dialogue
 
 # Configuration du thème
 ctk.set_appearance_mode("dark")
@@ -117,7 +118,7 @@ class GameListApp:
                 tree = etree.parse(file_path)
                 root = tree.getroot()
                 if (root.tag == "gameList"):
-                    self.start_button.config(state=tk.NORMAL)
+                    self.start_button.configure(state="normal")
                     self.log_message("Fichier XML valide sélectionné.")
                 else:
                     self.log_message("Erreur : Le fichier XML ne contient pas de balise <gameList>.")
@@ -128,29 +129,29 @@ class GameListApp:
 
     def log_message(self, message):
         """Affiche un message dans la console."""
-        self.console.config(state='normal')
+        self.console.configure(state='normal')
         self.console.insert(tk.END, message + "\n")
-        self.console.config(state='disabled')
+        self.console.configure(state='disabled')
         self.console.yview(tk.END)
 
     def update_status(self, message, status_type="info"):
         """Met à jour la barre de statut avec un message."""
         self.status_text.set(message)
         if status_type == "error":
-            self.status_label.config(background="#ffcccc")
+            self.status_label.configure(fg_color="#ffcccc")
         elif status_type == "success":
-            self.status_label.config(background="#ccffcc")
+            self.status_label.configure(fg_color="#ccffcc")
         else:
-            self.status_label.config(background="#f0f0f0")
+            self.status_label.configure(fg_color="#f0f0f0")
 
     def start_process(self):
         """Démarre le traitement des jeux manquants."""
         if not self.is_running:
             self.is_running = True
             self.is_paused = False
-            self.start_button.config(state=tk.DISABLED)
-            self.stop_button.config(state=tk.NORMAL)
-            self.pause_button.config(state=tk.NORMAL)
+            self.start_button.configure(state="disabled")
+            self.stop_button.configure(state="normal")
+            self.pause_button.configure(state="normal")
             self.update_status("Processing...", "info")
             threading.Thread(target=self.process_missing_games, daemon=True).start()
 
@@ -158,19 +159,19 @@ class GameListApp:
         """Arrête le traitement des jeux manquants."""
         self.is_running = False
         self.is_paused = False
-        self.start_button.config(state=tk.NORMAL)
-        self.stop_button.config(state=tk.DISABLED)
-        self.pause_button.config(state=tk.DISABLED)
+        self.start_button.configure(state="normal")
+        self.stop_button.configure(state="disabled")
+        self.pause_button.configure(state="disabled")
         self.update_status("Stopped", "error")
 
     def pause_process(self):
         """Met en pause ou reprend le traitement."""
         self.is_paused = not self.is_paused
         if self.is_paused:
-            self.pause_button.config(text="Resume")
+            self.pause_button.configure(text="Resume")
             self.update_status("Paused", "info")
         else:
-            self.pause_button.config(text="Pause")
+            self.pause_button.configure(text="Pause")
             self.update_status("Processing...", "info")
 
     def normalize_name(self, name):
@@ -300,13 +301,13 @@ class GameListApp:
                     # Réessayer avec le même groupe de jeux
 
                 self.progress_value.set((i) / total_games * 100)
-                self.progress_label.config(text=f"{int((i) / total_games * 100)}%")
+                self.progress_label.configure(text=f"{int((i) / total_games * 100)}%")
                 self.root.update()
 
         self.is_running = False
-        self.start_button.config(state=tk.NORMAL)
-        self.stop_button.config(state=tk.DISABLED)
-        self.pause_button.config(state=tk.DISABLED)
+        self.start_button.configure(state="normal")
+        self.stop_button.configure(state="disabled")
+        self.pause_button.configure(state="disabled")
         self.update_status("Ready", "success")
 
     def load_xml(self, file_path):
