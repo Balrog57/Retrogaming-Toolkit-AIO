@@ -1,11 +1,8 @@
 import customtkinter as ctk
 from tkinter import messagebox  # messagebox est toujours utilisé depuis tkinter
-import importlib
-import importlib.util
 import os
 import logging
-import threading
-import time
+import subprocess
 from PIL import Image
 from customtkinter import CTkImage
 
@@ -46,12 +43,9 @@ scripts = [
     {"name": "video_converter", "description": "Convertit et rogne des vidéos par lot.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "video_converter.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "video_converter.txt")},
 ]
 
-def lancer_module(module_name, max_retries=3, initial_delay=1):
-    """Charge et exécute un module Python avec gestion robuste des erreurs."""
-    logger.info(f"Démarrage de l'exécution du module: {module_name}")
-    
-    def load_module():
-        """Charge le module avec gestion des erreurs."""
+def lancer_module(module_name):
+    """Charge et exécute un module Python dans un processus séparé."""
+    try:
         # Vérification du chemin du module
         current_dir = os.path.dirname(os.path.abspath(__file__))
         module_file = os.path.join(current_dir, "Retrogaming-Toolkit-AIO", f"{module_name}.py")
@@ -59,81 +53,16 @@ def lancer_module(module_name, max_retries=3, initial_delay=1):
         if not os.path.exists(module_file):
             error_msg = f"Le fichier module '{module_file}' n'existe pas"
             logger.error(error_msg)
-            raise FileNotFoundError(error_msg)
-        
-        # Vérification des permissions
-        if not os.access(module_file, os.R_OK):
-            error_msg = f"Permission refusée pour lire le fichier '{module_file}'"
-            logger.error(error_msg)
-            raise PermissionError(error_msg)
-            
-        # Chargement du module
-        spec = importlib.util.spec_from_file_location(module_name, module_file)
-        if spec is None:
-            error_msg = f"Impossible de créer le spec pour '{module_name}'"
-            logger.error(error_msg)
-            raise ImportError(error_msg)
-            
-        module = importlib.util.module_from_spec(spec)
-        
-        # Exécution du module dans un try/except séparé
-        try:
-            spec.loader.exec_module(module)
-        except SyntaxError as e:
-            error_msg = f"Erreur de syntaxe dans le module '{module_name}': {str(e)}"
-            logger.error(error_msg)
-            raise SyntaxError(error_msg)
-            
-        # Vérification de la fonction main
-        if not hasattr(module, 'main'):
-            error_msg = f"Le module '{module_name}' n'a pas de fonction 'main'"
-            logger.error(error_msg)
-            raise AttributeError(error_msg)
-            
-        return module
-
-    def execute_module(module):
-        """Exécute le module avec gestion du timeout."""
-        def execute_with_timeout():
-            try:
-                module.main()
-                logger.info(f"Module {module_name} exécuté avec succès")
-            except Exception as e:
-                logger.error(f"Erreur dans la fonction main du module '{module_name}': {str(e)}")
-                raise
-
-        # Exécution avec timeout de 5 minutes
-        timeout = 300  # 5 minutes
-        execution_thread = threading.Thread(target=execute_with_timeout)
-        execution_thread.start()
-        execution_thread.join(timeout=timeout)
-        
-        if execution_thread.is_alive():
-            error_msg = f"Le module '{module_name}' a dépassé le temps d'exécution maximum ({timeout} secondes)"
-            logger.error(error_msg)
-            raise TimeoutError(error_msg)
-
-    # Logique de réessai avec backoff exponentiel
-    delay = initial_delay
-    for attempt in range(max_retries):
-        try:
-            module = load_module()
-            execute_module(module)
-            return  # Succès, on sort de la fonction
-        except (FileNotFoundError, PermissionError, SyntaxError, ImportError, AttributeError) as e:
-            # Erreurs fatales, on ne réessaie pas
-            logger.error(f"Erreur fatale dans le module '{module_name}' (tentative {attempt + 1}): {str(e)}")
-            messagebox.showerror("Erreur", f"Erreur fatale dans le module '{module_name}': {str(e)}")
+            messagebox.showerror("Erreur", error_msg)
             return
-        except (TimeoutError, Exception) as e:
-            if attempt == max_retries - 1:  # Dernière tentative
-                logger.error(f"Échec final du module '{module_name}' après {max_retries} tentatives: {str(e)}")
-                messagebox.showerror("Erreur", f"Échec final du module '{module_name}' après {max_retries} tentatives: {str(e)}")
-                return
-            
-            logger.warning(f"Échec du module '{module_name}' (tentative {attempt + 1}), nouvelle tentative dans {delay} secondes...")
-            time.sleep(delay)
-            delay *= 2  # Backoff exponentiel
+        
+        # Exécution du module dans un processus séparé
+        subprocess.Popen(["python", module_file])
+        logger.info(f"Module {module_name} exécuté avec succès")
+    
+    except Exception as e:
+        logger.error(f"Erreur lors de l'exécution du module {module_name}: {str(e)}")
+        messagebox.showerror("Erreur", f"Erreur lors de l'exécution du module {module_name}: {str(e)}")
 
 def open_readme(readme_file):
     """Ouvre et affiche le contenu d'un fichier Lisez-moi."""
@@ -156,8 +85,6 @@ class Application(ctk.CTk):
         self.scripts = scripts
         self.page = 0
         self.scripts_per_page = 10
-        self.after_callbacks = {}  # {id: {'type': type, 'func': func}}
-        self.after_ids = []
         self.min_window_height = 400
         self.preferred_width = 800
 
@@ -181,57 +108,8 @@ class Application(ctk.CTk):
         # Afficher les scripts de la première page
         self.update_page()
 
-    def on_close(self):
-        """Gère la fermeture de la fenêtre."""
-        try:
-            # Annule tous les scripts `after` enregistrés
-            remaining_callbacks = []
-            
-            for callback_id in list(self.after_callbacks.keys()):
-                try:
-                    callback_info = self.after_callbacks[callback_id]
-                    logger.info(f"Annulation du callback {callback_id} (type: {callback_info['type']})")
-                    self.after_cancel(callback_id)
-                    del self.after_callbacks[callback_id]
-                except (ValueError, AttributeError, Exception) as e:  # Remplacement de tk.TclError par Exception
-                    remaining_callbacks.append(callback_id)
-                    logger.error(f"Erreur lors de l'annulation du callback {callback_id}: {str(e)}")
-            
-            # Attendre que tous les callbacks soient traités
-            self.update()
-            self.after(200)  # Augmentation du délai à 200ms
-            
-            # Log des callbacks restants
-            if remaining_callbacks:
-                logger.warning(f"Callbacks non annulés : {remaining_callbacks}")
-                for callback_id in remaining_callbacks:
-                    callback_info = self.after_callbacks.get(callback_id, {})
-                    logger.warning(f"- Callback {callback_id} (type: {callback_info.get('type', 'inconnu')})")
-            
-            self.after_ids.clear()
-            self.after_callbacks.clear()
-            
-            # Fermeture finale
-            try:
-                self.destroy()
-            except Exception as e:  # Remplacement de tk.TclError par Exception
-                logger.error(f"Erreur lors de la fermeture : {str(e)}")
-                raise
-                
-        except Exception as e:
-            logger.critical(f"Erreur critique lors de la fermeture : {str(e)}")
-            raise
-
     def update_page(self):
         """Met à jour l'affichage des scripts pour la page courante."""
-        # Nettoyer les after scripts existants
-        for after_id in self.after_ids:
-            try:
-                self.after_cancel(after_id)
-            except ValueError:
-                pass  # Ignore si l'ID n'existe plus ou est déjà annulé
-        self.after_ids.clear()
-
         # Efface les widgets existants
         for widget in self.main_frame.winfo_children():
             widget.destroy()
@@ -252,7 +130,7 @@ class Application(ctk.CTk):
                 else:
                     raise FileNotFoundError("Icon file not found")
             except Exception as e:
-                print(f"Erreur lors du chargement de l'icône {script['icon']}: {e}")
+                logger.error(f"Erreur lors du chargement de l'icône {script['icon']}: {e}")
                 icon = CTkImage(Image.new('RGBA', (32, 32), (0, 0, 0, 0)))
             icon_label = ctk.CTkLabel(frame, image=icon, text="")
             icon_label.image = icon
@@ -289,19 +167,9 @@ class Application(ctk.CTk):
         self.geometry(f"{self.preferred_width}x{new_height}")
 
     def execute_module(self, module_name):
-        """Exécute un module avec gestion des erreurs."""
+        """Exécute un module dans un processus séparé."""
         logger.info(f"Lancement du module depuis l'interface: {module_name}")
-        try:
-            self.withdraw()  # Masquer la fenêtre principale pendant l'exécution du module
-            logger.debug("Fenêtre principale masquée")
-            lancer_module(module_name)
-            logger.debug("Fenêtre principale réaffichée")
-        except Exception as e:
-            logger.error(f"Erreur lors du lancement du module {module_name}: {str(e)}")
-            messagebox.showerror("Erreur", f"Erreur lors du lancement du module {module_name}: {str(e)}")
-        finally:
-            self.deiconify()  # Réafficher la fenêtre principale
-            logger.debug("Fenêtre principale réaffichée")
+        lancer_module(module_name)
 
     def next_page(self):
         """Passe à la page suivante."""
