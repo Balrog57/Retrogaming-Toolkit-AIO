@@ -1,39 +1,18 @@
 @echo off
+
 :: Vérification si Python est installé
-echo Vérification de Python...
+echo Vérification de la présence de Python...
 python --version >nul 2>&1
 if %ERRORLEVEL% neq 0 (
-    echo Python n'est pas installé. Téléchargement de Python...
-    
-    :: Définir l'URL de téléchargement de l'installateur de Python
-    set "python_url=https://www.python.org/ftp/python/3.11.5/python-3.11.5-amd64.exe"
-    set "python_installer=python-installer.exe"
-    
-    :: Télécharger l'installateur
-    powershell -Command "Invoke-WebRequest -Uri %python_url% -OutFile %python_installer%"
-    
-    if not exist %python_installer% (
-        echo Échec du téléchargement de l'installateur de Python !
-        pause
-        exit /b
-    )
-    
-    :: Installer Python en mode silencieux
-    echo Installation de Python...
-    start /wait %python_installer% /quiet InstallAllUsers=1 PrependPath=1
-    
-    :: Vérifier à nouveau si Python est correctement installé
-    python --version >nul 2>&1
-    if %ERRORLEVEL% neq 0 (
-        echo Échec de l'installation de Python !
-        pause
-        exit /b
-    )
-    echo Python a été installé avec succès.
+    echo Python n'est pas installé. Veuillez l'installer manuellement.
+    pause
+    exit /b
+) else (
+    echo Python est correctement installé.
 )
 
-:: Installer les dépendances depuis requirements.txt
-echo Installation des dépendances...
+:: Vérification des dépendances
+echo Installation ou vérification des dépendances depuis requirements.txt...
 if not exist requirements.txt (
     echo Le fichier requirements.txt est introuvable !
     pause
@@ -41,9 +20,11 @@ if not exist requirements.txt (
 )
 pip install -r requirements.txt
 if %ERRORLEVEL% neq 0 (
-    echo Erreur lors de l'installation des dépendances !
+    echo Une erreur s'est produite lors de l'installation des dépendances.
     pause
     exit /b
+) else (
+    echo Les dépendances ont été installées avec succès.
 )
 
 :: Lancer le script Python main.py
@@ -55,10 +36,12 @@ if not exist main.py (
 )
 python main.py
 if %ERRORLEVEL% neq 0 (
-    echo Erreur lors de l'exécution de main.py !
+    echo Une erreur s'est produite lors de l'exécution de main.py !
     pause
     exit /b
+) else (
+    echo Le script main.py s'est terminé avec succès.
 )
 
-echo Processus terminé avec succès.
+echo Processus terminé.
 pause
