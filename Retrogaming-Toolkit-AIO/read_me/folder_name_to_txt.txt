@@ -1,0 +1,18 @@
+**Folder Name to TXT** est un outil simple et efficace en Python qui permet de créer des fichiers texte vides pour chaque fichier d'une extension spécifiée dans le répertoire courant. Chaque fichier texte créé porte le même nom que le fichier d'origine, mais avec l'extension `.txt`. Cet outil est particulièrement utile pour générer rapidement des fichiers de documentation ou des placeholders associés à des fichiers multimédias ou autres.
+
+### Fonctionnalités
+
+- **Création de fichiers texte** : Génère un fichier texte vide pour chaque fichier ayant l'extension spécifiée, facilitant la création de fichiers de documentation ou de métadonnées.
+
+- **Gestion des extensions** : Accepte les extensions avec ou sans le point (par exemple, `mp4` ou `.mp4`), offrant une flexibilité dans la saisie.
+
+- **Simplicité d'utilisation** : Le script demande simplement à l'utilisateur de saisir l'extension des fichiers pour lesquels il souhaite créer des fichiers texte, rendant l'outil accessible même aux utilisateurs non techniques.
+
+### Utilisation
+
+1. **Lancement du script** : Exécutez le script pour démarrer l'outil.
+2. **Saisie de l'extension** : Entrez l'extension des fichiers pour lesquels vous souhaitez créer des fichiers texte (par exemple, `mp4`, `jpg`, etc.).
+3. **Création des fichiers texte** : Le script parcourt le répertoire courant et crée un fichier texte vide pour chaque fichier ayant l'extension spécifiée.
+4. **Confirmation** : Un message de confirmation est affiché pour chaque fichier texte créé, assurant que le processus s'est déroulé avec succès.
+
+Cet outil est idéal pour les utilisateurs qui ont besoin de générer rapidement des fichiers texte associés à des fichiers multimédias ou autres, simplifiant ainsi la création de documentation ou de placeholders.

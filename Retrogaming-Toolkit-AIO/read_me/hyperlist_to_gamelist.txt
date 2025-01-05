@@ -1,0 +1,21 @@
+**Hyperlist to Gamelist Converter** est un outil Python qui permet de convertir des fichiers `hyperlist.xml` (utilisés par certains frontends de jeux) en fichiers `gamelist.xml` (utilisés par des systèmes comme RetroPie). Ce script facilite la migration des métadonnées de jeux d'un format à un autre, assurant une compatibilité avec différents systèmes de gestion de jeux.
+
+### Fonctionnalités
+
+- **Conversion de hyperlist.xml en gamelist.xml** : Transforme un fichier `hyperlist.xml` en un fichier `gamelist.xml` compatible avec RetroPie et d'autres systèmes similaires.
+
+- **Gestion des métadonnées** : Conserve les informations essentielles des jeux, telles que le nom, l'année de sortie, le développeur, l'éditeur, le genre, la note et le nombre de joueurs.
+
+- **Support des extensions de ROM** : Permet à l'utilisateur de spécifier l'extension des fichiers ROM (par exemple, `.zip`, `.7z`, `.iso`), assurant une flexibilité dans la conversion.
+
+- **Formatage XML** : Génère un fichier XML bien structuré et lisible, facilitant son intégration dans d'autres systèmes.
+
+### Utilisation
+
+1. **Lancement du script** : Exécutez le script pour démarrer le processus de conversion.
+2. **Préparation des fichiers hyperlist.xml** : Placez les fichiers `hyperlist.xml` que vous souhaitez convertir dans le même répertoire que le script.
+3. **Saisie de l'extension des ROM** : Entrez l'extension des fichiers ROM (par exemple, `.zip`, `.7z`, `.iso`) lorsque le script vous le demande.
+4. **Conversion** : Le script parcourt les fichiers `hyperlist.xml`, extrait les métadonnées et génère des fichiers `gamelist.xml` correspondants.
+5. **Résultats** : Les fichiers `gamelist.xml` sont enregistrés dans un dossier nommé `gamelists`, et un message de confirmation est affiché pour chaque fichier converti.
+
+Cet outil est particulièrement utile pour les utilisateurs qui souhaitent migrer leurs métadonnées de jeux d'un format `hyperlist.xml` vers un format `gamelist.xml`, tout en conservant les informations essentielles des jeux et en assurant une compatibilité avec des systèmes comme RetroPie.

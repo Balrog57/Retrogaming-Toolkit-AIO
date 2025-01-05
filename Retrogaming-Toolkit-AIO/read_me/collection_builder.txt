@@ -1,0 +1,23 @@
+**Collection Builder** est un outil conçu pour créer des collections personnalisées de jeux vidéo en fonction de mots-clés spécifiques. Il parcourt les fichiers XML des hyperlistes pour identifier les jeux correspondant aux critères de recherche et génère une structure complète, incluant des fichiers de sous-collections (`.sub`) et une liste des jeux ajoutés. Cet outil est idéal pour organiser et personnaliser des collections de jeux en fonction de thèmes ou de genres spécifiques.
+
+### Fonctionnalités
+
+- **Création de structure de dossiers** : Génère automatiquement une hiérarchie de dossiers pour la nouvelle collection, incluant des répertoires pour les artworks, les logos, les vidéos et autres éléments multimédias.
+
+- **Génération de fichiers de sous-collections** : Crée des fichiers `.sub` contenant les jeux correspondant aux mots-clés spécifiés, facilitant l'intégration avec des systèmes de gestion de jeux.
+
+- **Liste des jeux** : Produit un fichier texte listant tous les jeux ajoutés à la collection, organisés par système, pour une référence rapide.
+
+- **Support des mots-clés multiples** : Permet de spécifier plusieurs groupes de mots-clés pour affiner la recherche et inclure des jeux pertinents.
+
+- **Placeholders pour les éléments multimédias** : Crée des fichiers texte de placeholder pour les artworks, logos, vidéos et autres éléments, guidant l'utilisateur dans l'ajout des ressources graphiques.
+
+### Utilisation
+
+1. **Lancement de l'application** : Exécutez le script pour démarrer l'outil.
+2. **Nom de la collection** : Entrez un nom pour votre collection, qui sera utilisé pour créer le dossier principal.
+3. **Mots-clés** : Spécifiez les mots-clés à rechercher dans les descriptions des jeux. Vous pouvez entrer plusieurs groupes de mots-clés séparés par un point-virgule (`;`).
+4. **Génération de la collection** : L'outil parcourt les fichiers XML des hyperlistes dans le dossier `.\meta\hyperlist` et génère les fichiers `.sub` pour chaque système contenant des jeux correspondant aux mots-clés.
+5. **Vérification et finalisation** : Après la génération, vérifiez les fichiers `.sub` et supprimez les correspondances incorrectes si nécessaire. Ajoutez ensuite les artworks, logos, vidéos et autres éléments multimédias dans les dossiers appropriés.
+
+Cet outil est particulièrement utile pour les utilisateurs qui souhaitent organiser leurs collections de jeux vidéo en fonction de thèmes ou de genres spécifiques, tout en automatisant la création de structures de dossiers et de fichiers de sous-collections.

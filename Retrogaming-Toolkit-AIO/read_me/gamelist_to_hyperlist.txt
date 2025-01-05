@@ -1,0 +1,20 @@
+**Gamelist to Hyperlist Converter** est un outil Python conçu pour convertir un fichier `gamelist.xml` (utilisé par des systèmes comme RetroPie) en un fichier `hyperlist.xml` (utilisé par certains frontends de jeux). Ce script extrait également les descriptions des jeux et les enregistre dans des fichiers texte séparés, facilitant ainsi la migration et l'organisation des métadonnées de jeux.
+
+### Fonctionnalités
+
+- **Conversion de gamelist.xml en hyperlist.xml** : Transforme un fichier `gamelist.xml` en un fichier `hyperlist.xml` compatible avec des frontends de jeux spécifiques.
+
+- **Extraction des descriptions** : Extrait les descriptions des jeux et les enregistre dans des fichiers texte individuels, permettant une gestion séparée des métadonnées.
+
+- **Gestion des métadonnées** : Conserve les informations essentielles des jeux, telles que le nom, l'année de sortie, le développeur, l'éditeur, le genre, la note et le nombre de joueurs.
+
+- **Formatage XML** : Génère un fichier XML bien structuré et lisible, facilitant son intégration dans d'autres systèmes.
+
+### Utilisation
+
+1. **Lancement du script** : Exécutez le script pour démarrer le processus de conversion.
+2. **Préparation du fichier gamelist.xml** : Assurez-vous que le fichier `gamelist.xml` est présent dans le même répertoire que le script.
+3. **Conversion** : Le script parcourt le fichier `gamelist.xml`, extrait les métadonnées et les descriptions, puis génère un fichier `hyperlist.xml` et des fichiers texte pour les descriptions.
+4. **Résultats** : Le fichier `hyperlist.xml` est créé dans le répertoire courant, et un dossier contenant les descriptions des jeux est généré.
+
+Cet outil est particulièrement utile pour les utilisateurs qui souhaitent migrer leurs métadonnées de jeux d'un système à un autre, tout en conservant et en organisant les descriptions des jeux de manière séparée.

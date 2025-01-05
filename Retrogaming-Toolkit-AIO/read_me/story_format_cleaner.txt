@@ -1,0 +1,15 @@
+**Story Format Cleaner** est un script Python conçu pour normaliser les fichiers texte contenant des histoires (stories) en remplaçant les caractères français non-ASCII par leurs équivalents ASCII et en encodant correctement le caractère `&` pour une utilisation dans des fichiers XML. Ce script est particulièrement utile pour préparer des fichiers texte à être intégrés dans des formats nécessitant des caractères ASCII.
+
+Le script propose les fonctionnalités suivantes :
+
+- **Normalisation des caractères** : Il remplace les caractères français non-ASCII (comme les lettres accentuées) par leurs équivalents ASCII, garantissant une compatibilité avec des systèmes ou formats qui ne supportent pas les caractères spéciaux.
+
+- **Remplacement de `&` par `&amp;`** : Le script encode correctement le caractère `&` en `&amp;`, ce qui est essentiel pour éviter les erreurs dans les fichiers XML.
+
+- **Traitement en masse** : Le script parcourt tous les fichiers `.txt` dans le répertoire courant et applique les modifications de manière automatique, permettant de traiter plusieurs fichiers en une seule exécution.
+
+- **Gestion des erreurs** : Si un fichier ne peut pas être traité (par exemple, en raison d'un encodage non supporté), le script affiche un message d'erreur pour informer l'utilisateur.
+
+- **Rapport de traitement** : Un résumé du traitement est affiché, indiquant le nombre de fichiers traités et le temps total d'exécution, offrant une visibilité sur le processus.
+
+Ce script est particulièrement utile pour les utilisateurs qui préparent des fichiers texte pour une intégration dans des fichiers XML ou d'autres formats nécessitant des caractères ASCII, en automatisant la normalisation et l'encodage des caractères spéciaux.

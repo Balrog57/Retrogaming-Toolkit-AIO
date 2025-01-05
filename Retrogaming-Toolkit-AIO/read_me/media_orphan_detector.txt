@@ -1,0 +1,13 @@
+**Media Orphan Detector** est un script Python conçu pour identifier et déplacer les fichiers multimédias orphelins dans une structure de répertoires. Il parcourt les fichiers multimédias situés dans le dossier `medium_artwork` et vérifie si un fichier ROM correspondant existe dans le dossier `roms`. Si aucun fichier ROM correspondant n'est trouvé, le fichier multimédia est considéré comme orphelin et est déplacé vers un dossier `orphan`.
+
+Le script propose les fonctionnalités suivantes :
+
+- **Détection des fichiers multimédias orphelins** : Il parcourt les fichiers multimédias dans le dossier `medium_artwork` et vérifie s'ils ont un fichier ROM correspondant dans le dossier `roms`. Les fichiers sans correspondance sont identifiés comme orphelins.
+
+- **Déplacement des fichiers orphelins** : Les fichiers multimédias orphelins sont déplacés vers un dossier `orphan`, tout en conservant la structure des sous-répertoires d'origine.
+
+- **Ignorer les fichiers "default"** : Les fichiers multimédias nommés "default" (insensible à la casse) sont ignorés et ne sont pas déplacés, car ils sont souvent utilisés comme fichiers par défaut.
+
+- **Support de plusieurs extensions de fichiers ROM** : Le script vérifie les fichiers ROM avec les extensions `.txt`, `.png`, `.jpg`, `.zip`, et `.bin`, garantissant une compatibilité avec différents formats de fichiers.
+
+Ce script est particulièrement utile pour les utilisateurs qui gèrent des collections de fichiers multimédias et souhaitent nettoyer leur structure de répertoires en identifiant et en déplaçant les fichiers qui n'ont plus de fichiers ROM associés.

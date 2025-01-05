@@ -1,0 +1,39 @@
+**Enable Long Paths** est un utilitaire simple en Python conçu pour activer le support des chemins longs sur un système Windows. Par défaut, Windows limite la longueur des chemins de fichiers à 260 caractères. Ce script modifie une clé de registre pour permettre l'utilisation de chemins plus longs, ce qui est particulièrement utile dans les environnements de développement ou de gestion de fichiers où les chemins dépassent souvent cette limite.
+
+### Fonctionnalités
+
+- **Activation des chemins longs** : Modifie la clé de registre `LongPathsEnabled` pour activer le support des chemins longs, permettant ainsi l'utilisation de chemins de fichiers dépassant 260 caractères.
+
+- **Exécution simple** : Le script utilise une commande `reg` pour modifier le registre, ce qui le rend facile à utiliser et à intégrer dans des workflows automatisés.
+
+### Utilisation
+
+1. **Téléchargement du script** : Téléchargez le fichier `enable_long_paths.py`.
+2. **Exécution du script** :
+   - Ouvrez une invite de commande en tant qu'administrateur.
+   - Naviguez jusqu'au répertoire où se trouve le script.
+   - Exécutez le script avec la commande suivante :
+     ```bash
+     python enable_long_paths.py
+     ```
+3. **Vérification** :
+   - Si la modification est réussie, un message de confirmation sera affiché.
+   - Si une erreur se produit, un message d'erreur sera affiché avec des détails sur la cause du problème.
+
+### Détails techniques
+
+Le script utilise la commande `reg` pour modifier la clé de registre suivante :
+
+```
+HKLM\SYSTEM\CurrentControlSet\Control\FileSystem\LongPathsEnabled
+```
+
+La valeur de cette clé est définie à `1` pour activer le support des chemins longs.
+
+### Avertissements
+
+- **Modification du registre** : La modification du registre peut avoir des conséquences sur le système. Assurez-vous de comprendre les implications avant d'exécuter ce script.
+
+- **Permissions administratives** : Le script doit être exécuté avec des droits d'administrateur pour pouvoir modifier le registre.
+
+Cet outil est particulièrement utile pour les développeurs et les utilisateurs qui travaillent avec des structures de fichiers complexes et nécessitent des chemins de fichiers plus longs que la limite par défaut de Windows.

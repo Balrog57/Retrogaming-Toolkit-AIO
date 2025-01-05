@@ -1,0 +1,13 @@
+**Liste Fichier Simple** est un script Python conçu pour parcourir un répertoire et ses sous-répertoires afin de lister tous les fichiers présents. La liste générée est ensuite enregistrée dans un fichier texte nommé `Liste.txt`, situé dans le répertoire courant. 
+
+Le script offre les fonctionnalités suivantes :
+
+- **Liste des fichiers** : Il parcourt de manière récursive le répertoire spécifié et ses sous-répertoires pour identifier tous les fichiers.
+
+- **Exclusion automatique** : Le script ignore automatiquement le fichier du script en cours d'exécution ainsi que le fichier de sortie `Liste.txt`, évitant ainsi de les inclure dans la liste générée.
+
+- **Enregistrement dans un fichier texte** : La liste des fichiers est sauvegardée dans un fichier texte nommé `Liste.txt`, ce qui permet une consultation facile et une utilisation ultérieure.
+
+- **Support des chemins relatifs** : Les chemins des fichiers sont enregistrés en utilisant des chemins relatifs, ce qui rend la liste plus lisible et portable.
+
+Ce script est particulièrement utile pour les utilisateurs qui ont besoin de générer rapidement une liste de fichiers dans un répertoire et ses sous-répertoires, sans avoir à effectuer cette tâche manuellement.
