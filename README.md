@@ -1,55 +1,184 @@
-# Retrogaming-Toolkit-AIO
+Retrogaming-Toolkit-AIO
 
 Une interface graphique centralisée regroupant des outils Python pour la gestion de jeux rétro.
 
-## Installation
+Installation
 
-Retrogaming-Toolkit-AIO est une interface graphique (GUI) centralisée qui regroupe une collection d'outils Python pour la gestion de jeux, de collections, de fichiers multimédias et bien plus encore. Conçue pour simplifier l'exécution de scripts, cette interface permet aux utilisateurs de naviguer facilement entre différents outils sans avoir à recourir à la ligne de commande. Avec une interface intuitive et moderne, elle offre une expérience utilisateur fluide et efficace.
+Retrogaming-Toolkit-AIO est une interface graphique (GUI) centralisée qui regroupe une collection d'outils Python pour :
 
-### Fonctionnalités
+La gestion de jeux
 
-L'application propose une variété d'outils pour répondre à différents besoins :
+La gestion de collections
 
-- **Assisted GameList Creator** : Automatise la création de listes de jeux (GameList) pour une gestion simplifiée des collections.
-- **CHD Converter Tool** : Convertit des fichiers CHD, un format couramment utilisé pour les jeux rétro.
-- **Collection Builder** : Crée des collections personnalisées à partir de fichiers, facilitant l'organisation des jeux.
-- **Collection Extractor** : Extrait des données de collections existantes pour une réutilisation ou une migration.
-- **Enable Long Paths** : Active le support des chemins longs sur Windows, essentiel pour certains systèmes de fichiers.
-- **Folder Name to TXT** : Convertit les noms de dossiers en fichiers texte, utile pour la documentation ou l'organisation.
-- **Game Removal Tool** : Supprime les jeux inutiles ou obsolètes, optimisant l'espace de stockage.
-- **Gamelist to Hyperlist** : Convertit une GameList en HyperList, un format utilisé par certains frontends de jeux.
-- **Hyperlist to Gamelist** : Convertit une HyperList en GameList, permettant une compatibilité avec d'autres systèmes.
-- **Media Orphan Detector** : Identifie et gère les fichiers multimédias orphelins, améliorant l'intégrité des collections.
-- **Merge Story Hyperlist** : Fusionne des HyperLists d'histoires pour créer des collections plus complètes.
-- **Story Format Cleaner** : Nettoie et normalise les formats de fichiers texte contenant des histoires.
-- **Video Converter** : Convertit des vidéos dans différents formats, offrant une flexibilité pour les médias.
-- **MaxCSO Compression Script** : Compresse des fichiers ISO en CSO avec une interface graphique moderne.
-- **RVZ/ISO Converter** : Convertit des fichiers ISO en RVZ et vice versa en utilisant DolphinTool.
-- **Game Batch Creator** : Crée des fichiers batch pour lancer des jeux normaux, Steam et Epic Games.
-- **Install Dependencies** : Installe automatiquement les dépendances nécessaires pour exécuter des applications et des jeux sur Windows.
-- **Liste Fichier Simple** : Liste tous les fichiers dans un répertoire et ses sous-répertoires.
-- **Liste Fichier Windows** : Liste tous les fichiers et répertoires dans le répertoire courant.
+La gestion de fichiers multimédias
 
-### Utilisation
+Caractéristiques principales
 
-1. **Lancement de l'application** : Exécutez le script principal pour ouvrir l'interface graphique.
-2. **Navigation** : Parcourez les outils disponibles via une interface paginée, avec des boutons de navigation pour passer d'une page à l'autre.
-3. **Exécution des outils** : Sélectionnez un outil en cliquant sur son nom pour l'exécuter directement depuis l'interface.
-4. **Gestion des erreurs** : En cas d'erreur lors de l'exécution d'un script, un message d'erreur détaillé est affiché pour faciliter le dépannage.
+Interface intuitive et moderne basée sur customtkinter.
 
-### Interface Graphique
+Navigation fluide et simplifiée.
 
-L'interface est conçue avec **ttkbootstrap**, une bibliothèque qui améliore l'apparence des applications Tkinter. Le thème "cosmo" offre un design moderne et épuré, tandis que la fenêtre s'ajuste automatiquement pour s'adapter au nombre d'outils affichés, garantissant une expérience utilisateur optimale.
+Utilisation sans recours à la ligne de commande.
 
-### Outils supplémentaires
+Fonctionnalités principales
 
-- **MaxCSO Compression Script** : Cet outil permet de compresser des fichiers ISO en CSO ou DAX avec une interface graphique moderne. Il utilise tous les cœurs du processeur pour accélérer les tâches et propose des options de compression flexibles.
-- **RVZ/ISO Converter** : Cet outil convertit des fichiers ISO en RVZ et vice versa en utilisant DolphinTool. Il propose une interface graphique intuitive pour sélectionner les répertoires et les paramètres de conversion.
-- **Game Batch Creator** : Cet outil crée des fichiers batch pour lancer des jeux normaux, Steam et Epic Games. Il offre une interface graphique moderne pour simplifier la création de ces fichiers.
-- **Install Dependencies** : Ce script installe automatiquement les dépendances nécessaires pour exécuter des applications et des jeux sur Windows, y compris les redistribuables Visual C++, DirectX et OpenAL.
-- **Liste Fichier Simple** : Ce script liste tous les fichiers dans un répertoire et ses sous-répertoires, enregistrant la liste dans un fichier texte.
-- **Liste Fichier Windows** : Ce script liste tous les fichiers et répertoires dans le répertoire courant, enregistrant la liste dans un fichier texte.
+1. Assisted GameList Creator
 
-Ce toolkit est idéal pour les utilisateurs qui cherchent une solution centralisée et facile à utiliser pour gérer leurs collections de jeux et fichiers multimédias, tout en bénéficiant d'une interface graphique moderne et intuitive.
+Gère les fichiers XML existants ou en crée de nouveaux.
 
-Télécharger directement l'éxecutable sur : http://gofile.me/4637t/YDdee41cN
+Identifie les jeux manquants et facilite leur intégration.
+
+Fonctionnalités incluses :
+
+Fusion
+
+Sauvegarde
+
+Génération de listes de jeux manquants
+
+Interface avec barre de progression et logs en temps réel.
+
+2. CHD Converter Tool
+
+Conversion entre formats (ISO, CUE, GDI et CHD).
+
+Vérification de l'intégrité des fichiers CHD.
+
+Supporte les archives compressées (ZIP, RAR, 7Z).
+
+Traitement multi-cœurs et téléchargement automatique de chdman si nécessaire.
+
+3. Collection Builder
+
+Création de collections personnalisées à partir de mots-clés.
+
+Organisation automatique des structures de dossiers (artworks, logos, vidéos).
+
+Gestion par thèmes ou genres.
+
+4. Collection Extractor
+
+Extraction et organisation de collections existantes.
+
+Prise en charge des émulateurs (RetroArch, etc.).
+
+Génération de rapports des fichiers extraits.
+
+5. Enable Long Paths
+
+Activation du support des chemins longs (260+ caractères) sur Windows.
+
+Nécessite des droits d’administrateur.
+
+6. Folder Name to TXT
+
+Création de fichiers texte vides pour chaque fichier avec une extension spécifiée.
+
+7. Folder to ZIP
+
+Compression individuelle des fichiers d'un dossier en ZIP.
+
+Suppression automatique des fichiers originaux après compression.
+
+8. Game Batch Creator
+
+Création de fichiers batch pour trois types de jeux : normaux, Steam, Epic Games.
+
+Configuration simplifiée des chemins et exécutables.
+
+9. Game Removal Tool
+
+Suppression intuitive des jeux inutiles et de leurs fichiers associés.
+
+10. Gamelist to Hyperlist
+
+Conversion d’un fichier gamelist.xml en hyperlist.xml.
+
+Extraction des métadonnées des jeux.
+
+11. Hyperlist to Gamelist Converter
+
+Transformation de fichiers hyperlist.xml en gamelist.xml.
+
+Gestion des métadonnées (nom, année, développeur, genre, etc.).
+
+12. Install Dependencies
+
+Installation automatique des composants essentiels (Visual C++, DirectX, OpenAL).
+
+13. Liste Fichier Simple
+
+Exploration d'un répertoire pour lister tous les fichiers.
+
+14. Liste Fichier Windows
+
+Liste des fichiers et répertoires dans un fichier Liste.txt.
+
+15. MaxCSO Compression Script
+
+Compression des fichiers ISO en CSO ou DAX avec options flexibles.
+
+Optimisation multi-cœurs.
+
+16. Media Orphan Detector
+
+Détection et déplacement des fichiers multimédias orphelins.
+
+17. Merge Story Hyperlist
+
+Intégration de fichiers texte dans des fichiers XML de type hyperlist.
+
+18. RVZ/ISO Converter
+
+Conversion intuitive entre formats ISO et RVZ.
+
+19. Story Format Cleaner
+
+Normalisation des fichiers texte pour compatibilité XML.
+
+20. Video Converter
+
+Conversion et rognage de vidéos par lot avec options personnalisables (débit, résolution, FPS).
+
+Interface graphique
+
+Technologie : customtkinter
+
+Caractéristiques :
+
+Interface moderne et responsive
+
+Organisation des outils par sections
+
+Notifications visuelles pour guider l’utilisateur
+
+Utilisation
+
+Lancement de l'application :
+
+Exécutez le script principal pour ouvrir l'interface graphique.
+
+Navigation :
+
+Parcourez les outils disponibles via les onglets ou la barre de navigation.
+
+Exécution des outils :
+
+Sélectionnez un outil, configurez ses paramètres et lancez-le.
+
+Gestion des erreurs :
+
+Messages détaillés pour faciliter le dépannage.
+
+Pré-requis
+
+Python et les dépendances listées dans requirements.txt.
+
+Commande d'installation :
+
+pip install -r requirements.txt
+
+Lancer _install_first.bat pour installer Python et les dépendances automatiquement.
+
+Utilisez ensuite main.py pour démarrer l’application.
+
