@@ -183,6 +183,10 @@ class Application(ctk.CTk):
             self.page -= 1
             self.update_page()
 
-if __name__ == '__main__':
+def main():
+    """Point d'entrée principal de l'application"""
     app = Application()
     app.mainloop()
+
+if __name__ == '__main__':
+    main()

@@ -1,5 +1,9 @@
 # Retrogaming-Toolkit-AIO
 
+Une interface graphique centralisée regroupant des outils Python pour la gestion de jeux rétro.
+
+## Installation
+
 Retrogaming-Toolkit-AIO est une interface graphique (GUI) centralisée qui regroupe une collection d'outils Python pour la gestion de jeux, de collections, de fichiers multimédias et bien plus encore. Conçue pour simplifier l'exécution de scripts, cette interface permet aux utilisateurs de naviguer facilement entre différents outils sans avoir à recourir à la ligne de commande. Avec une interface intuitive et moderne, elle offre une expérience utilisateur fluide et efficace.
 
 ### Fonctionnalités
