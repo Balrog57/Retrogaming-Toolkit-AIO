@@ -10,7 +10,7 @@ import tempfile
 import threading
 import time
 import customtkinter as ctk
-from tkinter import filedialog, messagebox, StringVar, IntVar
+from tkinter import filedialog, messagebox, StringVar, IntVar, BooleanVar
 
 CHDMAN_URL = "https://wiki.recalbox.com/tutorials/utilities/rom-conversion/chdman/chdman.zip"
 CHDMAN_ZIP = "chdman.zip"
@@ -35,6 +35,7 @@ class CHDmanGUI:
         self.destination_folder = StringVar()
         self.num_cores = IntVar(value=self.max_cores)
         self.option = StringVar(value="Info")
+        self.overwrite = BooleanVar(value=True)  # Overwrite par défaut activé
         self.available_cores = [str(i) for i in range(1, self.max_cores + 1)]
         
         # Main container avec grille
@@ -71,9 +72,12 @@ class CHDmanGUI:
         ctk.CTkRadioButton(middle_frame, text="Convertir", variable=self.option, value="Convert").grid(row=0, column=3, padx=5, pady=5, sticky="w")
         ctk.CTkRadioButton(middle_frame, text="Extraire", variable=self.option, value="Extract").grid(row=0, column=4, padx=5, pady=5, sticky="w")
 
+        # Option Overwrite
+        ctk.CTkCheckButton(middle_frame, text="Overwrite", variable=self.overwrite).grid(row=1, column=0, padx=5, pady=5, sticky="w")
+
         # Sélection du nombre de cœurs
         cores_frame = ctk.CTkFrame(middle_frame, fg_color="#1a1a1a", corner_radius=10)
-        cores_frame.grid(row=1, column=0, columnspan=5, sticky="ew", padx=5, pady=15)
+        cores_frame.grid(row=2, column=0, columnspan=5, sticky="ew", padx=5, pady=15)
         
         cores_container = ctk.CTkFrame(cores_frame, fg_color="transparent")
         cores_container.pack(fill="x", expand=True, padx=15, pady=10)
@@ -222,7 +226,7 @@ class CHDmanGUI:
             buttons_container,
             text="⏹️ Arrêter",
             command=self.stop_conversion,
-            state="normal",  # Activé par défaut
+            state="disabled",  # Désactivé par défaut
             fg_color="#dc3545",
             hover_color="#a71d2a",
             width=200,
@@ -239,7 +243,7 @@ class CHDmanGUI:
             buttons_container,
             text="⏸️ Pause",
             command=self.pause_conversion,
-            state="normal",  # Activé par défaut
+            state="disabled",  # Désactivé par défaut
             fg_color="#ffc107",
             hover_color="#cc9a06",
             width=120,
@@ -254,6 +258,7 @@ class CHDmanGUI:
         # Ajout des variables de contrôle
         self.is_running = False
         self.is_paused = False
+        self.current_process = None  # Pour stocker le processus en cours
 
         tooltip = ctk.CTkLabel(
             control_frame,
@@ -330,7 +335,7 @@ class CHDmanGUI:
                     sevenz_ref.extractall(dossier)
 
     def executer_chdman(self, commande, fichier_entree=None, fichier_sortie=None):
-        """Exécute une commande CHDman."""
+        """Exécute une commande CHDman avec gestion de l'interruption."""
         if not os.path.exists(CHDMAN_EXE):
             self.verifier_chdman()
 
@@ -341,10 +346,30 @@ class CHDmanGUI:
             cmd += ["-o", fichier_sortie]
 
         try:
-            subprocess.run(cmd, check=True)
-            messagebox.showinfo("Succès", f"Commande exécutée avec succès :\n{' '.join(cmd)}")
+            # Lancer le processus avec subprocess.Popen
+            process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            self.current_process = process  # Stocker le processus en cours
+
+            # Attendre la fin du processus ou l'interruption
+            while process.poll() is None:  # Tant que le processus est en cours
+                if not self.is_running:  # Si l'utilisateur a cliqué sur Arrêter
+                    process.terminate()  # Interrompre le processus
+                    return "Processus interrompu par l'utilisateur."
+                if self.is_paused:  # Si l'utilisateur a cliqué sur Mettre en pause
+                    time.sleep(0.1)  # Mettre en pause temporairement
+
+            # Récupérer la sortie du processus
+            stdout, stderr = process.communicate()
+            if process.returncode != 0:
+                raise subprocess.CalledProcessError(process.returncode, cmd, stdout, stderr)
+            return stdout
         except subprocess.CalledProcessError as e:
-            messagebox.showerror("Erreur", f"Échec de l'exécution de la commande :\n{e}")
+            error_message = f"Erreur lors de l'exécution de la commande : {e.stderr}"
+            response = messagebox.askretrycancel("Erreur", f"{error_message}\nVoulez-vous réessayer ou annuler ?")
+            if response:
+                return self.executer_chdman(commande, fichier_entree, fichier_sortie)  # Réessayer
+            else:
+                return error_message  # Annuler et retourner l'erreur
 
     def executer_operation(self):
         """Exécute l'opération sélectionnée."""
@@ -356,20 +381,49 @@ class CHDmanGUI:
 
         self.extraire_archives(source)
 
-        if self.option.get() == "Info":
-            for file in self.obtenir_fichiers(source, (".chd",)):
-                self.executer_chdman(["info"], fichier_entree=file)
-        elif self.option.get() == "Verify":
-            for file in self.obtenir_fichiers(source, (".chd",)):
-                self.executer_chdman(["verify"], fichier_entree=file)
-        elif self.option.get() == "Convert":
-            for file in self.obtenir_fichiers(source, (".cue", ".gdi", ".iso")):
-                fichier_sortie = os.path.join(destination, os.path.splitext(os.path.basename(file))[0] + ".chd")
-                self.executer_chdman(["createcd", "--numprocessors", str(self.num_cores.get())], fichier_entree=file, fichier_sortie=fichier_sortie)
-        elif self.option.get() == "Extract":
-            for file in self.obtenir_fichiers(source, (".chd",)):
-                fichier_sortie = os.path.join(destination, os.path.splitext(os.path.basename(file))[0] + ".cue")
-                self.executer_chdman(["extractcd"], fichier_entree=file, fichier_sortie=fichier_sortie)
+        log_file = os.path.join(destination, "chdman_log.txt")
+        files_to_process = list(self.obtenir_fichiers(source, (".chd", ".cue", ".gdi", ".iso")))
+        total_files = len(files_to_process)
+
+        with open(log_file, "w") as log:
+            for index, file in enumerate(files_to_process):
+                if not self.is_running:
+                    break  # Arrêter si l'utilisateur a cliqué sur Arrêter
+
+                if self.is_paused:
+                    while self.is_paused:
+                        time.sleep(0.1)  # Mettre en pause
+
+                # Mettre à jour la barre de progression
+                progress = (index + 1) / total_files
+                self.update_progress(progress)
+
+                # Traitement du fichier
+                if self.option.get() == "Info":
+                    result = self.executer_chdman(["info"], fichier_entree=file)
+                    log.write(f"Info pour {file}:\n{result}\n\n")
+                elif self.option.get() == "Verify":
+                    result = self.executer_chdman(["verify"], fichier_entree=file)
+                    log.write(f"Vérification pour {file}:\n{result}\n\n")
+                elif self.option.get() == "Convert":
+                    fichier_sortie = os.path.join(destination, os.path.splitext(os.path.basename(file))[0] + ".chd")
+                    if self.overwrite.get() or not os.path.exists(fichier_sortie):
+                        result = self.executer_chdman(["createcd", "--numprocessors", str(self.num_cores.get())], fichier_entree=file, fichier_sortie=fichier_sortie)
+                        log.write(f"Conversion de {file}:\n{result}\n\n")
+                elif self.option.get() == "Extract":
+                    fichier_sortie = os.path.join(destination, os.path.splitext(os.path.basename(file))[0] + ".cue")
+                    if self.overwrite.get() or not os.path.exists(fichier_sortie):
+                        result = self.executer_chdman(["extractcd"], fichier_entree=file, fichier_sortie=fichier_sortie)
+                        log.write(f"Extraction de {file}:\n{result}\n\n")
+
+        # Mettre à jour les états des boutons à la fin du processus
+        self.is_running = False
+        self.is_paused = False
+        self.start_button.configure(state="normal")
+        self.stop_button.configure(state="disabled")
+        self.pause_button.configure(state="disabled")
+
+        messagebox.showinfo("Succès", f"Opération terminée. Le rapport est disponible dans {log_file}")
 
     def update_progress(self, value):
         """Met à jour la barre de progression et le pourcentage"""
@@ -378,35 +432,66 @@ class CHDmanGUI:
         
     def start_conversion(self):
         """Démarre le processus de conversion."""
+        if self.is_running:
+            return  # Ne rien faire si le processus est déjà en cours
+
+        self.is_running = True
+        self.is_paused = False
+
+        # Mettre à jour les états des boutons
         self.start_button.configure(state="disabled")
         self.stop_button.configure(state="normal")
         self.pause_button.configure(state="normal")
-        
-        # Simulation de progression
-        def simulate_progress():
-            for i in range(101):
-                self.update_progress(i/100)
-                self.root.update()
-                time.sleep(0.05)
-            messagebox.showinfo("Conversion", "Conversion terminée avec succès!")
-            self.stop_conversion()
-            
-        threading.Thread(target=simulate_progress).start()
+
+        # Exécuter l'opération dans un thread séparé
+        self.process_thread = threading.Thread(target=self.executer_operation)
+        self.process_thread.start()
 
     def stop_conversion(self):
         """Arrête le processus de conversion."""
+        if not self.is_running:
+            return  # Ne rien faire si le processus n'est pas en cours
+
+        self.is_running = False
+        self.is_paused = False
+
+        # Interrompre le processus en cours
+        if self.current_process:
+            self.current_process.terminate()  # Interrompre le processus
+            self.current_process = None
+
+        # Supprimer les fichiers partiellement traités
+        if self.option.get() == "Convert":
+            fichier_sortie = os.path.join(self.destination_folder.get(), os.path.splitext(os.path.basename(self.cache["current_file"]))[0] + ".chd")
+            if os.path.exists(fichier_sortie):
+                os.remove(fichier_sortie)  # Supprimer le fichier partiellement converti
+        elif self.option.get() == "Extract":
+            fichier_sortie = os.path.join(self.destination_folder.get(), os.path.splitext(os.path.basename(self.cache["current_file"]))[0] + ".cue")
+            if os.path.exists(fichier_sortie):
+                os.remove(fichier_sortie)  # Supprimer le fichier partiellement extrait
+
+        # Mettre à jour les états des boutons
         self.start_button.configure(state="normal")
         self.stop_button.configure(state="disabled")
         self.pause_button.configure(state="disabled")
-        self.update_progress(0)
+
         messagebox.showinfo("Conversion", "Conversion arrêtée.")
 
     def pause_conversion(self):
-        """Met en pause le processus de conversion."""
-        self.start_button.configure(state="normal")
-        self.stop_button.configure(state="normal")
-        self.pause_button.configure(state="disabled")
-        messagebox.showinfo("Conversion", "Conversion en pause.")
+        """Met en pause ou reprend le processus de conversion."""
+        if not self.is_running:
+            return  # Ne rien faire si le processus n'est pas en cours
+
+        if self.is_paused:
+            # Reprendre le processus
+            self.is_paused = False
+            self.pause_button.configure(text="⏸️ Pause")
+            messagebox.showinfo("Conversion", "Conversion reprise.")
+        else:
+            # Mettre en pause le processus
+            self.is_paused = True
+            self.pause_button.configure(text="▶️ Reprendre")
+            messagebox.showinfo("Conversion", "Conversion en pause.")
 
     def obtenir_fichiers(self, dossier, extensions):
         """Récupère les fichiers avec des extensions spécifiées."""

@@ -22,6 +22,7 @@ ctk.set_default_color_theme("blue")  # Thème de couleur bleu
 # Liste des scripts avec descriptions, chemins des icônes et fichiers "Lisez-moi"
 scripts = [
     {"name": "assisted_gamelist_creator", "description": "Gère et enrichit les listes de jeux XML.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "assisted_gamelist_creator.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "assisted_gamelist_creator.txt")},
+    {"name": "BGBackup", "description": "Sauvegarde les fichiers gamelist.xml.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "BGBackup.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "BGBackup.txt")},
     {"name": "CHD_Converter_Tool", "description": "Convertit et vérifie les fichiers CHD.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "CHD_Converter_Tool.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CHD_Converter_Tool.txt")},
     {"name": "collection_builder", "description": "(Core) Crée des collections de jeux par mots-clés.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "collection_builder.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "collection_builder.txt")},
     {"name": "collection_extractor", "description": "(Core) Extrait des collections de jeux spécifiques.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "collection_extractor.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "collection_extractor.txt")},
