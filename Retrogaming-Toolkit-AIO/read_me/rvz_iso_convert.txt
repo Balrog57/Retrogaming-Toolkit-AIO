@@ -1,75 +1,15 @@
-# Convertisseur RVZ/ISO avec Interface Graphique
+RVZ/ISO Converter est un outil avec interface graphique pour convertir des fichiers ISO en RVZ et vice versa, en utilisant DolphinTool.exe.
 
-Ce script Python offre une interface utilisateur intuitive pour convertir des fichiers ISO en RVZ et vice versa, en s'appuyant sur `DolphinTool.exe`.
+Fonctionnalités
+Conversion ISO vers RVZ et RVZ vers ISO : Convertit les fichiers entre ces formats.
 
-## Fonctionnalités Principales
+Téléchargement automatique de DolphinTool : Télécharge l'outil si absent.
 
-- **Conversion ISO vers RVZ** : Transformez vos fichiers ISO en RVZ en sélectionnant le format de compression, le niveau de compression et la taille de bloc souhaités.
-- **Conversion RVZ vers ISO** : Restaurez vos fichiers RVZ au format ISO d'origine.
-- **Téléchargement Automatique de DolphinTool** : Si `DolphinTool.exe` est absent, le script propose de le télécharger et de l'extraire automatiquement.
-- **Interface Utilisateur Conviviale** : Grâce à Tkinter, sélectionnez facilement les répertoires d'entrée et de sortie, ainsi que les paramètres de conversion.
+Interface conviviale : Sélectionnez les répertoires et les paramètres de conversion.
 
-## Détails des Fonctions
+Utilisation
+Lancez le script.
 
-### 1. `check_and_download_dolphintool()`
+Sélectionnez les fichiers à convertir.
 
-Cette fonction vérifie la présence de `DolphinTool.exe` dans le répertoire courant. Si le fichier est absent, elle propose à l'utilisateur de le télécharger automatiquement depuis le site officiel.
-
-### 2. `download_dolphintool()`
-
-Si l'utilisateur accepte le téléchargement, cette fonction télécharge l'archive `dolphin-2412-x64.7z` contenant `DolphinTool.exe`, l'extrait, puis déplace l'exécutable dans le répertoire courant.
-
-### 3. `extract_dolphintool(archive_path)`
-
-Cette fonction extrait `DolphinTool.exe` de l'archive téléchargée en utilisant le module `py7zr`. Elle gère également le renommage et le déplacement de l'exécutable vers le répertoire approprié.
-
-### 4. `select_directory(title)`
-
-Ouvre une boîte de dialogue permettant à l'utilisateur de sélectionner un répertoire, en affichant le titre spécifié.
-
-### 5. `convert_rvz_to_iso(input_dir, output_dir)`
-
-Parcourt tous les fichiers `.rvz` du répertoire d'entrée et les convertit en fichiers `.iso` dans le répertoire de sortie en utilisant `DolphinTool.exe`. La fonction effectue jusqu'à 5 tentatives en cas d'échec, avec une pause de 2 secondes entre chaque essai.
-
-### 6. `convert_iso_to_rvz(input_dir, output_dir, compression_format, compression_level, block_size)`
-
-Parcourt tous les fichiers `.iso` du répertoire d'entrée et les convertit en fichiers `.rvz` dans le répertoire de sortie, en appliquant les paramètres de format de compression, niveau de compression et taille de bloc spécifiés. Comme pour la conversion inverse, jusqu'à 5 tentatives sont effectuées en cas d'échec.
-
-### 7. `start_conversion()`
-
-Récupère les paramètres sélectionnés par l'utilisateur via l'interface graphique et appelle la fonction de conversion appropriée (`convert_iso_to_rvz` ou `convert_rvz_to_iso`) en fonction de l'opération choisie.
-
-### 8. Fonctions de l'Interface Graphique
-
-- **`browse_input_dir()`** : Ouvre une boîte de dialogue pour sélectionner le répertoire d'entrée et met à jour la variable correspondante.
-- **`browse_output_dir()`** : Ouvre une boîte de dialogue pour sélectionner le répertoire de sortie et met à jour la variable correspondante.
-
-Ces fonctions facilitent la navigation et la sélection des répertoires par l'utilisateur.
-
-## Utilisation
-
-1. **Lancement du Script** :
-   - Exécutez le script Python pour ouvrir l'interface graphique.
-
-2. **Sélection des Répertoires** :
-   - Choisissez le répertoire contenant les fichiers à convertir.
-   - Définissez le répertoire de destination pour les fichiers convertis.
-
-3. **Choix de l'Opération** :
-   - Sélectionnez "ISO vers RVZ" ou "RVZ vers ISO" selon vos besoins.
-
-4. **Paramètres de Conversion** (pour ISO vers RVZ) :
-   - **Format de Compression** : Choisissez parmi `zstd`, `lzma2`, `lzma`, `bzip` ou `none`.
-   - **Niveau de Compression** : Sélectionnez un niveau entre 1 et 22.
-   - **Taille de Bloc** : Optez pour une taille de bloc adaptée, exprimée en octets.
-
-5. **Démarrer la Conversion** :
-   - Cliquez sur "Démarrer la conversion" pour lancer le processus.
-   - Le script tentera jusqu'à 5 fois la conversion en cas d'échec, avec une pause de 2 secondes entre chaque tentative.
-   - Une fois la conversion terminée, un message de confirmation s'affichera.
-
-## Ressources Supplémentaires
-
-- **Dolphin Emulator** : [Site Officiel](https://dolphin-emu.org/)
-- **Dolphin Emulator sur GitHub** : [Dépôt GitHub](https://github.com/dolphin-emu/dolphin)
- 
+Lancez la conversion.

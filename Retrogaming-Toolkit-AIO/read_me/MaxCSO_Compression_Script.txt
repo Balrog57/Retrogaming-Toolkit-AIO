@@ -1,47 +1,17 @@
-# MaxCSO Compression Script GUI
+MaxCSO Compression Script est un outil avec interface graphique pour compresser des fichiers ISO en CSO ou ZSO. Il utilise maxcso.exe pour optimiser la compression.
 
-Ce guide présente les fonctionnalités et options disponibles pour utiliser **MaxCSO** avec une interface graphique (GUI). Il est conçu pour maximiser la flexibilité et la simplicité d'utilisation.
+Fonctionnalités
+Compression ISO vers CSO/ZSO : Convertit des fichiers ISO en formats compressés.
 
-## Fonctionnalités
+Utilisation optimisée des cœurs CPU : Utilise tous les cœurs disponibles.
 
-- **Interface utilisateur moderne** : Gérez facilement les options et dossiers à traiter.
-- **Utilisation optimisée des cœurs CPU** : L'outil utilise automatiquement tous les cœurs disponibles pour accélérer les tâches.
-- **Suivi de progression** : Une barre de progression et un pourcentage indiquent l'état de traitement.
-- **Flexibilité des options** :
-  - Remplacement des fichiers originaux après compression.
-  - Création de fichiers compressés dans un dossier distinct.
-- **Téléchargement automatisé** : Télécharge et configure automatiquement `maxcso.exe` si absent.
+Téléchargement automatique de maxcso.exe : Télécharge l'outil si absent.
 
-## Prérequis
+Utilisation
+Lancez le script.
 
-- **MaxCSO** : Le script télécharge automatiquement `maxcso.exe` si nécessaire.
-- **7-Zip** : Assurez-vous que `7z` est installé et accessible dans le PATH du système.
+Sélectionnez les fichiers ISO à compresser.
 
-## Utilisation
+Choisissez les options de compression.
 
-1. Lancez le script via la commande suivante :
-   ```
-   python maxcso_gui_script.py
-   ```
-2. Dans l'interface :
-   - Sélectionnez si vous souhaitez **remplacer les fichiers originaux** ou créer des fichiers compressés dans un nouveau dossier.
-   - Spécifiez un dossier source et, si nécessaire, un dossier de destination.
-   - Cliquez sur **Lancer la compression**.
-3. Observez la progression grâce à la barre et au pourcentage affiché.
-
-## Options disponibles avec MaxCSO
-
-Voici une liste des principales options prises en charge par MaxCSO pour personnaliser le processus de compression :
-
-- **`--threads=N`** : Spécifie le nombre de cœurs CPU utilisés. Par défaut, MaxCSO utilise tous les cœurs disponibles pour une compression rapide.
-- **`--fast`** : Active une compression rapide, idéale pour réduire les temps de traitement.
-- **`--decompress`** : Permet de décompresser des fichiers CSO ou DAX en fichiers ISO bruts.
-- **`--block=N`** : Définit la taille des blocs de compression (par défaut, adaptée à la taille de l'ISO).
-- **`--format=VER`** : Choix du format de sortie : `cso1`, `cso2`, `zso` ou `dax`.
-- **`--use-zlib`**, **`--use-lz4`**, **`--use-libdeflate`** : Choix des algorithmes de compression spécifiques.
-- **`--only-METHOD`** et **`--no-METHOD`** : Active ou désactive certaines méthodes de compression.
-- **`--lz4-cost=N`**, **`--orig-cost=N`** : Ajuste les coûts des blocs compressés pour optimiser le ratio compression/vitesse.
-- **`--output-path=X`** : Définit un chemin spécifique pour les fichiers compressés.
-
-Pour plus de détails et d'options avancées, référez-vous à la [documentation officielle de MaxCSO](https://github.com/unknownbrackets/maxcso).
-
+Lancez la compression.

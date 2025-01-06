@@ -1,44 +1,17 @@
-**CHD Converter Tool** est un outil graphique développé en Python pour manipuler des fichiers CHD (Compressed Hunks of Data). Il utilise l'utilitaire `chdman` pour effectuer diverses opérations telles que la conversion, l'extraction, la vérification et l'obtention d'informations sur les fichiers CHD. Grâce à son interface graphique conviviale, cet outil est accessible même aux utilisateurs non techniques.
+CHD Converter Tool est un outil graphique pour manipuler des fichiers CHD (Compressed Hunks of Data) en utilisant chdman.
 
-### Fonctionnalités
+Fonctionnalités
+Conversion de fichiers : Convertit des fichiers .cue, .gdi ou .iso en CHD.
 
-- **Informations sur les fichiers CHD** : Affiche des détails techniques sur les fichiers CHD, permettant aux utilisateurs de comprendre les spécificités de leurs fichiers.
+Extraction de fichiers : Extrait des fichiers CHD en .cue.
 
-- **Vérification de l'intégrité** : Vérifie l'intégrité des fichiers CHD pour s'assurer qu'ils ne sont pas corrompus, garantissant ainsi la fiabilité des données.
+Support multi-cœurs : Utilise plusieurs cœurs pour accélérer les opérations.
 
-- **Conversion de fichiers** : Convertit des fichiers `.cue`, `.gdi` ou `.iso` en fichiers CHD, optimisant ainsi l'espace de stockage tout en conservant les données.
+Utilisation
+Lancez l'application.
 
-- **Extraction de fichiers** : Extrait des fichiers CHD en fichiers `.cue`, permettant une utilisation dans d'autres systèmes ou pour des besoins spécifiques.
+Sélectionnez les dossiers source et destination.
 
-- **Support multi-cœurs** : Utilise plusieurs cœurs du processeur pour accélérer les opérations de conversion, réduisant ainsi le temps de traitement.
+Choisissez l'opération (info, vérifier, convertir, extraire).
 
-- **Extraction automatique des archives** : Extrait automatiquement les fichiers des archives `.zip`, `.rar` et `.7z` avant de les traiter, simplifiant le processus de conversion et éliminant la nécessité d'une extraction manuelle.
-
-### Utilisation
-
-1. **Lancement de l'application** : Exécutez le script pour ouvrir l'interface graphique.
-2. **Sélection des dossiers** :
-   - **Dossier Source** : Sélectionnez le dossier contenant les fichiers à traiter.
-   - **Dossier Destination** : Choisissez le dossier où les fichiers convertis ou extraits seront enregistrés.
-   - Utilisez le bouton **Inverser** pour échanger les dossiers source et destination.
-3. **Choix de l'opération** :
-   - **Info** : Affiche des informations sur les fichiers CHD.
-   - **Vérifier** : Vérifie l'intégrité des fichiers CHD.
-   - **Convertir** : Convertit des fichiers `.cue`, `.gdi` ou `.iso` en fichiers CHD.
-   - **Extraire** : Extrait des fichiers CHD en fichiers `.cue`.
-4. **Nombre de cœurs** : Sélectionnez le nombre de cœurs à utiliser pour les opérations de conversion.
-5. **Exécution** : Cliquez sur **Exécuter** pour lancer l'opération sélectionnée.
-
-### Téléchargement de `chdman`
-
-Si `chdman.exe` n'est pas présent dans le répertoire de l'application, l'outil propose de le télécharger automatiquement. Vous pouvez également le télécharger manuellement depuis [ce lien](https://wiki.recalbox.com/tutorials/utilities/rom-conversion/chdman/chdman.zip).
-
-### Extraction automatique des archives
-
-L'outil prend en charge l'extraction automatique des fichiers des archives `.zip`, `.rar` et `.7z`, permettant de travailler directement avec des fichiers compressés sans avoir à les extraire manuellement.
-
-### Gestion des erreurs
-
-Les erreurs lors de l'exécution des commandes `chdman` sont capturées et affichées dans des boîtes de dialogue d'erreur, facilitant le dépannage et la résolution des problèmes.
-
-Cet outil est idéal pour les utilisateurs qui manipulent des fichiers CHD et souhaitent effectuer des opérations de conversion, d'extraction ou de vérification de manière simple et efficace, grâce à une interface graphique intuitive.
+Lancez l'opération.

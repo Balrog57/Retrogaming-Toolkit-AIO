@@ -1,25 +1,13 @@
-**Collection Extractor** est un outil conçu pour extraire et organiser des collections de jeux vidéo à partir d'une structure de dossiers existante. Il permet de déplacer les fichiers nécessaires pour une collection spécifique (système ou collection personnalisée) dans un nouveau dossier, prêt à être partagé ou archivé. Cet outil prend en charge les collections utilisant RetroArch ou d'autres émulateurs, offrant une solution flexible pour la gestion des collections.
+Collection Extractor est un outil pour extraire et organiser des collections de jeux vidéo à partir d'une structure de dossiers existante.
 
-### Fonctionnalités
+Fonctionnalités
+Extraction de collections : Déplace les fichiers d'une collection spécifique dans un nouveau dossier.
 
-- **Extraction de collections** : Déplace les fichiers d'une collection spécifique dans un nouveau dossier, facilitant le partage ou l'archivage.
+Génération de rapport : Crée un rapport détaillant les fichiers déplacés.
 
-- **Support des systèmes et collections personnalisées** : Prend en charge l'extraction de collections de systèmes (par exemple, NES, SNES) et de collections personnalisées (par exemple, "Jeux de plateforme").
+Utilisation
+Lancez l'application.
 
-- **Gestion des émulateurs** : Permet de sélectionner le type d'émulateur utilisé (RetroArch ou autre) pour les collections de systèmes.
+Sélectionnez la collection à extraire.
 
-- **Génération de rapport** : Crée un rapport détaillant les fichiers déplacés et les erreurs rencontrées, assurant une transparence totale du processus.
-
-- **Interface en ligne de commande** : Offre une interface simple pour sélectionner la collection à extraire, rendant l'outil accessible même aux utilisateurs non techniques.
-
-### Utilisation
-
-1. **Lancement de l'application** : Exécutez le script pour démarrer l'outil.
-2. **Sélection du système** : Choisissez le système correspondant à la collection que vous souhaitez extraire.
-3. **Sélection de la collection** : Sélectionnez la collection spécifique à extraire parmi celles disponibles pour le système choisi.
-4. **Type de collection** : Indiquez si la collection est un système ou une collection personnalisée.
-5. **Type d'émulateur** (si applicable) : Pour les collections de systèmes, spécifiez si elles utilisent RetroArch ou un autre émulateur.
-6. **Extraction des fichiers** : L'outil déplace les fichiers nécessaires dans un nouveau dossier et génère un rapport détaillé.
-7. **Fin de l'extraction** : Un message de confirmation est affiché, et le rapport est enregistré dans le dossier de la collection.
-
-Cet outil est particulièrement utile pour les utilisateurs qui souhaitent extraire et organiser des collections de jeux vidéo spécifiques, que ce soit pour le partage, l'archivage ou la gestion de leurs collections personnalisées.
+Extrayez les fichiers.

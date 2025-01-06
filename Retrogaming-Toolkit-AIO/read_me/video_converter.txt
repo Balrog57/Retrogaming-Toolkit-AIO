@@ -1,17 +1,17 @@
-**Video Converter** est un script Python doté d'une interface graphique (GUI) qui permet de convertir et de rogner des vidéos par lot. Utilisant **FFmpeg** pour effectuer les conversions, il offre des options pour ajuster le débit vidéo, le débit audio, la résolution et les FPS. L'outil permet également de choisir entre l'exportation des vidéos converties dans un sous-dossier ou le remplacement des fichiers originaux.
+Video Converter est un outil avec interface graphique pour convertir et rogner des vidéos par lot en utilisant FFmpeg.
 
-Le script propose les fonctionnalités suivantes :
+Fonctionnalités
+Conversion de vidéos par lot : Convertit plusieurs fichiers vidéo en une seule fois.
 
-- **Conversion de vidéos par lot** : Prend en charge la conversion de plusieurs fichiers vidéo en une seule fois, ce qui permet de gagner du temps lors du traitement de grandes quantités de vidéos.
+Rognage de vidéos : Permet de spécifier une heure de début et de fin.
 
-- **Rognage de vidéos** : Permet de spécifier une heure de début et de fin pour rogner les vidéos, offrant ainsi la possibilité de ne conserver que les parties souhaitées.
+Téléchargement automatique de FFmpeg : Télécharge FFmpeg si absent.
 
-- **Ajustement des paramètres vidéo** : Les utilisateurs peuvent définir le débit vidéo, le débit audio, la résolution et les FPS, permettant une personnalisation fine de la sortie vidéo.
+Utilisation
+Lancez le script.
 
-- **Téléchargement automatique de FFmpeg** : Si FFmpeg n'est pas trouvé sur le système, le script le télécharge et le configure automatiquement, éliminant la nécessité d'une installation manuelle.
+Sélectionnez les vidéos à convertir.
 
-- **Options d'exportation** : Les utilisateurs peuvent choisir d'exporter les vidéos converties dans un sous-dossier nommé `vidéos_converties` ou de remplacer directement les fichiers originaux.
+Configurez les paramètres de conversion.
 
-- **Interface graphique intuitive** : Une interface simple et conviviale facilite la sélection des fichiers et la configuration des paramètres, rendant l'outil accessible même aux utilisateurs peu expérimentés.
-
-Ce script est particulièrement utile pour les utilisateurs qui ont besoin de convertir ou de rogner plusieurs vidéos rapidement, tout en ayant la possibilité de personnaliser les paramètres de sortie et de gérer les fichiers convertis de manière flexible.
+Lancez la conversion.

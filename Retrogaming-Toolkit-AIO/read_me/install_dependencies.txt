@@ -1,15 +1,15 @@
-**Install Dependencies** est un script conçu pour automatiser l'installation des composants essentiels sur un système Windows. Il simplifie le processus d'installation des redistribuables Visual C++, DirectX et OpenAL, qui sont souvent nécessaires pour exécuter des applications et des jeux. 
+Install Dependencies est un script qui automatise l'installation des composants essentiels sur Windows, tels que les redistribuables Visual C++, DirectX et OpenAL. Il simplifie la configuration du système pour exécuter des applications et des jeux.
 
-Le script propose les fonctionnalités suivantes :
+Fonctionnalités
+Installation des redistribuables Visual C++ : Installe les versions x86 et x64 pour les années 2005 à 2022.
 
-- **Installation des redistribuables Visual C++** : Il installe automatiquement les versions x86 et x64 des redistribuables Visual C++ pour les années 2005 à 2022, garantissant que les bibliothèques nécessaires sont disponibles sur le système.
+Installation de DirectX et OpenAL : Installe ces bibliothèques en mode silencieux.
 
-- **Installation de DirectX** : Le script installe DirectX en mode silencieux, sans nécessiter d'intervention de l'utilisateur, pour assurer une configuration optimale des fonctionnalités graphiques.
+Détection automatique de l'architecture : Identifie si le système est 32 bits ou 64 bits.
 
-- **Installation d'OpenAL** : OpenAL, une bibliothèque audio essentielle pour de nombreuses applications, est également installée en mode silencieux pour une expérience utilisateur fluide.
+Mode silencieux : Les installations se font en arrière-plan sans interaction utilisateur.
 
-- **Détection automatique de l'architecture** : Le script identifie si le système est 32 bits ou 64 bits et installe les versions appropriées des redistribuables Visual C++ sans nécessiter de configuration manuelle.
+Utilisation
+Exécutez le script.
 
-- **Mode silencieux** : Toutes les installations sont effectuées en arrière-plan, sans afficher d'interfaces utilisateur, ce qui permet une exécution rapide et sans interruption.
-
-Le script est particulièrement utile pour les utilisateurs qui souhaitent s'assurer que leur système dispose des composants nécessaires pour exécuter des applications ou des jeux sans avoir à installer manuellement chaque dépendance.
+Les composants nécessaires sont installés automatiquement.

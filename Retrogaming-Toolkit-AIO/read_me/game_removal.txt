@@ -1,31 +1,13 @@
-**Game Removal Tool** est un outil Python conçu pour simplifier la suppression de jeux et de leurs artworks associés dans un environnement de type **TYPE R**. Il permet de sélectionner et de supprimer des jeux spécifiques, ainsi que leurs dossiers et fichiers d'artwork correspondants, de manière intuitive et sécurisée. Cet outil est idéal pour optimiser l'espace de stockage et maintenir une collection de jeux organisée.
+Game Removal Tool est un outil pour supprimer des jeux et leurs artworks associés.
 
-### Fonctionnalités
+Fonctionnalités
+Suppression de jeux et artworks : Supprime les fichiers de jeux et leurs artworks.
 
-- **Suppression de jeux** : Supprime les fichiers de jeux sélectionnés, permettant de libérer de l'espace de stockage.
+Confirmation avant suppression : Demande une confirmation avant de supprimer.
 
-- **Suppression des artworks** : Supprime les fichiers d'artwork associés aux jeux (artwork standard et medium artwork), assurant une gestion complète des fichiers multimédias.
+Utilisation
+Exécutez le script.
 
-- **Suppression des dossiers** : Supprime les dossiers spécifiques aux jeux si ceux-ci existent, garantissant une suppression propre et complète.
+Sélectionnez les jeux à supprimer.
 
-- **Interface en ligne de commande** : Offre une interface simple pour naviguer entre les catégories de jeux, les systèmes et les jeux à supprimer.
-
-- **Confirmation avant suppression** : Demande une confirmation avant d'exécuter la suppression, réduisant les risques d'erreurs.
-
-### Utilisation
-
-1. **Lancement du script** : Exécutez le script pour démarrer l'outil.
-2. **Sélection du menu parent** : Choisissez une catégorie de jeux (par exemple, ARCADES, CONSOLES, HANDHELDS, COMPUTERS, PINBALL).
-3. **Sélection du système** : Sélectionnez un système dans la catégorie choisie.
-4. **Sélection des jeux** : Entrez les numéros des jeux que vous souhaitez supprimer, séparés par des virgules.
-5. **Confirmation de la suppression** : Vérifiez la liste des jeux et dossiers à supprimer et confirmez l'opération.
-6. **Suppression des jeux** : Le script supprime les fichiers de jeux, les artworks et les dossiers correspondants.
-7. **Suppression d'autres jeux** : L'outil vous demande si vous souhaitez supprimer d'autres jeux, permettant de continuer ou de quitter.
-
-### Avertissements
-
-- **Suppression irréversible** : Les fichiers et dossiers supprimés ne peuvent pas être récupérés. Assurez-vous de bien sélectionner les jeux à supprimer.
-
-- **Permissions** : Le script doit être exécuté avec les permissions nécessaires pour supprimer les fichiers et dossiers.
-
-Cet outil est particulièrement utile pour les utilisateurs qui souhaitent maintenir une collection de jeux organisée et optimiser leur espace de stockage en supprimant les jeux et fichiers multimédias inutiles de manière sécurisée et efficace.
+Confirmez la suppression.
