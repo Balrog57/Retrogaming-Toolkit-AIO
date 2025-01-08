@@ -5,6 +5,10 @@ import logging
 import subprocess
 from PIL import Image
 from customtkinter import CTkImage
+import requests
+import webbrowser
+
+VERSION = "1.0.2"
 
 # Configuration du logging
 logging.basicConfig(
@@ -77,6 +81,45 @@ def open_readme(readme_file):
     except Exception as e:
         messagebox.showerror("Erreur", f"Erreur lors de la lecture du fichier {readme_file} : {e}")
 
+def check_for_updates():
+    """Vérifie si une nouvelle version est disponible sur GitHub."""
+    try:
+        url = "https://api.github.com/repos/Balrog57/Retrogaming-Toolkit-AIO/releases/latest"
+        response = requests.get(url)
+        response.raise_for_status()
+        latest_release = response.json()
+        latest_version = latest_release["tag_name"]
+
+        # Fonction pour convertir une version en tuple de nombres
+        def version_to_tuple(version):
+            return tuple(map(int, version.lstrip('v').split('.')))
+
+        # Convertir les versions en tuples de nombres
+        current_version_tuple = version_to_tuple(VERSION)
+        latest_version_tuple = version_to_tuple(latest_version)
+
+        # Comparer les versions
+        if latest_version_tuple > current_version_tuple:
+            return True, latest_version
+        else:
+            return False, latest_version
+
+    except Exception as e:
+        logger.error(f"Erreur lors de la vérification des mises à jour : {e}")
+        return False, VERSION
+
+def launch_update():
+    """Lance le script de mise à jour."""
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        update_script = os.path.join(current_dir, "update.bat")
+        if os.path.exists(update_script):
+            subprocess.Popen([update_script], shell=True)
+        else:
+            messagebox.showerror("Erreur", "Le fichier update.bat n'existe pas.")
+    except Exception as e:
+        messagebox.showerror("Erreur", f"Erreur lors du lancement de la mise à jour : {e}")
+
 class Application(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -108,6 +151,29 @@ class Application(ctk.CTk):
 
         # Afficher les scripts de la première page
         self.update_page()
+
+        # Ajouter une zone en bas pour la version et les mises à jour
+        self.bottom_frame = ctk.CTkFrame(self)
+        self.bottom_frame.pack(fill="x", pady=10)
+
+        self.version_label = ctk.CTkLabel(self.bottom_frame, text=f"Version actuelle : {VERSION}", font=("Arial", 12))
+        self.version_label.pack(side="left", padx=10)
+
+        self.update_label = ctk.CTkLabel(self.bottom_frame, text="Vérification des mises à jour...", font=("Arial", 12))
+        self.update_label.pack(side="left", padx=10)
+
+        # Vérifier les mises à jour
+        self.check_updates()
+
+    def check_updates(self):
+        """Vérifie les mises à jour et met à jour l'interface."""
+        update_available, latest_version = check_for_updates()
+        if update_available:
+            self.update_label.configure(text=f"Mise à jour disponible : {latest_version}", text_color="green")
+            self.update_button = ctk.CTkButton(self.bottom_frame, text="Mettre à jour", command=launch_update, fg_color="green")
+            self.update_button.pack(side="right", padx=10)
+        else:
+            self.update_label.configure(text="Aucune mise à jour disponible", text_color="gray")
 
     def update_page(self):
         """Met à jour l'affichage des scripts pour la page courante."""
