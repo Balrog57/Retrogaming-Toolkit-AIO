@@ -4,9 +4,30 @@
 echo Vérification de la présence de Python...
 python --version >nul 2>&1
 if %ERRORLEVEL% neq 0 (
-    echo Python n'est pas installé. Veuillez l'installer manuellement.
-    pause
-    exit /b
+    echo Python n'est pas installé. Tentative d'installation automatique...
+
+    :: Téléchargement de l'installateur Python
+    echo Téléchargement de l'installateur Python...
+    curl -o python_installer.exe https://www.python.org/ftp/python/3.9.7/python-3.9.7-amd64.exe
+
+    if %ERRORLEVEL% neq 0 (
+        echo Échec du téléchargement de l'installateur Python.
+        pause
+        exit /b
+    )
+
+    :: Installation de Python
+    echo Installation de Python...
+    start /wait python_installer.exe /quiet InstallAllUsers=1 PrependPath=1
+    del python_installer.exe
+
+    if %ERRORLEVEL% neq 0 (
+        echo Échec de l'installation de Python.
+        pause
+        exit /b
+    )
+
+    echo Python a été installé avec succès.
 ) else (
     echo Python est correctement installé.
 )
