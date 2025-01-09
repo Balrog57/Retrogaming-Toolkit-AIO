@@ -114,10 +114,14 @@ def launch_update():
         current_dir = os.path.dirname(os.path.abspath(__file__))
         update_script = os.path.join(current_dir, "update.bat")
         if os.path.exists(update_script):
-            subprocess.Popen([update_script], shell=True)
+            logger.info(f"Fichier update.bat trouvé : {update_script}")
+            subprocess.Popen(["start", "cmd.exe", "/c", update_script], shell=True)
+            logger.info("update.bat lancé dans une nouvelle fenêtre")
         else:
+            logger.error("Le fichier update.bat n'existe pas.")
             messagebox.showerror("Erreur", "Le fichier update.bat n'existe pas.")
     except Exception as e:
+        logger.error(f"Erreur lors du lancement de la mise à jour : {e}")
         messagebox.showerror("Erreur", f"Erreur lors du lancement de la mise à jour : {e}")
 
 class Application(ctk.CTk):
