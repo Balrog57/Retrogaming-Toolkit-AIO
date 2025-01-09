@@ -1,13 +1,13 @@
 import customtkinter as ctk
-from tkinter import messagebox
+from tkinter import messagebox  # messagebox est toujours utilisé depuis tkinter
 import os
 import logging
 import subprocess
 from PIL import Image
 from customtkinter import CTkImage
 import requests
+import webbrowser
 
-# Version de l'application
 VERSION = "1.0.2"
 
 # Configuration du logging
@@ -51,6 +51,7 @@ scripts = [
 def lancer_module(module_name):
     """Charge et exécute un module Python dans un processus séparé."""
     try:
+        # Vérification du chemin du module
         current_dir = os.path.dirname(os.path.abspath(__file__))
         module_file = os.path.join(current_dir, "Retrogaming-Toolkit-AIO", f"{module_name}.py")
         
@@ -89,10 +90,11 @@ def check_for_updates():
         latest_release = response.json()
         latest_version = latest_release["tag_name"]
 
-        # Convertir les versions en tuples de nombres pour comparaison
+        # Fonction pour convertir une version en tuple de nombres
         def version_to_tuple(version):
             return tuple(map(int, version.lstrip('v').split('.')))
 
+        # Convertir les versions en tuples de nombres
         current_version_tuple = version_to_tuple(VERSION)
         latest_version_tuple = version_to_tuple(latest_version)
 
@@ -107,22 +109,15 @@ def check_for_updates():
         return False, VERSION
 
 def launch_update():
-    """Lance le script de mise à jour (update.bat)."""
+    """Lance le script de mise à jour."""
     try:
         current_dir = os.path.dirname(os.path.abspath(__file__))
         update_script = os.path.join(current_dir, "update.bat")
-        
-        # Vérifier si le fichier update.bat existe
-        if not os.path.exists(update_script):
+        if os.path.exists(update_script):
+            subprocess.Popen([update_script], shell=True)
+        else:
             messagebox.showerror("Erreur", "Le fichier update.bat n'existe pas.")
-            return
-        
-        # Exécuter le script de mise à jour
-        subprocess.Popen([update_script], shell=True)
-        logger.info("Mise à jour lancée avec succès.")
-    
     except Exception as e:
-        logger.error(f"Erreur lors du lancement de la mise à jour : {e}")
         messagebox.showerror("Erreur", f"Erreur lors du lancement de la mise à jour : {e}")
 
 class Application(ctk.CTk):
@@ -157,7 +152,7 @@ class Application(ctk.CTk):
         # Afficher les scripts de la première page
         self.update_page()
 
-        # Zone en bas pour la version et les mises à jour
+        # Ajouter une zone en bas pour la version et les mises à jour
         self.bottom_frame = ctk.CTkFrame(self)
         self.bottom_frame.pack(fill="x", pady=10)
 

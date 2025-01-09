@@ -1,50 +1,34 @@
 @echo off
-setlocal enabledelayedexpansion
-set "LOG_FILE=%~dp0update.log"
+set "LOG_FILE=%TEMP%\update_script.log"
 
-:: Initialisation du fichier de log
 echo [%date% %time%] Début du script de mise à jour >> "%LOG_FILE%"
-echo Début du script de mise à jour...
 
-:: Étape 1 : Fermer tous les processus Python en cours
-echo [%date% %time%] Fermeture des processus Python en cours... >> "%LOG_FILE%"
-echo Fermeture des processus Python en cours...
-taskkill /F /IM python.exe /T >nul 2>&1
-if %errorlevel%==0 (
-    echo Tous les processus Python ont été fermés. >> "%LOG_FILE%"
-    echo Tous les processus Python ont été fermés.
-) else (
-    echo Aucun processus Python en cours d'exécution. >> "%LOG_FILE%"
-    echo Aucun processus Python en cours d'exécution.
+:: Étape 1 : Tuer tous les processus Python
+echo [%date% %time%] Arrêt des processus Python... >> "%LOG_FILE%"
+echo Arrêt des processus Python...
+taskkill /F /IM python.exe /T 2>nul
+if %errorlevel% neq 0 (
+    echo Aucun processus Python trouvé ou erreur lors de l'arrêt. >> "%LOG_FILE%"
 )
 
-:: Étape 2 : Supprimer tous les fichiers du dossier courant, sauf update.bat et update.log
-echo [%date% %time%] Nettoyage du dossier courant... >> "%LOG_FILE%"
-echo Nettoyage du dossier courant...
-for %%f in ("%~dp0*") do (
-    if /i not "%%~nxf"=="update.bat" if /i not "%%~nxf"=="update.log" (
-        echo Suppression de %%f... >> "%LOG_FILE%"
-        del /q "%%f" 2>&1 >> "%LOG_FILE%"
-        if %errorlevel% neq 0 (
-            echo Erreur : Impossible de supprimer %%f. >> "%LOG_FILE%"
-            echo Erreur : Impossible de supprimer %%f.
-            pause
-            exit /b 1
-        )
+:: Étape 2 : Supprimer tous les fichiers et dossiers dans le répertoire courant, sauf update.bat
+echo [%date% %time%] Nettoyage du répertoire courant... >> "%LOG_FILE%"
+echo Nettoyage du répertoire courant...
+
+:: Supprimer tous les fichiers sauf update.bat
+for %%f in (*) do (
+    if /I not "%%f"=="update.bat" (
+        echo Suppression du fichier : %%f >> "%LOG_FILE%"
+        del /F /Q "%%f"
     )
 )
 
-:: Supprimer tous les sous-dossiers, sauf celui contenant update.bat et update.log
-for /d %%d in ("%~dp0*") do (
-    echo Suppression du dossier %%d... >> "%LOG_FILE%"
-    rmdir /s /q "%%d" 2>&1 >> "%LOG_FILE%"
-    if %errorlevel% neq 0 (
-        echo Erreur : Impossible de supprimer le dossier %%d. >> "%LOG_FILE%"
-        echo Erreur : Impossible de supprimer le dossier %%d.
-        pause
-        exit /b 1
-    )
+:: Supprimer tous les dossiers et sous-dossiers
+for /d %%d in (*) do (
+    echo Suppression du dossier : %%d >> "%LOG_FILE%"
+    rmdir /S /Q "%%d"
 )
+
 
 :: Étape 3 : Récupérer le tag de la dernière release
 echo [%date% %time%] Récupération du tag de la dernière release... >> "%LOG_FILE%"
@@ -78,86 +62,54 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-:: Étape 5 : Extraire le fichier zip dans un dossier temporaire
-echo [%date% %time%] Extraction des fichiers dans un dossier temporaire... >> "%LOG_FILE%"
-echo Extraction des fichiers dans un dossier temporaire...
-set "EXTRACTED_DIR=%TEMP%\Retrogaming-Toolkit-AIO-%LATEST_TAG%"
-powershell -Command "Expand-Archive -Path '%ZIP_FILE%' -DestinationPath '%EXTRACTED_DIR%' -Force"
+:: Étape 5 : Décompresser le ZIP dans %TEMP% et copier uniquement le contenu du dossier dans le répertoire courant
+echo [%date% %time%] Extraction du fichier ZIP... >> "%LOG_FILE%"
+echo Extraction du fichier ZIP...
+set "EXTRACT_DIR=%TEMP%\latest_release"
+powershell -Command "Expand-Archive -Path '%ZIP_FILE%' -DestinationPath '%EXTRACT_DIR%' -Force"
 if %errorlevel% neq 0 (
-    echo Erreur lors de l'extraction des fichiers. >> "%LOG_FILE%"
-    echo Erreur lors de l'extraction des fichiers.
+    echo Erreur lors de l'extraction du fichier ZIP. >> "%LOG_FILE%"
+    echo Erreur lors de l'extraction du fichier ZIP.
     pause
     exit /b 1
 )
 
-:: Étape 6 : Déplacer uniquement le contenu du dossier extrait vers le dossier courant
-echo [%date% %time%] Déplacement des fichiers vers le dossier courant... >> "%LOG_FILE%"
-echo Déplacement des fichiers vers le dossier courant...
-for /r "%EXTRACTED_DIR%" %%f in (*) do (
-    set "RELATIVE_PATH=%%f"
-    set "RELATIVE_PATH=!RELATIVE_PATH:%EXTRACTED_DIR%\=!"
-    set "DESTINATION_PATH=%~dp0!RELATIVE_PATH!"
-
-    :: Vérifier si le fichier est update.bat ou update.log
-    if /i not "!RELATIVE_PATH!"=="update.bat" if /i not "!RELATIVE_PATH!"=="update.log" (
-        echo Déplacement de %%f vers !DESTINATION_PATH!... >> "%LOG_FILE%"
-        if not exist "!DESTINATION_PATH!\.." mkdir "!DESTINATION_PATH!\.."
-        if exist "!DESTINATION_PATH!" (
-            echo Le fichier existe déjà : !DESTINATION_PATH! >> "%LOG_FILE%"
-            echo Le fichier existe déjà : !DESTINATION_PATH!
-        ) else (
-            move /y "%%f" "!DESTINATION_PATH!" 2>&1 >> "%LOG_FILE%"
-            if %errorlevel% neq 0 (
-                echo Erreur : Impossible de déplacer %%f. >> "%LOG_FILE%"
-                echo Erreur : Impossible de déplacer %%f.
-                pause
-                exit /b 1
-            )
-        )
-    )
+:: Copier uniquement le contenu du dossier extrait (sans le dossier parent) dans le répertoire courant
+echo [%date% %time%] Copie des fichiers dans le répertoire courant... >> "%LOG_FILE%"
+echo Copie des fichiers dans le répertoire courant...
+for /d %%d in ("%EXTRACT_DIR%\*") do (
+    xcopy "%%d\*" "%cd%\" /E /I /Y /F
 )
-
-:: Étape 7 : Supprimer le dossier temporaire
-echo [%date% %time%] Suppression du dossier temporaire... >> "%LOG_FILE%"
-echo Suppression du dossier temporaire...
-rmdir /s /q "%EXTRACTED_DIR%"
 if %errorlevel% neq 0 (
-    echo Erreur : Impossible de supprimer le dossier temporaire. >> "%LOG_FILE%"
-    echo Erreur : Impossible de supprimer le dossier temporaire.
+    echo Erreur lors de la copie des fichiers. >> "%LOG_FILE%"
+    echo Erreur lors de la copie des fichiers.
     pause
     exit /b 1
 )
 
-:: Étape 8 : Supprimer le fichier zip après extraction
-echo [%date% %time%] Suppression du fichier zip... >> "%LOG_FILE%"
-echo Suppression du fichier zip...
-del /q "%ZIP_FILE%" 2>&1 >> "%LOG_FILE%"
+:: Étape 6 : Supprimer le fichier ZIP et le dossier temporaire après extraction
+echo [%date% %time%] Suppression des fichiers temporaires... >> "%LOG_FILE%"
+echo Suppression des fichiers temporaires...
+del /F /Q "%ZIP_FILE%"
+rmdir /S /Q "%EXTRACT_DIR%"
 if %errorlevel% neq 0 (
-    echo Erreur : Impossible de supprimer le fichier zip. >> "%LOG_FILE%"
-    echo Erreur : Impossible de supprimer le fichier zip.
+    echo Erreur lors de la suppression des fichiers temporaires. >> "%LOG_FILE%"
+    echo Erreur lors de la suppression des fichiers temporaires.
     pause
     exit /b 1
 )
 
-:: Étape 9 : Redémarrer l'application
-echo [%date% %time%] Redémarrage de l'application... >> "%LOG_FILE%"
-echo Redémarrage de l'application...
-cd /d "%~dp0"
-if exist "main.py" (
-    start main.py
-) else (
-    echo Erreur : Le fichier main.py n'existe pas. >> "%LOG_FILE%"
-    echo Erreur : Le fichier main.py n'existe pas.
+:: Étape 7 : Lancer main.py
+echo [%date% %time%] Lancement de main.py... >> "%LOG_FILE%"
+echo Lancement de main.py...
+start "" python main.py
+if %errorlevel% neq 0 (
+    echo Erreur lors du lancement de main.py. >> "%LOG_FILE%"
+    echo Erreur lors du lancement de main.py.
     pause
     exit /b 1
 )
 
-:: Étape 10 : Nettoyage final
-echo [%date% %time%] Nettoyage final... >> "%LOG_FILE%"
-echo Nettoyage final...
-timeout /t 2 /nobreak >nul
-
-:: Fin du script
 echo [%date% %time%] Mise à jour terminée avec succès. >> "%LOG_FILE%"
 echo Mise à jour terminée avec succès.
 pause
