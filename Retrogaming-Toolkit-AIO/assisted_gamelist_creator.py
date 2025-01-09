@@ -30,7 +30,7 @@ class GameListApp:
         self.is_running = False
         self.is_paused = False
         self.chunk_size = ctk.IntVar(value=5)  # Taille des groupes de jeux à traiter
-        self.prefix_phrase = ctk.StringVar(value="Répondre en Français, toujours remplacer & par & :")  # Phrase mise à jour
+        self.prefix_phrase = ctk.StringVar(value="Répondre en Français, toujours remplacer & par &amp; :")  # Phrase mise à jour
 
         # Configuration du fichier
         file_frame = ctk.CTkFrame(root)

@@ -73,7 +73,7 @@ class CHDmanGUI:
         ctk.CTkRadioButton(middle_frame, text="Extraire", variable=self.option, value="Extract").grid(row=0, column=4, padx=5, pady=5, sticky="w")
 
         # Option Overwrite
-        ctk.CTkCheckButton(middle_frame, text="Overwrite", variable=self.overwrite).grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        ctk.CTkCheckBox(middle_frame, text="Overwrite", variable=self.overwrite).grid(row=1, column=0, padx=5, pady=5, sticky="w")
 
         # Sélection du nombre de cœurs
         cores_frame = ctk.CTkFrame(middle_frame, fg_color="#1a1a1a", corner_radius=10)
@@ -462,13 +462,15 @@ class CHDmanGUI:
 
         # Supprimer les fichiers partiellement traités
         if self.option.get() == "Convert":
-            fichier_sortie = os.path.join(self.destination_folder.get(), os.path.splitext(os.path.basename(self.cache["current_file"]))[0] + ".chd")
-            if os.path.exists(fichier_sortie):
-                os.remove(fichier_sortie)  # Supprimer le fichier partiellement converti
+            for file in self.obtenir_fichiers(self.source_folder.get(), (".chd", ".cue", ".gdi", ".iso")):
+                fichier_sortie = os.path.join(self.destination_folder.get(), os.path.splitext(os.path.basename(file))[0] + ".chd")
+                if os.path.exists(fichier_sortie):
+                    os.remove(fichier_sortie)  # Supprimer le fichier partiellement converti
         elif self.option.get() == "Extract":
-            fichier_sortie = os.path.join(self.destination_folder.get(), os.path.splitext(os.path.basename(self.cache["current_file"]))[0] + ".cue")
-            if os.path.exists(fichier_sortie):
-                os.remove(fichier_sortie)  # Supprimer le fichier partiellement extrait
+            for file in self.obtenir_fichiers(self.source_folder.get(), (".chd", ".cue", ".gdi", ".iso")):
+                fichier_sortie = os.path.join(self.destination_folder.get(), os.path.splitext(os.path.basename(file))[0] + ".cue")
+                if os.path.exists(fichier_sortie):
+                    os.remove(fichier_sortie)  # Supprimer le fichier partiellement extrait
 
         # Mettre à jour les états des boutons
         self.start_button.configure(state="normal")
