@@ -8,7 +8,7 @@ from customtkinter import CTkImage
 import requests
 import webbrowser
 
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 
 # Configuration du logging
 logging.basicConfig(

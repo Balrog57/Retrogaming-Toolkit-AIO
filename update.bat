@@ -66,7 +66,7 @@ if %errorlevel% neq 0 (
 echo [%date% %time%] Extraction du fichier ZIP... >> "%LOG_FILE%"
 echo Extraction du fichier ZIP...
 set "EXTRACT_DIR=%TEMP%\latest_release"
-powershell -Command "Expand-Archive -Path '%ZIP_FILE%' -DestinationPath '%EXTRACT_DIR%' -Force"
+powershell -ExecutionPolicy Bypass -Command "Expand-Archive -Path '%ZIP_FILE%' -DestinationPath '%EXTRACT_DIR%' -Force"
 if %errorlevel% neq 0 (
     echo Erreur lors de l'extraction du fichier ZIP. >> "%LOG_FILE%"
     echo Erreur lors de l'extraction du fichier ZIP.

@@ -5,6 +5,8 @@ echo Vérification de l'installation de Python...
 python --version >nul 2>&1
 if %ERRORLEVEL% neq 0 (
     echo Python n'est pas installé.
+    echo Ouverture de la page de téléchargement de Python dans le navigateur...
+    start https://www.python.org/downloads/windows/
     echo Veuillez installer Python manuellement depuis https://www.python.org/downloads/windows/.
     echo Une fois Python installé, relancez ce script.
     pause

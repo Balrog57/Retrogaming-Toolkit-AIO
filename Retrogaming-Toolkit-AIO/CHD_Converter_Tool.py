@@ -4,13 +4,12 @@ import multiprocessing
 import urllib.request
 import shutil
 import zipfile
-import rarfile
-import py7zr
 import tempfile
 import threading
 import time
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, StringVar, IntVar, BooleanVar
+import patoolib  # Remplace py7zr pour gérer les archives
 
 CHDMAN_URL = "https://wiki.recalbox.com/tutorials/utilities/rom-conversion/chdman/chdman.zip"
 CHDMAN_ZIP = "chdman.zip"
@@ -324,15 +323,13 @@ class CHDmanGUI:
         """Extrait les archives ZIP, RAR et 7z dans le dossier."""
         for file in os.listdir(dossier):
             file_path = os.path.join(dossier, file)
-            if file.lower().endswith(".zip"):
-                with zipfile.ZipFile(file_path, 'r') as zip_ref:
-                    zip_ref.extractall(dossier)
-            elif file.lower().endswith(".rar"):
-                with rarfile.RarFile(file_path, 'r') as rar_ref:
-                    rar_ref.extractall(dossier)
-            elif file.lower().endswith(".7z"):
-                with py7zr.SevenZipFile(file_path, 'r') as sevenz_ref:
-                    sevenz_ref.extractall(dossier)
+            if file.lower().endswith((".zip", ".rar", ".7z")):
+                try:
+                    # Utilisation de patool pour extraire les archives
+                    patoolib.extract_archive(file_path, outdir=dossier)
+                    print(f"Archive extraite : {file_path}")
+                except Exception as e:
+                    print(f"Erreur lors de l'extraction de {file_path}: {e}")
 
     def executer_chdman(self, commande, fichier_entree=None, fichier_sortie=None):
         """Exécute une commande CHDman avec gestion de l'interruption."""
