@@ -1,5 +1,3 @@
-# Module généré automatiquement à partir de video_converter.py
-
 import os
 import subprocess
 import requests
@@ -7,7 +5,7 @@ import zipfile
 import tempfile
 import shutil
 import customtkinter as ctk
-from tkinter import filedialog, messagebox, Listbox
+from tkinter import filedialog, messagebox, Listbox, Checkbutton, BooleanVar
 
 def check_and_download_ffmpeg():
     ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
@@ -70,6 +68,28 @@ def convert_video(input_file, start_time, end_time, output_file, video_bitrate, 
     except Exception as e:
         messagebox.showerror("Erreur", f"Une erreur inattendue s'est produite : {e}")
 
+def capture_first_frame(input_file, output_file, rotate=False):
+    check_and_download_ffmpeg()  # Vérifiez et téléchargez FFmpeg si nécessaire
+    ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
+    try:
+        command = [
+            ffmpeg_path,
+            "-i", input_file,
+            "-ss", "00:00:01",  # Capture à la première seconde
+            "-vframes", "1",    # Capture une seule frame
+        ]
+        if rotate:
+            command.extend(["-vf", "transpose=1"])  # Rotation à droite
+        command.append(output_file)
+        
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
+        if result.returncode != 0:
+            raise subprocess.CalledProcessError(result.returncode, command, output=result.stdout, stderr=result.stderr)
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Erreur", f"Erreur lors de la capture de l'image.\n{e.stderr}")
+    except Exception as e:
+        messagebox.showerror("Erreur", f"Une erreur inattendue s'est produite : {e}")
+
 def browse_files():
     try:
         file_paths = filedialog.askopenfilenames(filetypes=[("Tous les fichiers vidéo", "*.*")])
@@ -117,6 +137,18 @@ def start_conversion():
                 continue
 
             convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution)
+
+            # Capture d'image si les options sont cochées
+            if capture_without_rotation_var.get() or capture_with_rotation_var.get():
+                capture_dir = os.path.join(os.getcwd(), "captures")
+                os.makedirs(capture_dir, exist_ok=True)
+                file_name = os.path.basename(input_file)
+                output_image = os.path.join(capture_dir, f"screenshot-{os.path.splitext(file_name)[0]}.png")
+
+                if capture_without_rotation_var.get():
+                    capture_first_frame(input_file, output_image, rotate=False)
+                if capture_with_rotation_var.get():
+                    capture_first_frame(input_file, output_image, rotate=True)
 
         messagebox.showinfo("Succès", "Traitement terminé pour toutes les vidéos.")
     except Exception as e:
@@ -216,6 +248,19 @@ radio_folder.pack(anchor="w")
 
 radio_replace = ctk.CTkRadioButton(frame_output_options, text="Remplacer les fichiers originaux", variable=selected_output_option, value="replace")
 radio_replace.pack(anchor="w")
+
+# Capture options
+frame_capture_options = ctk.CTkFrame(root)
+frame_capture_options.pack(padx=10, pady=5, fill="x")
+
+capture_without_rotation_var = BooleanVar()
+capture_with_rotation_var = BooleanVar()
+
+check_capture_without_rotation = ctk.CTkCheckBox(frame_capture_options, text="Capture d'une cover sans rotation", variable=capture_without_rotation_var)
+check_capture_without_rotation.pack(anchor="w")
+
+check_capture_with_rotation = ctk.CTkCheckBox(frame_capture_options, text="Capture d'une cover avec rotation", variable=capture_with_rotation_var)
+check_capture_with_rotation.pack(anchor="w")
 
 # Convert button
 button_convert = ctk.CTkButton(root, text="Convertir", command=start_conversion, width=200)

@@ -8,7 +8,7 @@ from customtkinter import CTkImage
 import requests
 import webbrowser
 
-VERSION = "1.0.4"
+VERSION = "1.0.5"
 
 # Configuration du logging
 logging.basicConfig(
@@ -45,7 +45,10 @@ scripts = [
     {"name": "merge_story_hyperlist", "description": "(Core) Intègre des story dans des hyperlist.xml.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "merge_story_hyperlist.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "merge_story_hyperlist.txt")},
     {"name": "rvz_iso_convert", "description": "Convertit entre formats RVZ et ISO.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "rvz_iso_convert.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "rvz_iso_convert.txt")},
     {"name": "story_format_cleaner", "description": "Nettoie les fichiers texte pour XML.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "story_format_cleaner.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "story_format_cleaner.txt")},
+    {"name": "m3u_creator", "description": "Créer des m3u.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "m3u_creator.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "m3u_creator.txt")},
+    {"name": "cover_extractor", "description": "Extrait la première image des fichiers .cbz, .cbr et .pdf.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "cover_extractor.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "cover_extractor.txt")},
     {"name": "video_converter", "description": "Convertit et rogne des vidéos par lot.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "video_converter.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "video_converter.txt")},
+    {"name": "YT_Download", "description": "Télécharge des vidéos youtube.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "YT_Download.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "YT_Download.txt")},
 ]
 
 def lancer_module(module_name):

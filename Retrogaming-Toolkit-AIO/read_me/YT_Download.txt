@@ -1,0 +1,61 @@
+Fonctionnalités principales
+Téléchargement de vidéos uniques :
+
+Téléchargez des vidéos YouTube en qualité maximale ou uniquement l'audio.
+
+Récupérez les sous-titres au format SRT.
+
+Spécifiez un dossier de destination pour les fichiers téléchargés.
+
+Utilisez l'authentification OAuth pour accéder aux vidéos restreintes.
+
+Téléchargement de playlists :
+
+Téléchargez toutes les vidéos d'une playlist YouTube.
+
+Option pour télécharger uniquement l'audio ou récupérer les sous-titres.
+
+Spécifiez un dossier de destination pour les fichiers téléchargés.
+
+Utilisez l'authentification OAuth pour accéder aux vidéos restreintes.
+
+Téléchargement de chaînes :
+
+Téléchargez toutes les vidéos d'une chaîne YouTube.
+
+Option pour télécharger uniquement l'audio ou récupérer les sous-titres.
+
+Spécifiez un dossier de destination pour les fichiers téléchargés.
+
+Utilisez l'authentification OAuth pour accéder aux vidéos restreintes.
+
+Utilisation
+Lancement de l'application :
+
+Ouvrez l'interface graphique pour accéder aux fonctionnalités.
+
+Sélection de l'onglet :
+
+Choisissez entre "Vidéo unique", "Playlist" ou "Chaîne" en fonction de vos besoins.
+
+Entrée des informations :
+
+Entrez l'URL de la vidéo, de la playlist ou de la chaîne.
+
+Spécifiez le dossier de destination.
+
+Configuration des options :
+
+Activez/désactivez les options (audio uniquement, sous-titres, OAuth).
+
+Lancement du téléchargement :
+
+Cliquez sur "Télécharger" pour démarrer l'opération.
+
+Résultat :
+
+Les vidéos sont enregistrées dans le dossier de destination choisi.
+
+Les sous-titres sont sauvegardés au format SRT si l'option est activée.
+
+PyTubeFix GUI est un outil complet pour télécharger des vidéos YouTube avec une interface simple et des fonctionnalités avancées.

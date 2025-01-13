@@ -1,0 +1,35 @@
+MultiDisc & Vita3k M3U Creator est un outil graphique pour créer des fichiers .m3u pour les jeux multi-disques et les jeux Vita3k.
+
+Fonctionnalités
+Gestion des jeux multi-disques :
+
+Regroupe les fichiers de jeux multi-disques en un seul fichier .m3u.
+
+Gestion des jeux Vita3k :
+
+Crée des fichiers .m3u pour les jeux Vita3k en utilisant des bases de données CSV pour associer les TITLE-ID aux noms des jeux.
+
+Interface graphique moderne :
+
+Utilise customtkinter pour une interface en mode sombre avec des accents bleus.
+
+Support multi-onglets :
+
+Deux onglets distincts pour les jeux multi-disques et Vita3k.
+
+Utilisation
+Lancez l'application :
+
+Exécutez le script pour ouvrir l'interface.
+
+Onglet 1 : Multi-Disc M3U Creator :
+
+Sélectionnez un dossier contenant des jeux multi-disques.
+
+Cliquez sur "Create M3U" pour générer les fichiers .m3u.
+
+Onglet 2 : Vita3k M3U Creator :
+
+Sélectionnez un dossier contenant des jeux Vita3k.
+
+Cliquez sur "Create M3U" pour générer les fichiers .m3u en utilisant les fichiers CSV.
