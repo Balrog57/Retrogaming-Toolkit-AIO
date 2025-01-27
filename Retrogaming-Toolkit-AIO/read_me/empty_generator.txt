@@ -1,0 +1,17 @@
+Empty File Creator est une application intuitive conçue pour simplifier la création automatique de fichiers vides dans des structures de dossiers. Elle s'adapte parfaitement à vos besoins d'organisation grâce à ses nombreuses fonctionnalités :
+
+Fonctionnalités principales
+1. Création de fichiers avec extensions variées
+Extensions prédéfinies : Générez rapidement des fichiers avec les extensions courantes .scummvm, .singe ou .cgenius.
+Extension personnalisée : Pour des besoins spécifiques, sélectionnez l’option "Autre" et définissez manuellement votre extension (par exemple .txt, .json, .log, etc.).
+2. Sélection et gestion des dossiers
+Choisissez un dossier principal contenant plusieurs sous-dossiers grâce à une boîte de dialogue simple.
+Les fichiers vides seront automatiquement créés dans chaque sous-dossier détecté, avec l’extension choisie.
+3. Interface utilisateur claire et moderne
+Mode sombre par défaut : Réduit la fatigue visuelle tout en apportant une esthétique soignée.
+Boutons fonctionnels :
+Choisir un dossier : Accédez rapidement au sélecteur pour choisir le dossier principal.
+Créer les fichiers : Lancez la création des fichiers dans tous les sous-dossiers d’un seul clic.
+4. Flexibilité et simplicité
+Aucun fichier n’est écrasé : l’application crée uniquement de nouveaux fichiers.
+Processus rapide et fiable : un message de confirmation vous informe de la réussite de l’opération.

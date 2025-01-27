@@ -1,7 +1,6 @@
 import os
 import zipfile
 import shutil
-import tempfile
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 
@@ -37,48 +36,31 @@ class BGBackupApp:
             self.backup_button.configure(state="normal")  # Active le bouton de backup
 
     def create_backup(self):
-        """Parcourt les sous-dossiers, récupère les fichiers gamelist.xml, les copie dans un tampon, les renomme, et les compresse dans un ZIP."""
+        """Parcourt les sous-dossiers, récupère les fichiers gamelist.xml et les compresse dans un ZIP en conservant la structure des dossiers."""
         if not self.roms_folder:
             messagebox.showerror("Erreur", "Aucun dossier roms sélectionné.")
-            return
-
-        # Création d'un dossier temporaire pour stocker les fichiers gamelist.xml renommés
-        temp_dir = tempfile.mkdtemp()
-        gamelist_files = []
-
-        # Parcours des sous-dossiers sur 2 niveaux
-        for root_dir, dirs, files in os.walk(self.roms_folder):
-            if "gamelist.xml" in files:
-                folder_name = os.path.basename(root_dir)
-                gamelist_path = os.path.join(root_dir, "gamelist.xml")
-                new_filename = f"{folder_name}.gamelist.xml"
-                temp_file_path = os.path.join(temp_dir, new_filename)
-
-                # Copie du fichier gamelist.xml dans le dossier temporaire avec le nouveau nom
-                shutil.copy(gamelist_path, temp_file_path)
-                gamelist_files.append(temp_file_path)
-
-            # Limite la profondeur de recherche à 2 niveaux
-            if os.path.relpath(root_dir, self.roms_folder).count(os.sep) >= 2:
-                dirs.clear()
-
-        if not gamelist_files:
-            messagebox.showinfo("Info", "Aucun fichier gamelist.xml trouvé.")
-            shutil.rmtree(temp_dir)  # Supprime le dossier temporaire vide
             return
 
         # Création du fichier ZIP
         zip_filename = "gamelist_backup.zip"
         try:
             with zipfile.ZipFile(zip_filename, "w") as zipf:
-                for gamelist_file in gamelist_files:
-                    zipf.write(gamelist_file, os.path.basename(gamelist_file))
+                # Parcours des sous-dossiers sur 2 niveaux
+                for root_dir, dirs, files in os.walk(self.roms_folder):
+                    if "gamelist.xml" in files:
+                        gamelist_path = os.path.join(root_dir, "gamelist.xml")
+                        # Calcul du chemin relatif pour conserver la structure des dossiers
+                        relative_path = os.path.relpath(gamelist_path, self.roms_folder)
+                        # Ajout du fichier au ZIP avec le chemin relatif
+                        zipf.write(gamelist_path, relative_path)
+
+                    # Limite la profondeur de recherche à 2 niveaux
+                    if os.path.relpath(root_dir, self.roms_folder).count(os.sep) >= 2:
+                        dirs.clear()
+
             messagebox.showinfo("Succès", f"Backup créé avec succès : {zip_filename}")
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur lors de la création du ZIP : {e}")
-        finally:
-            # Suppression du dossier temporaire après la création du ZIP
-            shutil.rmtree(temp_dir)
 
 if __name__ == "__main__":
     root = ctk.CTk()

@@ -8,7 +8,7 @@ from customtkinter import CTkImage
 import requests
 import webbrowser
 
-VERSION = "1.0.5"
+VERSION = "1.0.6"
 
 # Configuration du logging
 logging.basicConfig(
@@ -34,6 +34,7 @@ scripts = [
     {"name": "folder_name_to_txt", "description": "Crée des fichiers TXT à partir des noms de dossiers.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "folder_name_to_txt.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "folder_name_to_txt.txt")},
     {"name": "folder_to_zip", "description": "Compresse des fichiers de jeux en ZIP.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "folder_to_zip.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "folder_to_zip.txt")},
     {"name": "game_batch_creator", "description": "Génère des fichiers batch pour lancer des jeux pc.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "game_batch_creator.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "game_batch_creator.txt")},
+    {"name": "empty_generator", "description": "Créer des fichiers vides dans des sous-dossiers.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "empty_generator.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "empty_generator.txt")},
     {"name": "game_removal", "description": "(Core) Supprime des jeux et leurs artworks.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "game_removal.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "game_removal.txt")},
     {"name": "gamelist_to_hyperlist", "description": "(Core) Convertit gamelist.xml en hyperlist.xml.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "gamelist_to_hyperlist.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "gamelist_to_hyperlist.txt")},
     {"name": "hyperlist_to_gamelist", "description": "(Retrobat) Convertit hyperlist.xml en gamelist.xml.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "hyperlist_to_gamelist.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "hyperlist_to_gamelist.txt")},
