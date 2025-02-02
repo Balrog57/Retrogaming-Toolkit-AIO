@@ -1,0 +1,14 @@
+Convertisseur PDF/CBR vers CBZ
+Cet outil permet de convertir des fichiers PDF et CBR en CBZ via une interface graphique simple.
+
+Fonctionnalités
+Conversion de fichiers PDF et CBR en CBZ
+Interface intuitive et mode sombre
+Suppression optionnelle des fichiers originaux après conversion
+Affichage des logs et barre de progression
+Traitement en lot des fichiers d'un dossier
+Utilisation
+Lancez l'application.
+Sélectionnez un dossier contenant des fichiers à convertir.
+Activez l’option de suppression si nécessaire.
+Cliquez sur Convertir et laissez l’outil faire le travail.
