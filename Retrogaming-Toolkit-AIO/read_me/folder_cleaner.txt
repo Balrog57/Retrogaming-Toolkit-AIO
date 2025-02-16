@@ -1,0 +1,17 @@
+# Supprimer Dossiers Vides
+
+## Fonctionnalités
+
+* **Supprimer récursivement les dossiers vides:** Supprime tous les dossiers vides dans un répertoire spécifié, y compris les sous-dossiers.
+* **Interface graphique conviviale:**  Interface graphique simple et intuitive pour sélectionner le répertoire et lancer le processus de suppression.
+* **Progression en pourcentage:** Affiche le pourcentage de progression du traitement pour une meilleure visualisation de l'avancement.
+* **Gestion des erreurs:**  Gère les erreurs potentielles lors de la suppression des dossiers, telles que les problèmes de permissions ou les dossiers non vides.
+* **Sélection de répertoire:** Permet de sélectionner facilement le répertoire à analyser à l'aide d'une boîte de dialogue de sélection de dossier.
+* **Affichage des résultats:** Affiche les dossiers vides supprimés dans la console.
+
+## Utilisation
+
+1. **Sélectionner le répertoire:** Cliquez sur le bouton "Parcourir" pour choisir le répertoire à analyser.
+2. **Lancer la suppression:** Cliquez sur le bouton "Supprimer" pour démarrer le processus de suppression des dossiers vides.
+3. **Suivre la progression:**  Le pourcentage de progression est affiché pendant le traitement.
+4. **Vérifier les résultats:**  Les dossiers vides supprimés sont affichés dans la console.
