@@ -16,6 +16,9 @@ def main():
         except ET.ParseError:
             messagebox.showerror("Erreur", f"Erreur de format dans le fichier {file_path}. Le fichier sera ignoré.")
             return []
+        except FileNotFoundError:
+            messagebox.showerror("Erreur", f"Le fichier {file_path} n'a pas été trouvé.")
+            return []
 
         root = tree.getroot()
         games = []
@@ -31,7 +34,14 @@ def main():
             rating = game_elem.find('rating').text if game_elem.find('rating') is not None else "0"
             players = game_elem.find('players').text if game_elem.find('players') is not None else "1"
 
+            # Gestion de l'année de sortie
             year = releasedate[:4] if releasedate and len(releasedate) >= 4 else ""
+
+            # Gestion du score (rating)
+            try:
+                score = str(round(float(rating) * 5, 2)) if rating else "0"
+            except ValueError:
+                score = "0"
 
             games.append({
                 'name': name,
@@ -41,7 +51,7 @@ def main():
                 'manufacturer': developer,
                 'publisher': publisher,
                 'genre': genre,
-                'score': str(round(float(rating) * 5, 2)),
+                'score': score,
                 'players': players
             })
 
@@ -69,7 +79,7 @@ def main():
             rom_name = os.path.splitext(os.path.basename(game['path']))[0]
             desc_file_path = os.path.join(desc_dir, f"{rom_name}.txt")
             with open(desc_file_path, "w", encoding="utf-8") as desc_file:
-                desc_file.write(game['desc'])
+                desc_file.write(game['desc'] if game['desc'] else "No description available.")
 
         # Enregistrer l'hyperlist XML formatée
         tree = ET.ElementTree(root)
