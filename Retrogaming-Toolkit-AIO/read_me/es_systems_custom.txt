@@ -1,0 +1,28 @@
+Ce logiciel est conçu pour simplifier la gestion des fichiers de configuration es_systems.cfg utilisés par les systèmes d'émulation comme RetroBat. Il vous permet de comparer un fichier es_systems.cfg personnalisé avec le fichier officiel de RetroBat et d'extraire les systèmes uniques dans des fichiers séparés.
+
+Fonctionnalités principales :
+
+Comparaison intelligente : Le logiciel télécharge automatiquement la dernière version du fichier es_systems.cfg officiel de RetroBat. Il compare ensuite ce fichier officiel avec votre fichier es_systems.cfg personnalisé.
+Extraction des systèmes uniques : Il identifie les systèmes qui sont présents dans votre fichier personnalisé, mais absents du fichier officiel. Ces systèmes sont considérés comme "uniques" ou "différents".
+Création de fichiers individuels : Pour chaque système unique identifié, le logiciel crée un fichier de configuration séparé nommé es_systems_[nom du système].cfg. Cela vous permet de gérer facilement les configurations spécifiques à chaque système.
+Fichier officiel : Le fichier es_systems.cfg officiel téléchargé est également enregistré dans le dossier de destination. Cela permet une gestion plus facile et la possibilité de le restaurer si besoin.
+Interface Graphique Conviviale: Pas besoin de ligne de commande, une interface graphique intuitive rend le logiciel facile à utiliser.
+Utilisation :
+
+Lancement : Exécutez le logiciel. Une fenêtre s'ouvrira.
+Sélection du fichier personnalisé :
+Cliquez sur le bouton "Browse" à côté du champ "Custom es_systems.cfg:".
+Dans la fenêtre qui s'ouvre, naviguez jusqu'à votre fichier es_systems.cfg personnalisé et sélectionnez-le. Cliquez sur "Ouvrir".
+Sélection du dossier de destination :
+Cliquez sur le bouton "Browse" à côté du champ "Output Directory:".
+Choisissez le dossier où vous souhaitez que les fichiers générés (le fichier officiel et les fichiers individuels des systèmes) soient enregistrés. Cliquez sur "Sélectionner un dossier". Si le dossier n'existe pas, il sera créé.
+Traitement :
+Cliquez sur le bouton "Process Files". Le logiciel téléchargera le fichier officiel, effectuera la comparaison et créera les fichiers dans le dossier de destination.
+Des messages s'afficheront dans la console (la fenêtre noire qui s'est ouverte lorsque vous avez lancé le logiciel) pour indiquer la progression et les éventuelles erreurs.
+Un message de confirmation apparaîtra une fois le traitement terminé.
+Résultats :
+
+Dans le dossier de destination que vous avez choisi, vous trouverez :
+
+es_systems.cfg : Le fichier es_systems.cfg officiel téléchargé depuis RetroBat.
+es_systems_[nom du système].cfg : Un fichier pour chaque système unique trouvé dans votre fichier personnalisé. Par exemple, si vous avez un système personnalisé nommé "dreamcast_custom", vous trouverez un fichier nommé es_systems_dreamcast_custom.cfg.
