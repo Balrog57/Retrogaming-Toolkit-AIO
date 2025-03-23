@@ -1,0 +1,22 @@
+Cette application vous permet de convertir rapidement et facilement des images d'un format à un autre. Suivez ces étapes simples :
+
+Étapes :
+
+Choisir le dossier d'entrée :
+Cliquez sur le bouton "Parcourir" à côté de "Dossier d'entrée".   
+Sélectionnez le dossier contenant les images que vous souhaitez convertir.
+Choisir le dossier de sortie :
+Cliquez sur le bouton "Parcourir" à côté de "Dossier de sortie".
+Sélectionnez le dossier où vous souhaitez enregistrer les images converties.
+Choisir le format d'image d'origine :
+Utilisez le menu déroulant "Format d'entrée" pour choisir le type de fichier des images que vous allez convertir (par exemple, WebP, JPEG, PNG).   
+Choisir le format de l'image convertie :
+Utilisez le menu déroulant "Format de sortie" pour choisir le type de fichier dans lequel vous souhaitez convertir les images (par exemple, PNG, JPEG).
+Important : Les formats d'entrée et de sortie doivent être différents.
+Supprimer les fichiers originaux (optionnel) :
+Si vous souhaitez supprimer les images d'origine après la conversion, cochez la case "Supprimer les fichiers originaux".
+Lancer la conversion :
+Cliquez sur le bouton "Convertir" pour démarrer le processus.   
+Attendre la fin de la conversion :
+Un message vous indiquera que la conversion est terminée.
+Vos images converties se trouveront dans le dossier de sortie que vous avez choisi.

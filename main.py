@@ -8,7 +8,7 @@ from customtkinter import CTkImage
 import requests
 import webbrowser
 
-VERSION = "1.0.7"
+VERSION = "1.0.8"
 
 # Configuration du logging
 logging.basicConfig(
@@ -52,6 +52,7 @@ scripts = [
     {"name": "cbzkiller", "description": "Convertisseur PDF/CBR vers CBZ.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "cbzkiller.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "cbzkiller.txt")},
     {"name": "video_converter", "description": "Convertit et rogne des vidéos par lot.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "video_converter.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "video_converter.txt")},
     {"name": "YT_Download", "description": "Télécharge des vidéos youtube.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "YT_Download.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "YT_Download.txt")},
+    {"name": "convert_images", "description": "Convertie des images.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "convert_images.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "convert_images.txt")},
 ]
 
 def lancer_module(module_name):
