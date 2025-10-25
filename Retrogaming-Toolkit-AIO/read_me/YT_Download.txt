@@ -1,61 +1,50 @@
-Fonctionnalités principales
-Téléchargement de vidéos uniques :
+1. Lancer le programme
 
-Téléchargez des vidéos YouTube en qualité maximale ou uniquement l'audio.
+Double-cliquez sur le fichier yt_downloader.py pour démarrer.
 
-Récupérez les sous-titres au format SRT.
+Une petite fenêtre peut s'ouvrir et se fermer rapidement la première fois. C'est normal : le script vérifie qu'il a tous ses "outils" et les installe si besoin.
 
-Spécifiez un dossier de destination pour les fichiers téléchargés.
+Ensuite, la fenêtre principale du programme s'ouvre.
 
-Utilisez l'authentification OAuth pour accéder aux vidéos restreintes.
+2. Remplir les champs
 
-Téléchargement de playlists :
+Vous avez 3 choses principales à faire :
 
-Téléchargez toutes les vidéos d'une playlist YouTube.
+URL (Vidéo, Playlist ou Chaîne) :
+Allez sur YouTube, copiez le lien de la vidéo (ou de la playlist) que vous voulez, et collez-le dans ce premier champ.
 
-Option pour télécharger uniquement l'audio ou récupérer les sous-titres.
+Dossier de destination :
+Cliquez sur le bouton bleu "Parcourir". Une fenêtre s'ouvrira pour vous permettre de choisir où sur votre ordinateur vous voulez enregistrer le fichier (par exemple : sur votre "Bureau", dans "Mes Vidéos" ou "Téléchargements").
 
-Spécifiez un dossier de destination pour les fichiers téléchargés.
+Régler les options :
 
-Utilisez l'authentification OAuth pour accéder aux vidéos restreintes.
+Audio seulement (MP3) : Cochez cette case si vous ne voulez que le son (la musique) et pas la vidéo.
 
-Téléchargement de chaînes :
+Télécharger la vidéo seule... : Si votre lien est une vidéo qui fait partie d'une playlist, cochez cette case pour ne télécharger que cette vidéo, et non toute la playlist.
 
-Téléchargez toutes les vidéos d'une chaîne YouTube.
+Qualité Vidéo : "Source (Best)" est le meilleur choix, il prendra la meilleure qualité disponible (4K, 1080p...).
 
-Option pour télécharger uniquement l'audio ou récupérer les sous-titres.
+Codec Vidéo : C'est le réglage le plus important pour la vitesse.
 
-Spécifiez un dossier de destination pour les fichiers téléchargés.
+Copier la vidéo (Rapide) : (Choix recommandé). C'est le plus rapide. Le programme prend la vidéo et le son et les colle ensemble. Cela prend quelques secondes.
 
-Utilisez l'authentification OAuth pour accéder aux vidéos restreintes.
+h264 (Lent) / h265 (Très lent) : Ces options forcent l'ordinateur à re-compresser toute la vidéo. C'est très, très lent (peut prendre 10 minutes pour une vidéo de 3 minutes). Ne les utilisez pas, sauf si le mode "Rapide" ne fonctionne pas.
 
-Utilisation
-Lancement de l'application :
+3. Lancer le téléchargement
 
-Ouvrez l'interface graphique pour accéder aux fonctionnalités.
+Quand tout est prêt, cliquez sur le gros bouton vert "Télécharger".
 
-Sélection de l'onglet :
+Étape 1 : Téléchargement
+Le bouton va devenir gris et la barre de progression va se remplir. Le script est en train de télécharger les fichiers depuis YouTube.
 
-Choisissez entre "Vidéo unique", "Playlist" ou "Chaîne" en fonction de vos besoins.
+Étape 2 : Encodage / Fusion
+Une fois le téléchargement fini, le texte peut changer en "Encodage / Fusion en cours...". Le programme est en train d'assembler le fichier final.
 
-Entrée des informations :
+Si vous avez choisi "Copier (Rapide)", cette étape dure 5 secondes.
 
-Entrez l'URL de la vidéo, de la playlist ou de la chaîne.
+Si vous avez choisi "Lent", c'est ici que vous devrez être patient.
 
-Spécifiez le dossier de destination.
+Étape 3 : Terminé !
+Quand tout est fini, une petite fenêtre "Succès !" apparaîtra. Votre fichier est prêt dans le dossier que vous aviez choisi !
 
-Configuration des options :
-
-Activez/désactivez les options (audio uniquement, sous-titres, OAuth).
-
-Lancement du téléchargement :
-
-Cliquez sur "Télécharger" pour démarrer l'opération.
-
-Résultat :
-
-Les vidéos sont enregistrées dans le dossier de destination choisi.
-
-Les sous-titres sont sauvegardés au format SRT si l'option est activée.
-
-PyTubeFix GUI est un outil complet pour télécharger des vidéos YouTube avec une interface simple et des fonctionnalités avancées.
+Le bouton redevient vert, prêt pour un autre téléchargement.
