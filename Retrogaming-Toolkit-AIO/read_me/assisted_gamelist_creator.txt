@@ -1,17 +1,21 @@
-Assisted Gamelist Creator est un outil pour créer et mettre à jour des listes de jeux au format XML. Il permet d'enrichir les informations manquantes via le presse-papiers.
+Assisted Gamelist Creator est un outil pour créer et mettre à jour automatiquement des listes de jeux au format XML.
+
+Il utilise une API d'intelligence artificielle (compatible OpenAI, ex: Google AI Studio) pour rechercher et générer les informations manquantes pour chaque jeu.
 
 Fonctionnalités
-Gestion des fichiers XML : Charge ou crée des fichiers XML.
-
-Enrichissement via le presse-papiers : Intègre les données collées dans le presse-papiers.
-
-Fusion des données : Fusionne les données enrichies avec la liste existante.
+* Gestion des fichiers XML : Charge un fichier gamelist.xml existant.
+* Enrichissement automatique : Se connecte à une API d'IA pour compléter les jeux un par un.
+* Fusion des données : Fusionne les nouvelles données avec la liste existante, en conservant les chemins de fichiers et d'images.
+* Gestion des échecs : Crée un fichier "failed_games.txt" listant les jeux qui n'ont pas pu être traités.
 
 Utilisation
-Lancez le script.
-
-Chargez la liste de jeux.
-
-Enrichissez les données via le presse-papiers.
-
-Sauvegardez la liste mise à jour.
+1.  Lancez l'application.
+2.  Cliquez sur "Parcourir..." pour sélectionner votre fichier "gamelist.xml" source.
+3.  Configurez les 4 champs requis pour l'API :
+    * Instructions IA : Pointez vers votre fichier .txt contenant les directives pour l'IA (ex: instructions_assisted_gamelist_creator.txt).
+    * URL API (OpenAI) : Entrez l'URL du service (ex: https://generativelanguage.googleapis.com/v1beta/openai/).
+    * Modèle API : Entrez le nom du modèle à utiliser (ex: gemini-1.5-flash).
+    * Clé API : Entrez votre clé API personnelle (gardez-la secrète).
+4.  Cliquez sur "Démarrer".
+5.  L'outil va commencer à traiter les jeux manquants. La progression sera affichée dans la console et la barre de progression.
+6.  Une fois terminé, un fichier "updated_gamelist.xml" sera créé (ou mis à jour) dans le même dossier, contenant tous les jeux enrichis.

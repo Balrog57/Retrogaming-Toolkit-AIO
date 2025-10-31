@@ -8,3 +8,4 @@ pyperclip
 patool
 pytubefix
 pymupdf
+openai
