@@ -1,13 +1,3 @@
-Collection Builder est un outil pour créer des collections personnalisées de jeux vidéo en fonction de mots-clés spécifiques.
-
-Fonctionnalités
-Création de structure de dossiers : Génère une hiérarchie de dossiers pour la nouvelle collection.
-
-Génération de fichiers de sous-collections : Crée des fichiers .sub pour les jeux correspondant aux mots-clés.
-
-Utilisation
-Lancez l'application.
-
-Entrez le nom de la collection et les mots-clés.
-
-Générez la collection.
+📂 Collection Builder
+Créez des compilations de jeux uniques en quelques secondes. Vous rêvez d'un menu regroupant uniquement vos jeux "Star Wars", "LEGO" ou "Zelda" ? Collection Builder réalise ce vœu en scannant les descriptions de toute votre bibliothèque.
+Il suffit de lui donner des mots-clés, et il chasse automatiquement les titres correspondants à travers toutes vos consoles. L'outil génère ensuite la structure complète de dossiers et les playlists (fichiers .sub) prêtes à l'emploi pour votre interface (type CoinOps ou RetroBat). C'est la fin du tri manuel fastidieux pour créer vos collections thématiques.

@@ -1,15 +1,3 @@
-RVZ/ISO Converter est un outil avec interface graphique pour convertir des fichiers ISO en RVZ et vice versa, en utilisant DolphinTool.exe.
-
-Fonctionnalités
-Conversion ISO vers RVZ et RVZ vers ISO : Convertit les fichiers entre ces formats.
-
-Téléchargement automatique de DolphinTool : Télécharge l'outil si absent.
-
-Interface conviviale : Sélectionnez les répertoires et les paramètres de conversion.
-
-Utilisation
-Lancez le script.
-
-Sélectionnez les fichiers à convertir.
-
-Lancez la conversion.
+🐬 RVZ/ISO Converter
+Optimisez votre collection GameCube et Wii avec ce convertisseur spécialisé. Il transforme vos volumineux fichiers ISO en format RVZ, une compression "sans perte" moderne qui réduit drastiquement la taille des jeux tout en restant parfaitement lisible par l'émulateur Dolphin (et inversement).
+Le module est entièrement autonome : il télécharge et configure automatiquement DolphinTool si nécessaire. Profitez d'une interface claire pour convertir vos jeux en masse, avec un contrôle total sur la puissance de compression pour économiser un maximum d'espace de stockage.

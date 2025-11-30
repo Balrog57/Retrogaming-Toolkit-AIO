@@ -1,13 +1,3 @@
-Media Orphan Detector est un script Python qui identifie et déplace les fichiers multimédias orphelins (sans fichier ROM correspondant) dans un dossier orphan.
-
-Fonctionnalités
-Détection des fichiers multimédias orphelins : Vérifie les fichiers multimédias dans medium_artwork.
-
-Déplacement des fichiers orphelins : Les fichiers sans ROM correspondante sont déplacés dans orphan.
-
-Ignorer les fichiers "default" : Les fichiers multimédias nommés "default" sont ignorés.
-
-Utilisation
-Exécutez le script.
-
-Les fichiers multimédias orphelins sont déplacés dans orphan.
+🧹 Media Orphan Detector
+Nettoyez vos dossiers multimédias encombrés après avoir fait du tri dans vos jeux. Ce script analyse vos dossiers d'images (medium_artwork) et vérifie pour chaque fichier si le jeu correspondant existe toujours dans votre dossier de ROMs.
+S'il détecte une image "orpheline" (sans jeu associé), il ne la supprime pas mais la déplace prudemment dans un sous-dossier nommé orphan. C'est l'outil idéal pour récupérer de l'espace disque sans risque de perdre des fichiers importants, tout en préservant intelligemment les images système nommées "default".

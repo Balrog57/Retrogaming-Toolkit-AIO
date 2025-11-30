@@ -1,17 +1,3 @@
-MaxCSO Compression Script est un outil avec interface graphique pour compresser des fichiers ISO en CSO ou ZSO. Il utilise maxcso.exe pour optimiser la compression.
-
-Fonctionnalités
-Compression ISO vers CSO/ZSO : Convertit des fichiers ISO en formats compressés.
-
-Utilisation optimisée des cœurs CPU : Utilise tous les cœurs disponibles.
-
-Téléchargement automatique de maxcso.exe : Télécharge l'outil si absent.
-
-Utilisation
-Lancez le script.
-
-Sélectionnez les fichiers ISO à compresser.
-
-Choisissez les options de compression.
-
-Lancez la compression.
+💿 MaxCSO Compression Script
+Réduisez la taille de vos jeux (notamment PSP et PS2) sans effort pour gagner de précieux giga-octets. Ce module convertit vos fichiers ISO volumineux en formats compressés (CSO) optimisés, lisibles par tous les émulateurs.
+L'outil est autonome : il télécharge lui-même les composants nécessaires et exploite toute la puissance de votre processeur (multi-cœurs) pour une compression ultra-rapide. Une interface simple vous permet de traiter des dossiers entiers en décidant si vous souhaitez remplacer les originaux ou créer des copies légères.

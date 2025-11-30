@@ -1,15 +1,3 @@
-Install Dependencies est un script qui automatise l'installation des composants essentiels sur Windows, tels que les redistribuables Visual C++, DirectX et OpenAL. Il simplifie la configuration du système pour exécuter des applications et des jeux.
-
-Fonctionnalités
-Installation des redistribuables Visual C++ : Installe les versions x86 et x64 pour les années 2005 à 2022.
-
-Installation de DirectX et OpenAL : Installe ces bibliothèques en mode silencieux.
-
-Détection automatique de l'architecture : Identifie si le système est 32 bits ou 64 bits.
-
-Mode silencieux : Les installations se font en arrière-plan sans interaction utilisateur.
-
-Utilisation
-Exécutez le script.
-
-Les composants nécessaires sont installés automatiquement.
+🛠️ Install Dependencies
+Ne laissez plus les erreurs de "DLL manquantes" gâcher votre expérience de jeu. Ce module est votre pack de survie technique : il installe et met à jour automatiquement tous les composants vitaux pour Windows (Visual C++, DirectX, OpenAL).
+L'outil détecte intelligemment votre architecture (32 ou 64 bits) et déploie toutes les bibliothèques nécessaires (de 2005 à aujourd'hui) en mode "silencieux", sans aucune intervention de votre part. C'est la solution en un clic pour garantir un système sain, prêt à lancer n'importe quel émulateur ou jeu PC instantanément.

@@ -1,14 +1,3 @@
-Convertisseur PDF/CBR vers CBZ
-Cet outil permet de convertir des fichiers PDF et CBR en CBZ via une interface graphique simple.
-
-Fonctionnalités
-Conversion de fichiers PDF et CBR en CBZ
-Interface intuitive et mode sombre
-Suppression optionnelle des fichiers originaux après conversion
-Affichage des logs et barre de progression
-Traitement en lot des fichiers d'un dossier
-Utilisation
-Lancez l'application.
-Sélectionnez un dossier contenant des fichiers à convertir.
-Activez l’option de suppression si nécessaire.
-Cliquez sur Convertir et laissez l’outil faire le travail.
+📚 CBZKiller - Convertisseur de Comics
+Standardisez votre bibliothèque de bandes dessinées numériques et mangas en un clin d'œil. Ce module convertit massivement vos fichiers PDF et CBR vers le format universel CBZ, le standard préféré des liseuses et des émulateurs rétro.
+Plus besoin de manipuler les fichiers un par un : sélectionnez un dossier complet, et l'outil convertit tout à la chaîne en préservant la qualité des images. Il intègre une option intelligente de nettoyage pour supprimer automatiquement les fichiers originaux après conversion, optimisant ainsi votre espace de stockage sans effort. Une interface claire pour une collection parfaitement ordonnée.

@@ -1,11 +1,3 @@
-Game Batch Creator est un outil pour créer des fichiers batch pour lancer des jeux (normaux, Steam, Epic Games).
-
-Fonctionnalités
-Création de batch pour jeux normaux, Steam et Epic Games : Génère des fichiers batch pour exécuter des jeux.
-
-Utilisation
-Lancez le programme.
-
-Remplissez les champs pour le type de jeu souhaité.
-
-Générez le fichier batch.
+🚀 Game Batch Creator
+Intégrez sans douleur votre ludothèque PC moderne (Windows, Steam, Epic Games) dans votre interface rétro. Ce module génère automatiquement les scripts de lancement (.bat) nécessaires pour que vos frontends (comme RetroBat ou EmulationStation) puissent exécuter vos jeux PC aussi simplement que des ROMs consoles.
+Fini le codage manuel fastidieux : l'outil gère tout pour vous, de la commande de lancement complexe à la surveillance du processus pour garantir une fermeture propre. Il suffit de renseigner l'ID du jeu ou de pointer vers l'exécutable, et vous obtenez un lanceur universel prêt à l'emploi.

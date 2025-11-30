@@ -1,21 +1,3 @@
-Assisted Gamelist Creator est un outil pour créer et mettre à jour automatiquement des listes de jeux au format XML.
-
-Il utilise une API d'intelligence artificielle (compatible OpenAI, ex: Google AI Studio) pour rechercher et générer les informations manquantes pour chaque jeu.
-
-Fonctionnalités
-* Gestion des fichiers XML : Charge un fichier gamelist.xml existant.
-* Enrichissement automatique : Se connecte à une API d'IA pour compléter les jeux un par un.
-* Fusion des données : Fusionne les nouvelles données avec la liste existante, en conservant les chemins de fichiers et d'images.
-* Gestion des échecs : Crée un fichier "failed_games.txt" listant les jeux qui n'ont pas pu être traités.
-
-Utilisation
-1.  Lancez l'application.
-2.  Cliquez sur "Parcourir..." pour sélectionner votre fichier "gamelist.xml" source.
-3.  Configurez les 4 champs requis pour l'API :
-    * Instructions IA : Pointez vers votre fichier .txt contenant les directives pour l'IA (ex: instructions_assisted_gamelist_creator.txt).
-    * URL API (OpenAI) : Entrez l'URL du service (ex: https://generativelanguage.googleapis.com/v1beta/openai/).
-    * Modèle API : Entrez le nom du modèle à utiliser (ex: gemini-1.5-flash).
-    * Clé API : Entrez votre clé API personnelle (gardez-la secrète).
-4.  Cliquez sur "Démarrer".
-5.  L'outil va commencer à traiter les jeux manquants. La progression sera affichée dans la console et la barre de progression.
-6.  Une fois terminé, un fichier "updated_gamelist.xml" sera créé (ou mis à jour) dans le même dossier, contenant tous les jeux enrichis.
+🤖 Assisted Gamelist Creator
+Donnez vie à vos menus de jeu incomplets grâce à la puissance de l'Intelligence Artificielle. Ce module analyse vos fichiers gamelist.xml (Recalbox/Batocera) pour repérer les jeux qui n'ont pas de description ou d'informations.
+Il interroge ensuite automatiquement une IA performante (comme Gemini ou GPT) pour rédiger les synopsis manquants et compléter les métadonnées avec précision. Le processus est sécurisé : l'outil fusionne intelligemment les nouvelles données sans jamais écraser vos chemins d'images ou vos configurations existantes. C'est la solution ultime pour "boucher les trous" de votre collection sans lever le petit doigt.

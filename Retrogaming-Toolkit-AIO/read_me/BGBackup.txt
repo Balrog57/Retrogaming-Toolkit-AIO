@@ -1,20 +1,3 @@
-BGBackup est un petit utilitaire pour sauvegarder les fichiers gamelist.xml présents dans une structure de dossiers roms. Il parcourt les sous-dossiers sur deux niveaux, copie les fichiers gamelist.xml dans un dossier temporaire, les renomme selon le nom du dossier parent, et les compresse dans un fichier ZIP.
-
-Fonctionnalités
-Sélection du dossier roms : Choisissez le dossier contenant vos roms et leurs sous-dossiers.
-
-Backup des gamelist.xml : Les fichiers gamelist.xml sont copiés, renommés et compressés dans un fichier ZIP sans modifier les originaux.
-
-Interface simple et moderne : Une interface graphique intuitive et moderne permet une utilisation facile.
-
-Utilisation
-Lancez BGBackup : Exécutez le programme.
-
-Sélectionnez le dossier roms : Cliquez sur "Sélectionner le dossier roms" et choisissez le dossier contenant vos roms.
-
-Créez le backup : Cliquez sur "Créer le backup" pour générer un fichier ZIP nommé gamelist_backup.zip contenant les fichiers gamelist.xml renommés.
-
-Résultat
-Un fichier gamelist_backup.zip est créé dans le répertoire courant. Il contient les fichiers gamelist.xml renommés selon le nom de leur dossier parent (par exemple, nes.gamelist.xml).
-
-Note : BGBackup ne modifie ni ne supprime les fichiers gamelist.xml originaux. Il travaille uniquement sur des copies temporaires.
+🛡️ BGBackup
+Ne craignez plus de perdre vos précieuses métadonnées lors d'une mauvaise manipulation. BGBackup agit comme une assurance-vie pour votre collection : il scanne automatiquement vos dossiers de jeux pour localiser tous vos fichiers gamelist.xml.
+En un seul clic, il crée une archive ZIP de sécurité contenant toutes vos listes, sans jamais toucher ni modifier vos fichiers originaux. C'est l'outil indispensable pour sauvegarder instantanément des heures de travail de "scraping" avant de tester de nouvelles configurations.

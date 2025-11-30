@@ -1,22 +1,3 @@
-Ce programme permet d'extraire la première image des fichiers .cbz, .cbr et .pdf contenus dans un répertoire sélectionné. Les images extraites sont sauvegardées au format PNG dans le même répertoire que les fichiers d'origine.
-
-Fonctionnalités
-Extraction d'images : Extrait la première image des fichiers .cbz, .cbr et .pdf.
-
-Interface graphique : Une interface simple permet de sélectionner un répertoire et de lancer l'extraction.
-
-Sauvegarde automatique : Les images extraites sont sauvegardées dans le même répertoire que les fichiers sources.
-
-Utilisation
-Sélection du répertoire : Cliquez sur "Parcourir" pour choisir le répertoire contenant les fichiers.
-
-Lancement de l'extraction : Cliquez sur "Valider" pour lancer l'extraction des images.
-
-Résultat : Les images extraites sont sauvegardées dans le répertoire sélectionné, avec le même nom que les fichiers d'origine.
-
-Remarques
-Les fichiers .cbz et .cbr sont traités comme des archives (ZIP et RAR).
-
-Les fichiers PDF sont traités en extrayant la première page sous forme d'image.
-
-Aucun répertoire de sortie supplémentaire n'est nécessaire, les images sont sauvegardées directement dans le répertoire d'entrée.
+📖 Cover Extractor
+Donnez instantanément un visage à vos collections de bandes dessinées et magazines numériques. Ce module parcourt vos dossiers pour générer automatiquement les jaquettes de vos fichiers PDF, CBZ et CBR.
+Il extrait intelligemment la première page ou image de chaque fichier pour créer une miniature PNG de haute qualité. C'est l'outil parfait pour illustrer visuellement vos listes de lecture dans votre interface de jeu ou votre explorateur de fichiers, sans avoir à chercher ou télécharger manuellement les couvertures une par une.

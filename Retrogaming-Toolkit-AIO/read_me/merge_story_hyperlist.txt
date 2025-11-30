@@ -1,13 +1,3 @@
-Merge Story Hyperlist est un script Python qui intègre des fichiers texte contenant des histoires dans un fichier XML de type hyperlist.
-
-Fonctionnalités
-Intégration des histoires : Ajoute ou met à jour la balise <story> dans le fichier XML.
-
-Gestion des erreurs d'encodage : Lit les fichiers texte avec plusieurs encodages.
-
-Sauvegarde des modifications : Enregistre les modifications dans un nouveau fichier XML.
-
-Utilisation
-Exécutez le script.
-
-Les histoires sont intégrées dans le fichier XML.
+📖 Merge Story HyperList
+Enrichissez vos bases de données Hyperspin ou HyperList sans éditer une seule ligne de code manuellment. Ce module fusionne automatiquement une collection de fichiers texte (synopsis, histoires) directement dans votre fichier XML principal.
+Il scanne votre dossier de descriptions, associe chaque fichier .txt au jeu correspondant dans la liste, et injecte le contenu dans la balise <story>. Robuste, il gère les différents encodages de texte pour éviter les caractères corrompus et génère un nouveau fichier XML mis à jour, prêt à être intégré dans votre frontend.

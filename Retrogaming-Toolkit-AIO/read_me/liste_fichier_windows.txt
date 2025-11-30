@@ -1,11 +1,3 @@
-Liste Fichier Windows est un script Python qui liste tous les fichiers et répertoires du répertoire courant et enregistre la liste dans un fichier texte nommé Liste.txt.
-
-Fonctionnalités
-Liste des fichiers et répertoires : Parcourt le répertoire courant.
-
-Enregistrement dans un fichier texte : Sauvegarde la liste dans Liste.txt.
-
-Utilisation
-Exécutez le script.
-
-La liste des fichiers et répertoires est générée dans Liste.txt.
+📁 Liste Fichier Windows
+Obtenez une "photo" instantanée du contenu d'un répertoire sans vous noyer dans les détails. Contrairement à l'outil précédent qui fouille en profondeur, ce module se concentre sur l'essentiel : il génère un inventaire clair de tous les fichiers et dossiers situés à la racine du répertoire sélectionné.
+C'est l'outil idéal pour lister rapidement vos catégories de systèmes ou vérifier la structure globale d'un dossier d'émulateurs. Le résultat est exporté proprement dans un fichier Liste.txt, parfait pour une vérification rapide ou pour partager la structure de votre installation.
