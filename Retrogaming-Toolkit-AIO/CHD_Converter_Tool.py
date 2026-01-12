@@ -329,7 +329,17 @@ class CHDmanGUI:
 
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_zip = os.path.join(temp_dir, CHDMAN_ZIP)
-                urllib.request.urlretrieve(CHDMAN_URL, temp_zip)
+                
+                # Use requests instead of urllib for better reliability/headers
+                import requests
+                headers = {'User-Agent': 'Mozilla/5.0'}
+                response = requests.get(CHDMAN_URL, headers=headers, stream=True, verify=False)
+                response.raise_for_status()
+                
+                with open(temp_zip, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+
                 with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
                     zip_ref.extractall(temp_dir)
                 

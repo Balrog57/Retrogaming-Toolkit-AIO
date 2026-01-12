@@ -10,6 +10,7 @@ def main():
     import webbrowser
     import requests
     import multiprocessing
+    import sys
 
     # Configuration du thème
     ctk.set_appearance_mode("dark")  # Mode sombre
