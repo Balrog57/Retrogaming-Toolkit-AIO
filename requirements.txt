@@ -12,3 +12,5 @@ openai
 pyinstaller
 yt-dlp
 imageio-ffmpeg
+py7zr
+certifi
