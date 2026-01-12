@@ -6,9 +6,20 @@ import tempfile
 import shutil
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, Listbox, Checkbutton, BooleanVar
+import sys
+
+# Import utils
+try:
+    import utils
+except ImportError:
+    pass
 
 def check_and_download_ffmpeg():
-    ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
+    if 'utils' in sys.modules:
+        ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
+    else:
+        ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
+
     if not os.path.exists(ffmpeg_path):
         try:
             messagebox.showinfo("Téléchargement", "FFmpeg n'est pas trouvé. Téléchargement en cours...")
@@ -43,7 +54,10 @@ def check_and_download_ffmpeg():
 
 def convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution):
     check_and_download_ffmpeg()  # Vérifiez et téléchargez FFmpeg si nécessaire
-    ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
+    if 'utils' in sys.modules:
+        ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
+    else:
+        ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
     try:
         command = [
             ffmpeg_path,
@@ -70,7 +84,10 @@ def convert_video(input_file, start_time, end_time, output_file, video_bitrate, 
 
 def capture_first_frame(input_file, output_file, rotate=False):
     check_and_download_ffmpeg()  # Vérifiez et téléchargez FFmpeg si nécessaire
-    ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
+    if 'utils' in sys.modules:
+        ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
+    else:
+        ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
     try:
         command = [
             ffmpeg_path,
@@ -170,101 +187,115 @@ ctk.set_default_color_theme("blue")  # Thème de couleur bleu
 root = ctk.CTk()
 root.title("Trim et Convertisseur Vidéo par Lot")
 
-# Input file selection
-frame_input = ctk.CTkFrame(root)
-frame_input.pack(padx=10, pady=5, fill="x")
+def main():
+    global root, listbox_files, entry_start_time, entry_end_time, entry_video_bitrate, entry_audio_bitrate, entry_fps, entry_resolution, selected_output_option, capture_without_rotation_var, capture_with_rotation_var
 
-label_input_files = ctk.CTkLabel(frame_input, text="Fichiers vidéo d'entrée :", font=("Arial", 16))
-label_input_files.pack(side="left")
+    # Configuration de l'apparence de l'interface
+    ctk.set_appearance_mode("dark")  # Mode sombre
+    ctk.set_default_color_theme("blue")  # Thème de couleur bleu
 
-button_browse = ctk.CTkButton(frame_input, text="Ajouter des fichiers", command=browse_files, width=200)
-button_browse.pack(side="left", padx=5)
+    # Création de la fenêtre principale
+    root = ctk.CTk()
+    root.title("Trim et Convertisseur Vidéo par Lot")
 
-button_clear = ctk.CTkButton(frame_input, text="Effacer la liste", command=clear_files, width=200)
-button_clear.pack(side="left", padx=5)
+    # Input file selection
+    frame_input = ctk.CTkFrame(root)
+    frame_input.pack(padx=10, pady=5, fill="x")
 
-# Listbox to show selected files
-listbox_files = Listbox(root, selectmode="multiple", height=10, width=80)
-listbox_files.pack(padx=10, pady=5)
+    label_input_files = ctk.CTkLabel(frame_input, text="Fichiers vidéo d'entrée :", font=("Arial", 16))
+    label_input_files.pack(side="left")
 
-# Start and end time inputs
-frame_times = ctk.CTkFrame(root)
-frame_times.pack(padx=10, pady=5, fill="x")
+    button_browse = ctk.CTkButton(frame_input, text="Ajouter des fichiers", command=browse_files, width=200)
+    button_browse.pack(side="left", padx=5)
 
-label_start_time = ctk.CTkLabel(frame_times, text="Heure de début (HH:MM:SS) :", font=("Arial", 14))
-label_start_time.pack(side="left")
+    button_clear = ctk.CTkButton(frame_input, text="Effacer la liste", command=clear_files, width=200)
+    button_clear.pack(side="left", padx=5)
 
-entry_start_time = ctk.CTkEntry(frame_times, width=100)
-entry_start_time.insert(0, "00:00:00")
-entry_start_time.pack(side="left", padx=5)
+    # Listbox to show selected files
+    listbox_files = Listbox(root, selectmode="multiple", height=10, width=80)
+    listbox_files.pack(padx=10, pady=5)
 
-label_end_time = ctk.CTkLabel(frame_times, text="Heure de fin (HH:MM:SS) :", font=("Arial", 14))
-label_end_time.pack(side="left")
+    # Start and end time inputs
+    frame_times = ctk.CTkFrame(root)
+    frame_times.pack(padx=10, pady=5, fill="x")
 
-entry_end_time = ctk.CTkEntry(frame_times, width=100)
-entry_end_time.insert(0, "00:01:30")
-entry_end_time.pack(side="left", padx=5)
+    label_start_time = ctk.CTkLabel(frame_times, text="Heure de début (HH:MM:SS) :", font=("Arial", 14))
+    label_start_time.pack(side="left")
 
-# Video settings inputs
-frame_settings = ctk.CTkFrame(root)
-frame_settings.pack(padx=10, pady=5, fill="x")
+    entry_start_time = ctk.CTkEntry(frame_times, width=100)
+    entry_start_time.insert(0, "00:00:00")
+    entry_start_time.pack(side="left", padx=5)
 
-label_video_bitrate = ctk.CTkLabel(frame_settings, text="Débit vidéo (kbps) :", font=("Arial", 14))
-label_video_bitrate.pack(side="left")
+    label_end_time = ctk.CTkLabel(frame_times, text="Heure de fin (HH:MM:SS) :", font=("Arial", 14))
+    label_end_time.pack(side="left")
 
-entry_video_bitrate = ctk.CTkEntry(frame_settings, width=100)
-entry_video_bitrate.insert(0, "8000k")
-entry_video_bitrate.pack(side="left", padx=5)
+    entry_end_time = ctk.CTkEntry(frame_times, width=100)
+    entry_end_time.insert(0, "00:01:30")
+    entry_end_time.pack(side="left", padx=5)
 
-label_audio_bitrate = ctk.CTkLabel(frame_settings, text="Débit audio (kbps) :", font=("Arial", 14))
-label_audio_bitrate.pack(side="left")
+    # Video settings inputs
+    frame_settings = ctk.CTkFrame(root)
+    frame_settings.pack(padx=10, pady=5, fill="x")
 
-entry_audio_bitrate = ctk.CTkEntry(frame_settings, width=100)
-entry_audio_bitrate.insert(0, "128k")
-entry_audio_bitrate.pack(side="left", padx=5)
+    label_video_bitrate = ctk.CTkLabel(frame_settings, text="Débit vidéo (kbps) :", font=("Arial", 14))
+    label_video_bitrate.pack(side="left")
 
-label_fps = ctk.CTkLabel(frame_settings, text="FPS :", font=("Arial", 14))
-label_fps.pack(side="left")
+    entry_video_bitrate = ctk.CTkEntry(frame_settings, width=100)
+    entry_video_bitrate.insert(0, "8000k")
+    entry_video_bitrate.pack(side="left", padx=5)
 
-entry_fps = ctk.CTkEntry(frame_settings, width=100)
-entry_fps.insert(0, "30")
-entry_fps.pack(side="left", padx=5)
+    label_audio_bitrate = ctk.CTkLabel(frame_settings, text="Débit audio (kbps) :", font=("Arial", 14))
+    label_audio_bitrate.pack(side="left")
 
-label_resolution = ctk.CTkLabel(frame_settings, text="Résolution (LxH) :", font=("Arial", 14))
-label_resolution.pack(side="left")
+    entry_audio_bitrate = ctk.CTkEntry(frame_settings, width=100)
+    entry_audio_bitrate.insert(0, "128k")
+    entry_audio_bitrate.pack(side="left", padx=5)
 
-entry_resolution = ctk.CTkEntry(frame_settings, width=100)
-entry_resolution.insert(0, "1920x1080")
-entry_resolution.pack(side="left", padx=5)
+    label_fps = ctk.CTkLabel(frame_settings, text="FPS :", font=("Arial", 14))
+    label_fps.pack(side="left")
 
-# Output options
-frame_output_options = ctk.CTkFrame(root)
-frame_output_options.pack(padx=10, pady=5, fill="x")
+    entry_fps = ctk.CTkEntry(frame_settings, width=100)
+    entry_fps.insert(0, "30")
+    entry_fps.pack(side="left", padx=5)
 
-selected_output_option = ctk.StringVar(value="folder")
+    label_resolution = ctk.CTkLabel(frame_settings, text="Résolution (LxH) :", font=("Arial", 14))
+    label_resolution.pack(side="left")
 
-radio_folder = ctk.CTkRadioButton(frame_output_options, text="Exporter dans un sous-dossier 'vidéos_converties'", variable=selected_output_option, value="folder")
-radio_folder.pack(anchor="w")
+    entry_resolution = ctk.CTkEntry(frame_settings, width=100)
+    entry_resolution.insert(0, "1920x1080")
+    entry_resolution.pack(side="left", padx=5)
 
-radio_replace = ctk.CTkRadioButton(frame_output_options, text="Remplacer les fichiers originaux", variable=selected_output_option, value="replace")
-radio_replace.pack(anchor="w")
+    # Output options
+    frame_output_options = ctk.CTkFrame(root)
+    frame_output_options.pack(padx=10, pady=5, fill="x")
 
-# Capture options
-frame_capture_options = ctk.CTkFrame(root)
-frame_capture_options.pack(padx=10, pady=5, fill="x")
+    selected_output_option = ctk.StringVar(value="folder")
 
-capture_without_rotation_var = BooleanVar()
-capture_with_rotation_var = BooleanVar()
+    radio_folder = ctk.CTkRadioButton(frame_output_options, text="Exporter dans un sous-dossier 'vidéos_converties'", variable=selected_output_option, value="folder")
+    radio_folder.pack(anchor="w")
 
-check_capture_without_rotation = ctk.CTkCheckBox(frame_capture_options, text="Capture d'une cover sans rotation", variable=capture_without_rotation_var)
-check_capture_without_rotation.pack(anchor="w")
+    radio_replace = ctk.CTkRadioButton(frame_output_options, text="Remplacer les fichiers originaux", variable=selected_output_option, value="replace")
+    radio_replace.pack(anchor="w")
 
-check_capture_with_rotation = ctk.CTkCheckBox(frame_capture_options, text="Capture d'une cover avec rotation", variable=capture_with_rotation_var)
-check_capture_with_rotation.pack(anchor="w")
+    # Capture options
+    frame_capture_options = ctk.CTkFrame(root)
+    frame_capture_options.pack(padx=10, pady=5, fill="x")
 
-# Convert button
-button_convert = ctk.CTkButton(root, text="Convertir", command=start_conversion, width=200)
-button_convert.pack(pady=10)
+    capture_without_rotation_var = BooleanVar()
+    capture_with_rotation_var = BooleanVar()
 
-# Run the application
-root.mainloop()
+    check_capture_without_rotation = ctk.CTkCheckBox(frame_capture_options, text="Capture d'une cover sans rotation", variable=capture_without_rotation_var)
+    check_capture_without_rotation.pack(anchor="w")
+
+    check_capture_with_rotation = ctk.CTkCheckBox(frame_capture_options, text="Capture d'une cover avec rotation", variable=capture_with_rotation_var)
+    check_capture_with_rotation.pack(anchor="w")
+
+    # Convert button
+    button_convert = ctk.CTkButton(root, text="Convertir", command=start_conversion, width=200)
+    button_convert.pack(pady=10)
+
+    # Run the application
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()

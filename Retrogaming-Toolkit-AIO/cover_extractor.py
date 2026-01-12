@@ -77,6 +77,9 @@ class App(ctk.CTk):
 
         process_directory(self.selected_directory)
 
-if __name__ == "__main__":
+def main():
     app = App()
     app.mainloop()
+
+if __name__ == "__main__":
+    main()

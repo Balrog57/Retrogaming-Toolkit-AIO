@@ -62,7 +62,10 @@ class BGBackupApp:
         except Exception as e:
             messagebox.showerror("Erreur", f"Erreur lors de la création du ZIP : {e}")
 
-if __name__ == "__main__":
+def main():
     root = ctk.CTk()
     app = BGBackupApp(root)
     root.mainloop()
+
+if __name__ == "__main__":
+    main()

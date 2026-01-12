@@ -55,33 +55,38 @@ def start_compression():
         return
     compress_and_delete_roms(source_dir.get())
 
-# Crée une instance de CTk (fenêtre principale)
-root = ctk.CTk()
-root.title("Dossier rom vers ZIP")  # Titre modifié
-root.geometry("500x300")  # Taille de la fenêtre
+def main():
+    global source_dir, root
+    # Crée une instance de CTk (fenêtre principale)
+    root = ctk.CTk()
+    root.title("Dossier rom vers ZIP")  # Titre modifié
+    root.geometry("500x300")  # Taille de la fenêtre
 
-# Variable pour le dossier source
-source_dir = ctk.StringVar()
+    # Variable pour le dossier source
+    source_dir = ctk.StringVar()
 
-# Titre
-title_label = ctk.CTkLabel(root, text="Dossier rom vers ZIP", font=("Arial", 16, "bold"))
-title_label.pack(pady=20)
+    # Titre
+    title_label = ctk.CTkLabel(root, text="Dossier rom vers ZIP", font=("Arial", 16, "bold"))
+    title_label.pack(pady=20)
 
-# Sélection du dossier source
-source_label = ctk.CTkLabel(root, text="Dossier source (Fichiers nes/bin/cue/gdi/iso/chd...) :", font=("Arial", 12))
-source_label.pack(pady=5)
+    # Sélection du dossier source
+    source_label = ctk.CTkLabel(root, text="Dossier source (Fichiers nes/bin/cue/gdi/iso/chd...) :", font=("Arial", 12))
+    source_label.pack(pady=5)
 
-# Champ de saisie customtkinter pour afficher le chemin
-entry = ctk.CTkEntry(root, textvariable=source_dir, width=400)
-entry.pack(pady=5)
+    # Champ de saisie customtkinter pour afficher le chemin
+    entry = ctk.CTkEntry(root, textvariable=source_dir, width=400)
+    entry.pack(pady=5)
 
-# Bouton pour parcourir les dossiers
-browse_button = ctk.CTkButton(root, text="Parcourir...", command=select_source_dir, width=200)
-browse_button.pack(pady=10)
+    # Bouton pour parcourir les dossiers
+    browse_button = ctk.CTkButton(root, text="Parcourir...", command=select_source_dir, width=200)
+    browse_button.pack(pady=10)
 
-# Bouton pour lancer la compression
-compress_button = ctk.CTkButton(root, text="ZIP", command=start_compression, width=200)
-compress_button.pack(pady=20)
+    # Bouton pour lancer la compression
+    compress_button = ctk.CTkButton(root, text="ZIP", command=start_compression, width=200)
+    compress_button.pack(pady=20)
 
-# Lancement de l'interface
-root.mainloop()
+    # Lancement de l'interface
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()

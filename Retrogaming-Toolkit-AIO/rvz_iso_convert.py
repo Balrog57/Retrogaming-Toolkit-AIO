@@ -5,6 +5,7 @@ def main():
     import subprocess
     import urllib.request
     import tarfile
+    import sys
     import customtkinter as ctk
     from tkinter import filedialog, messagebox
 
@@ -12,8 +13,28 @@ def main():
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
 
+    # Import utils
+    try:
+        import utils
+    except ImportError:
+        pass
+
     # Nom du fichier DolphinTool
-    DOLPHIN_TOOL_NAME = "DolphinTool.exe"
+    # Nom du fichier DolphinTool
+    def get_dolphin_tool_path():
+        if 'utils' in sys.modules:
+            bin_path = utils.get_binary_path("DolphinTool.exe")
+            if os.path.exists(bin_path):
+                return bin_path
+        
+        # AppData fallback
+        app_data_path = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit', "DolphinTool.exe")
+        if os.path.exists(app_data_path):
+            return app_data_path
+            
+        return app_data_path
+
+    DOLPHIN_TOOL_NAME = get_dolphin_tool_path()
     # URL de téléchargement de Dolphin Emulator
     DOLPHIN_DOWNLOAD_URL = "https://dl.dolphin-emu.org/releases/2412/dolphin-2412-x64.7z"
 
@@ -34,30 +55,46 @@ def main():
     def download_dolphintool():
         """Télécharge DolphinTool.exe depuis le site officiel."""
         try:
-            archive_path, _ = urllib.request.urlretrieve(DOLPHIN_DOWNLOAD_URL, "dolphin.7z")
+            # Ensure AppData dir exists (since get_dolphin_tool_path defaults to it)
+            app_data_dir = os.path.dirname(DOLPHIN_TOOL_NAME)
+            if not os.path.exists(app_data_dir):
+                os.makedirs(app_data_dir)
+
+            archive_path, _ = urllib.request.urlretrieve(DOLPHIN_DOWNLOAD_URL, os.path.join(app_data_dir, "dolphin.7z"))
             extract_dolphintool(archive_path)
-            os.remove(archive_path)
-            messagebox.showinfo("Téléchargement Réussi", f"{DOLPHIN_TOOL_NAME} a été téléchargé avec succès.")
+            if os.path.exists(archive_path):
+                os.remove(archive_path)
+            messagebox.showinfo("Téléchargement Réussi", f"DolphinTool a été téléchargé avec succès.")
         except Exception as e:
             messagebox.showerror("Erreur de Téléchargement", f"Le téléchargement a échoué : {e}")
-            exit()
+            sys.exit() # Changed from exit() to sys.exit()
 
     def extract_dolphintool(archive_path):
         """Extrait DolphinTool.exe d'une archive .7z."""
         try:
             import py7zr
-            with py7zr.SevenZipFile(archive_path, mode='r') as archive:
-                archive.extractall()
-            extracted_path = os.path.join("Dolphin-x64", DOLPHIN_TOOL_NAME)
-            if os.path.exists(extracted_path):
-                os.rename(extracted_path, DOLPHIN_TOOL_NAME)
-                # Supprimer le dossier Dolphin-x64 après avoir déplacé l'exécutable
-                if os.path.exists(DOLPHIN_TOOL_NAME):
+            # Extract to temp dir
+            import tempfile
+            with tempfile.TemporaryDirectory() as temp_dir:
+                with py7zr.SevenZipFile(archive_path, mode='r') as archive:
+                    archive.extractall(path=temp_dir)
+                
+                # Find DolphinTool.exe
+                extracted_tool = None
+                for root, dirs, files in os.walk(temp_dir):
+                    if "DolphinTool.exe" in files:
+                        extracted_tool = os.path.join(root, "DolphinTool.exe")
+                        break
+                
+                if extracted_tool:
                     import shutil
-                    shutil.rmtree("Dolphin-x64", ignore_errors=True)
+                    shutil.move(extracted_tool, DOLPHIN_TOOL_NAME)
+                else:
+                    raise FileNotFoundError("DolphinTool.exe non trouvé dans l'archive.")
+
         except ImportError:
-            messagebox.showerror("Erreur", "Le module py7zr est requis pour extraire l'archive .7z. Installez-le avec 'pip install py7zr'.")
-            exit()
+            messagebox.showerror("Erreur", "Le module py7zr est requis pour extraire l'archive .7z.")
+            sys.exit()
 
     def select_directory(title):
         """Ouvre une boîte de dialogue pour sélectionner un répertoire."""

@@ -103,7 +103,7 @@ def process_files(custom_file_path, output_dir_path):
 
     tkinter.messagebox.showinfo("Success", "Processing complete!")
 
-def create_gui():
+def main():
     """Creates the GUI, resembling the first script's layout."""
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
@@ -148,4 +148,4 @@ def create_gui():
     root.mainloop()
 
 if __name__ == "__main__":
-    create_gui()
+    main()

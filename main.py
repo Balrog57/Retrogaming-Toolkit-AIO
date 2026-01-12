@@ -1,20 +1,74 @@
 import customtkinter as ctk
 from tkinter import messagebox  # messagebox est toujours utilisé depuis tkinter
 import os
+import sys
 import logging
 import subprocess
+import multiprocessing
+import importlib
+import tempfile
+import zipfile
+import traceback
 from PIL import Image
 from customtkinter import CTkImage
 import requests
 import webbrowser
 
-VERSION = "1.1.1"
+# Import utils
+# Import utils
+# Fix sys.path for bundled modules
+if getattr(sys, 'frozen', False):
+    # In frozen mode, we are in sys._MEIPASS
+    # We need to add Retrogaming-Toolkit-AIO to sys.path so 'import convert_images' works
+    # if convert_images.py is located at Retrogaming-Toolkit-AIO/convert_images.py inside the bundle.
+    # Check where build.py put it. 
+    # build.py adds paths={toolkit_dir}, so imports are at top level?
+    # No, --onedir means structure is preserved usually?
+    # --hidden-import bundles them inside the PYZ.
+    # If hidden import is used, 'import convert_images' should JUST WORK from anywhere.
+    # But usually hidden imports are top-level in the PYZ.
+    # The error 'No module named convert_images' means it's NOT in the PYZ.
+    # Why?
+    # Maybe because of the hyphen in folder name 'Retrogaming-Toolkit-AIO'? No.
+    # I'll ensure we try to add the path anyway.
+    base_path = sys._MEIPASS
+    toolkit_path = os.path.join(base_path, "Retrogaming-Toolkit-AIO")
+    if toolkit_path not in sys.path:
+        sys.path.append(toolkit_path)
+    # Also add base path just in case
+    if base_path not in sys.path:
+        sys.path.append(base_path)
+else:
+    sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), "Retrogaming-Toolkit-AIO"))
+
+try:
+    import utils
+except ImportError:
+    # Si utils n'est pas trouvé (devrait pas arriver si sys.path est correct)
+    # logger might not be defined yet
+    logger = logging.getLogger(__name__) # Safe to call
+    logging.basicConfig() # Ensure basic logging
+    logger.error("Impossible d'importer utils.py")
+    utils = None
+
+VERSION = "2.0.0"
 
 # Configuration du logging
+# Configuration du logging
+app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
+if not os.path.exists(app_data_dir):
+    try:
+        os.makedirs(app_data_dir)
+    except OSError:
+        # Fallback to temp dir if permissions fail completely
+        app_data_dir = tempfile.gettempdir()
+
+log_file = os.path.join(app_data_dir, 'retrogaming_toolkit.log')
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
-    filename='retrogaming_toolkit.log',
+    filename=log_file,
     filemode='a'
 )
 logger = logging.getLogger(__name__)
@@ -23,56 +77,95 @@ logger = logging.getLogger(__name__)
 ctk.set_appearance_mode("dark")  # Mode sombre
 ctk.set_default_color_theme("blue")  # Thème de couleur bleu
 
+# Helper pour resource path
+def get_path(p):
+    if utils:
+        return utils.resource_path(p)
+    return p
+
 # Liste des scripts avec descriptions, chemins des icônes et fichiers "Lisez-moi"
 scripts = [
-    {"name": "assisted_gamelist_creator", "description": "(Retrobat) Gère et enrichit les listes de jeux XML.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "assisted_gamelist_creator.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "assisted_gamelist_creator.txt")},
-    {"name": "BGBackup", "description": "(Retrobat) Sauvegarde les fichiers gamelist.xml.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "BGBackup.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "BGBackup.txt")},
-    {"name": "CHD_Converter_Tool", "description": "Convertit et vérifie les fichiers CHD.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "CHD_Converter_Tool.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CHD_Converter_Tool.txt")},
-    {"name": "collection_builder", "description": "(Core) Crée des collections de jeux par mots-clés.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "collection_builder.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "collection_builder.txt")},
-    {"name": "collection_extractor", "description": "(Core) Extrait des collections de jeux spécifiques.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "collection_extractor.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "collection_extractor.txt")},
-    {"name": "enable_long_paths", "description": "Active les chemins longs sur Windows.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "enable_long_paths.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "enable_long_paths.txt")},
-    {"name": "folder_name_to_txt", "description": "Crée des fichiers TXT à partir des noms de dossiers.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "folder_name_to_txt.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "folder_name_to_txt.txt")},
-    {"name": "folder_to_zip", "description": "Compresse des fichiers de jeux en ZIP.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "folder_to_zip.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "folder_to_zip.txt")},
-    {"name": "game_batch_creator", "description": "Génère des fichiers batch pour lancer des jeux pc.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "game_batch_creator.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "game_batch_creator.txt")},
-    {"name": "empty_generator", "description": "Créer des fichiers vides dans des sous-dossiers.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "empty_generator.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "empty_generator.txt")},
-    {"name": "game_removal", "description": "(Core) Supprime des jeux et leurs artworks.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "game_removal.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "game_removal.txt")},
-    {"name": "gamelist_to_hyperlist", "description": "(Core) Convertit gamelist.xml en hyperlist.xml.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "gamelist_to_hyperlist.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "gamelist_to_hyperlist.txt")},
-    {"name": "hyperlist_to_gamelist", "description": "(Retrobat) Convertit hyperlist.xml en gamelist.xml.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "hyperlist_to_gamelist.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "hyperlist_to_gamelist.txt")},
-    {"name": "install_dependencies", "description": "Installe les dépendances système pour Windows.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "install_dependencies.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "install_dependencies.txt")},
-    {"name": "liste_fichier_simple", "description": "Liste les fichiers dans un répertoire.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "liste_fichier_simple.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "liste_fichier_simple.txt")},
-    {"name": "liste_fichier_windows", "description": "Liste fichiers et dossiers sous Windows.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "liste_fichier_windows.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "liste_fichier_windows.txt")},
-    {"name": "MaxCSO_Compression_Script", "description": "Compresse des fichiers ISO en CSO.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "MaxCSO_Compression_Script.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "MaxCSO_Compression_Script.txt")},
-    {"name": "media_orphan_detector", "description": "(Core) Détecte et déplace les fichiers multimédias orphelins.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "media_orphan_detector.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "media_orphan_detector.txt")},
-    {"name": "folder_cleaner", "description": "Supprime les dossiers vides.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "folder_cleaner.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "folder_cleaner.txt")},
-    {"name": "merge_story_hyperlist", "description": "(Core) Intègre des story dans des hyperlist.xml.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "merge_story_hyperlist.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "merge_story_hyperlist.txt")},
-    {"name": "rvz_iso_convert", "description": "Convertit entre formats RVZ et ISO.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "rvz_iso_convert.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "rvz_iso_convert.txt")},
-    {"name": "story_format_cleaner", "description": "Nettoie les fichiers texte non ASCII.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "story_format_cleaner.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "story_format_cleaner.txt")},
-    {"name": "m3u_creator", "description": "Créer des m3u.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "m3u_creator.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "m3u_creator.txt")},
-    {"name": "cover_extractor", "description": "Extrait la première image des fichiers .cbz, .cbr et .pdf.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "cover_extractor.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "cover_extractor.txt")},
-    {"name": "cbzkiller", "description": "Convertisseur PDF/CBR vers CBZ.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "cbzkiller.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "cbzkiller.txt")},
-    {"name": "video_converter", "description": "Convertit et rogne des vidéos par lot.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "video_converter.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "video_converter.txt")},
-    {"name": "YT_Download", "description": "Télécharge des vidéos youtube.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "YT_Download.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "YT_Download.txt")},
-    {"name": "convert_images", "description": "Convertie des images.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "convert_images.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "convert_images.txt")},
-    {"name": "es_systems_custom", "description": "Comparer et extraire les systèmes uniques.", "icon": os.path.join("Retrogaming-Toolkit-AIO", "icons", "es_systems_custom.ico"), "readme": os.path.join("Retrogaming-Toolkit-AIO", "read_me", "es_systems_custom.txt")},
+    {"name": "assisted_gamelist_creator", "description": "(Retrobat) Gère et enrichit les listes de jeux XML.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "assisted_gamelist_creator.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "assisted_gamelist_creator.txt"))},
+    {"name": "BGBackup", "description": "(Retrobat) Sauvegarde les fichiers gamelist.xml.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "BGBackup.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "BGBackup.txt"))},
+    {"name": "CHD_Converter_Tool", "description": "Convertit et vérifie les fichiers CHD.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "CHD_Converter_Tool.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CHD_Converter_Tool.txt"))},
+    {"name": "collection_builder", "description": "(Core) Crée des collections de jeux par mots-clés.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "collection_builder.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "collection_builder.txt"))},
+    {"name": "collection_extractor", "description": "(Core) Extrait des collections de jeux spécifiques.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "collection_extractor.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "collection_extractor.txt"))},
+    {"name": "enable_long_paths", "description": "Active les chemins longs sur Windows.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "enable_long_paths.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "enable_long_paths.txt"))},
+    {"name": "folder_name_to_txt", "description": "Crée des fichiers TXT à partir des noms de dossiers.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "folder_name_to_txt.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "folder_name_to_txt.txt"))},
+    {"name": "folder_to_zip", "description": "Compresse des fichiers de jeux en ZIP.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "folder_to_zip.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "folder_to_zip.txt"))},
+    {"name": "game_batch_creator", "description": "Génère des fichiers batch pour lancer des jeux pc.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "game_batch_creator.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "game_batch_creator.txt"))},
+    {"name": "empty_generator", "description": "Créer des fichiers vides dans des sous-dossiers.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "empty_generator.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "empty_generator.txt"))},
+    {"name": "game_removal", "description": "(Core) Supprime des jeux et leurs artworks.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "game_removal.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "game_removal.txt"))},
+    {"name": "gamelist_to_hyperlist", "description": "(Core) Convertit gamelist.xml en hyperlist.xml.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "gamelist_to_hyperlist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "gamelist_to_hyperlist.txt"))},
+    {"name": "hyperlist_to_gamelist", "description": "(Retrobat) Convertit hyperlist.xml en gamelist.xml.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "hyperlist_to_gamelist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "hyperlist_to_gamelist.txt"))},
+    {"name": "install_dependencies", "description": "Installe les dépendances système pour Windows.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "install_dependencies.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "install_dependencies.txt"))},
+    {"name": "liste_fichier_simple", "description": "Liste les fichiers dans un répertoire.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "liste_fichier_simple.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "liste_fichier_simple.txt"))},
+    {"name": "liste_fichier_windows", "description": "Liste fichiers et dossiers sous Windows.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "liste_fichier_windows.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "liste_fichier_windows.txt"))},
+    {"name": "MaxCSO_Compression_Script", "description": "Compresse des fichiers ISO en CSO.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "MaxCSO_Compression_Script.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "MaxCSO_Compression_Script.txt"))},
+    {"name": "media_orphan_detector", "description": "(Core) Détecte et déplace les fichiers multimédias orphelins.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "media_orphan_detector.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "media_orphan_detector.txt"))},
+    {"name": "folder_cleaner", "description": "Supprime les dossiers vides.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "folder_cleaner.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "folder_cleaner.txt"))},
+    {"name": "merge_story_hyperlist", "description": "(Core) Intègre des story dans des hyperlist.xml.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "merge_story_hyperlist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "merge_story_hyperlist.txt"))},
+    {"name": "rvz_iso_convert", "description": "Convertit entre formats RVZ et ISO.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "rvz_iso_convert.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "rvz_iso_convert.txt"))},
+    {"name": "story_format_cleaner", "description": "Nettoie les fichiers texte non ASCII.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "story_format_cleaner.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "story_format_cleaner.txt"))},
+    {"name": "m3u_creator", "description": "Créer des m3u.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "m3u_creator.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "m3u_creator.txt"))},
+    {"name": "cover_extractor", "description": "Extrait la première image des fichiers .cbz, .cbr et .pdf.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "cover_extractor.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "cover_extractor.txt"))},
+    {"name": "cbzkiller", "description": "Convertisseur PDF/CBR vers CBZ.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "cbzkiller.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "cbzkiller.txt"))},
+    {"name": "video_converter", "description": "Convertit et rogne des vidéos par lot.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "video_converter.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "video_converter.txt"))},
+    {"name": "YT_Download", "description": "Télécharge des vidéos youtube.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "YT_Download.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "YT_Download.txt"))},
+    {"name": "convert_images", "description": "Convertie des images.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "convert_images.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "convert_images.txt"))},
+    {"name": "es_systems_custom", "description": "Comparer et extraire les systèmes uniques.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "es_systems_custom.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "es_systems_custom.txt"))},
 ]
 
-def lancer_module(module_name):
-    """Charge et exécute un module Python dans un processus séparé."""
-    try:
-        # Vérification du chemin du module
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        module_file = os.path.join(current_dir, "Retrogaming-Toolkit-AIO", f"{module_name}.py")
-        
-        if not os.path.exists(module_file):
-            error_msg = f"Le fichier module '{module_file}' n'existe pas"
-            logger.error(error_msg)
-            messagebox.showerror("Erreur", error_msg)
-            return
-        
-        # Exécution du module dans un processus séparé
-        subprocess.Popen(["python", module_file])
-        logger.info(f"Module {module_name} exécuté avec succès")
+def run_module_process(module_name):
+    """Fonction exécutée dans le processus enfant pour lancer le module."""
+    # Re-configure logging for child process (multiprocessing doesn't share logging config automatically on Windows)
+    app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
+    if not os.path.exists(app_data_dir):
+        try:
+            os.makedirs(app_data_dir)
+        except OSError:
+            app_data_dir = tempfile.gettempdir()
+    log_file = os.path.join(app_data_dir, 'retrogaming_toolkit.log')
     
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(processName)s - %(levelname)s - %(message)s',
+        filename=log_file,
+        filemode='a'
+    )
+    logger = logging.getLogger(__name__)
+
+    # Ensure sys.path is correct in child process for frozen imports
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+        toolkit_path = os.path.join(base_path, "Retrogaming-Toolkit-AIO")
+        if toolkit_path not in sys.path:
+            sys.path.append(toolkit_path)
+
+    try:
+        logger.info(f"Child process started for module: {module_name}")
+        # Import dynamique du module
+        module = importlib.import_module(module_name)
+        # Exécution de la fonction main() du module
+        if hasattr(module, 'main'):
+            module.main()
+        else:
+            logger.error(f"Erreur : Le module {module_name} n'a pas de fonction main()")
+    except Exception as e:
+        logger.error(f"Erreur dans le processus enfant pour {module_name}: {e}")
+        logger.error(traceback.format_exc())
+
+def lancer_module(module_name):
+    """Charge et exécute un module Python dans un processus séparé via multiprocessing."""
+    try:
+        logger.info(f"Lancement du module: {module_name}")
+        
+        # On lance le module dans un nouveau processus
+        # Cela permet d'isoler les boucles principales Tkinter
+        p = multiprocessing.Process(target=run_module_process, args=(module_name,))
+        p.daemon = True # Kill child process if main process exits
+        p.start()
+        
     except Exception as e:
         logger.error(f"Erreur lors de l'exécution du module {module_name}: {str(e)}")
         messagebox.showerror("Erreur", f"Erreur lors de l'exécution du module {module_name}: {str(e)}")
@@ -116,21 +209,73 @@ def check_for_updates():
         logger.error(f"Erreur lors de la vérification des mises à jour : {e}")
         return False, VERSION
 
-def launch_update():
-    """Lance le script de mise à jour."""
+def download_and_run_installer(download_url):
+    """Télécharge et exécute l'installateur."""
     try:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        update_script = os.path.join(current_dir, "update.bat")
-        if os.path.exists(update_script):
-            logger.info(f"Fichier update.bat trouvé : {update_script}")
-            subprocess.Popen(["start", "cmd.exe", "/c", update_script], shell=True)
-            logger.info("update.bat lancé dans une nouvelle fenêtre")
-        else:
-            logger.error("Le fichier update.bat n'existe pas.")
-            messagebox.showerror("Erreur", "Le fichier update.bat n'existe pas.")
+        # Créer un fichier temporaire pour l'installateur
+        with tempfile.NamedTemporaryFile(suffix=".exe", delete=False) as tmp_file:
+            installer_path = tmp_file.name
+
+        # Télécharger
+        logger.info(f"Téléchargement de la mise à jour depuis {download_url}...")
+        response = requests.get(download_url, stream=True)
+        response.raise_for_status()
+        with open(installer_path, 'wb') as f:
+            for chunk in response.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+        logger.info("Téléchargement terminé. Lancement de l'installateur...")
+
+        # Lancer l'installateur et fermer l'application actuelle
+        subprocess.Popen([installer_path, "/SILENT"]) # Ou sans /SILENT pour voir l'UI
+        sys.exit(0)
+
     except Exception as e:
-        logger.error(f"Erreur lors du lancement de la mise à jour : {e}")
-        messagebox.showerror("Erreur", f"Erreur lors du lancement de la mise à jour : {e}")
+        messagebox.showerror("Erreur Mise à jour", f"Erreur lors du téléchargement : {e}")
+        logger.error(f"Erreur update: {e}")
+
+def launch_update():
+    """Lance le processus de mise à jour."""
+    if utils and utils.is_frozen():
+        # Mode EXE : Télécharger l'installateur
+        try:
+            url = "https://api.github.com/repos/Balrog57/Retrogaming-Toolkit-AIO/releases/latest"
+            response = requests.get(url)
+            data = response.json()
+            assets = data.get("assets", [])
+
+            # Chercher un fichier .exe dans les assets (Setup.exe ou autre)
+            installer_url = None
+            for asset in assets:
+                if asset["name"].endswith(".exe"):
+                    installer_url = asset["browser_download_url"]
+                    break
+
+            if installer_url:
+                if messagebox.askyesno("Mise à jour", "Une nouvelle version est disponible. Voulez-vous la télécharger et l'installer maintenant ?"):
+                    download_and_run_installer(installer_url)
+            else:
+                messagebox.showerror("Erreur", "Aucun fichier d'installation trouvé dans la dernière release.")
+
+        except Exception as e:
+            logger.error(f"Erreur lors de la mise à jour : {e}")
+            messagebox.showerror("Erreur", f"Erreur lors de la mise à jour : {e}")
+
+    else:
+        # Mode Source : Utiliser update.bat (legacy)
+        try:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            update_script = os.path.join(current_dir, "update.bat")
+            if os.path.exists(update_script):
+                logger.info(f"Fichier update.bat trouvé : {update_script}")
+                subprocess.Popen(["start", "cmd.exe", "/c", update_script], shell=True)
+                logger.info("update.bat lancé dans une nouvelle fenêtre")
+            else:
+                logger.error("Le fichier update.bat n'existe pas.")
+                messagebox.showerror("Erreur", "Le fichier update.bat n'existe pas.")
+        except Exception as e:
+            logger.error(f"Erreur lors du lancement de la mise à jour : {e}")
+            messagebox.showerror("Erreur", f"Erreur lors du lancement de la mise à jour : {e}")
 
 class Application(ctk.CTk):
     def __init__(self):
@@ -264,6 +409,9 @@ class Application(ctk.CTk):
 
 def main():
     """Point d'entrée principal de l'application"""
+    # Nécessaire pour PyInstaller + Multiprocessing sous Windows
+    multiprocessing.freeze_support()
+
     app = Application()
     app.mainloop()
 

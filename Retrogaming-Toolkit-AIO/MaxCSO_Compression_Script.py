@@ -15,6 +15,12 @@ def main():
     ctk.set_appearance_mode("dark")  # Mode sombre
     ctk.set_default_color_theme("blue")  # Thème bleu
 
+    # Import utils
+    try:
+        import utils
+    except ImportError:
+        pass
+
     def find_7z():
         """Vérifie l'emplacement de 7z.exe et retourne son chemin complet."""
         possible_paths = [
@@ -28,44 +34,66 @@ def main():
         return None
 
     def download_and_extract_maxcso():
-        """Télécharge et extrait maxcso.exe si nécessaire en utilisant 7z."""
+        """Télécharge et extrait maxcso.exe si nécessaire en utilisant py7zr."""
+        # Determine target path (AppData)
+        app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
+        target_path = os.path.join(app_data_dir, "maxcso.exe")
+        
+        # Check if already exists in AppData or bundled
+        if os.path.exists(target_path):
+            return True
+        if 'utils' in sys.modules:
+             bundled_path = utils.get_binary_path("maxcso.exe")
+             if os.path.exists(bundled_path):
+                 return True
+
+        # If not found, download
         url = "https://github.com/unknownbrackets/maxcso/releases/download/v1.13.0/maxcso_v1.13.0_windows.7z"
-        archive_path = "maxcso.7z"
+        archive_path = os.path.join(tempfile.gettempdir(), "maxcso.7z")
 
-        if not os.path.exists("maxcso.exe"):
-            if messagebox.askyesno("Télécharger MaxCSO", "maxcso.exe est introuvable. Voulez-vous le télécharger maintenant ?"):
+        if messagebox.askyesno("Télécharger MaxCSO", "maxcso.exe est introuvable. Voulez-vous le télécharger maintenant ?"):
+            try:
+                # Ensure AppData exists
+                if not os.path.exists(app_data_dir):
+                    os.makedirs(app_data_dir)
+
+                response = requests.get(url, stream=True)
+                with open(archive_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        f.write(chunk)
+
+                # Extraction avec py7zr (plus robuste car bundlé)
                 try:
-                    response = requests.get(url, stream=True)
-                    with open(archive_path, 'wb') as f:
-                        for chunk in response.iter_content(chunk_size=8192):
-                            f.write(chunk)
+                    import py7zr
+                except ImportError:
+                    # Fallback au cas où, mais py7zr devrait être là
+                    messagebox.showerror("Erreur", "Le module py7zr est manquant pour l'extraction.")
+                    return False
 
-                    # Vérification et utilisation de 7z
-                    seven_zip_path = find_7z()
-                    if not seven_zip_path:
-                        messagebox.showerror("Erreur", "L'outil 7z (SevenZip) est requis pour extraire l'archive. Veuillez l'installer et réessayer.")
-                        return False
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    with py7zr.SevenZipFile(archive_path, mode='r') as archive:
+                        archive.extractall(path=temp_dir)
 
-                    # Extraction avec 7z
-                    extract_dir = tempfile.mkdtemp()
-                    subprocess.run([seven_zip_path, "x", archive_path, f"-o{extract_dir}"], check=True)
-
-                    extracted_file = [f for f in os.listdir(extract_dir) if f.lower() == "maxcso.exe"]
+                    extracted_file = None
+                    for root, dirs, files in os.walk(temp_dir):
+                        if "maxcso.exe" in files:
+                            extracted_file = os.path.join(root, "maxcso.exe")
+                            break
+                    
                     if extracted_file:
-                        shutil.move(os.path.join(extract_dir, extracted_file[0]), os.getcwd())
+                        shutil.move(extracted_file, target_path)
                     else:
                         messagebox.showerror("Erreur", "maxcso.exe n'a pas été trouvé dans l'archive téléchargée.")
                         return False
-                except Exception as e:
-                    messagebox.showerror("Erreur", f"Une erreur s'est produite lors du téléchargement ou de l'extraction : {e}")
-                    return False
-                finally:
-                    if os.path.exists(archive_path):
-                        os.remove(archive_path)
-                    if os.path.exists(extract_dir):
-                        shutil.rmtree(extract_dir)
 
-        return os.path.exists("maxcso.exe")
+            except Exception as e:
+                messagebox.showerror("Erreur", f"Une erreur s'est produite lors du téléchargement ou de l'extraction : {e}")
+                return False
+            finally:
+                if os.path.exists(archive_path):
+                    os.remove(archive_path)
+
+        return os.path.exists(target_path)
 
     def get_cpu_count():
         """Retourne le nombre de cœurs CPU disponibles."""
@@ -73,10 +101,19 @@ def main():
 
     def compress_iso(input_dir, output_dir, replace_original, progress_var, progress_label):
         """Compresse les fichiers ISO à l'aide de MaxCSO."""
-        if not download_and_extract_maxcso():
-            return
+        # Use bundled binary if available, otherwise check/download
+        # Use util path (checks AppData, Frozen Root, _internal)
+        binary_path = utils.get_binary_path("maxcso.exe") if 'utils' in sys.modules else "maxcso.exe"
+        
+        if os.path.exists(binary_path):
+            maxcso_path = binary_path
+        else:
+            if not download_and_extract_maxcso():
+                return
+            # After download, check again
+            binary_path = utils.get_binary_path("maxcso.exe") if 'utils' in sys.modules else os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit', "maxcso.exe")
+            maxcso_path = binary_path
 
-        maxcso_path = "maxcso.exe"
         iso_files = [f for f in os.listdir(input_dir) if f.lower().endswith(".iso")]
         if not iso_files:
             messagebox.showinfo("Info", "Aucun fichier ISO trouvé dans le dossier sélectionné.")

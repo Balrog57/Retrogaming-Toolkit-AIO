@@ -9,11 +9,33 @@ import threading
 import time
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, StringVar, IntVar, BooleanVar
-import patoolib  # Remplace py7zr pour gérer les archives
+import patoolib
+import sys
+
+# Import utils
+try:
+    import utils
+except ImportError:
+    pass
 
 CHDMAN_URL = "https://wiki.recalbox.com/tutorials/utilities/rom-conversion/chdman/chdman.zip"
 CHDMAN_ZIP = "chdman.zip"
-CHDMAN_EXE = "chdman.exe"
+
+def get_chdman_path():
+    # 1. Check bundled/utils path
+    if 'utils' in sys.modules:
+        bin_path = utils.get_binary_path("chdman.exe")
+        if os.path.exists(bin_path):
+            return bin_path
+    
+    # 2. Check AppData
+    app_data_path = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit', "chdman.exe")
+    if os.path.exists(app_data_path):
+        return app_data_path
+        
+    return app_data_path # Default to AppData for download target
+
+CHDMAN_EXE = get_chdman_path()
 
 class CHDmanGUI:
     def __init__(self, root):
@@ -300,17 +322,36 @@ class CHDmanGUI:
     def telecharger_chdman(self):
         """Télécharge et extrait CHDman."""
         try:
+            # Ensure AppData dir exists
+            app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
+            if not os.path.exists(app_data_dir):
+                os.makedirs(app_data_dir)
+
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_zip = os.path.join(temp_dir, CHDMAN_ZIP)
                 urllib.request.urlretrieve(CHDMAN_URL, temp_zip)
                 with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
                     zip_ref.extractall(temp_dir)
-                temp_chdman = os.path.join(temp_dir, CHDMAN_EXE)
-                if os.path.exists(temp_chdman):
-                    shutil.copy2(temp_chdman, CHDMAN_EXE)
-                    messagebox.showinfo("Téléchargement terminé", "CHDman a été téléchargé et installé avec succès.")
+                
+                # Check for chdman.exe in extracted files
+                extracted_chdman = None
+                for root, dirs, files in os.walk(temp_dir):
+                    if "chdman.exe" in files:
+                        extracted_chdman = os.path.join(root, "chdman.exe")
+                        break
+                
+                if extracted_chdman:
+                    # Target is always AppData for updates/downloads
+                    target_exe = os.path.join(app_data_dir, "chdman.exe")
+                    shutil.copy2(extracted_chdman, target_exe)
+                    
+                    # Update global var if needed or just rely on next check
+                    global CHDMAN_EXE
+                    CHDMAN_EXE = target_exe
+                    
+                    messagebox.showinfo("Téléchargement terminé", f"CHDman a été téléchargé dans {target_exe} avec succès.")
                 else:
-                    raise FileNotFoundError(f"{CHDMAN_EXE} non trouvé dans l'archive.")
+                    raise FileNotFoundError(f"chdman.exe non trouvé dans l'archive téléchargée.")
 
         except PermissionError:
             messagebox.showerror("Erreur", "Permission refusée. Veuillez exécuter le programme en tant qu'administrateur.")

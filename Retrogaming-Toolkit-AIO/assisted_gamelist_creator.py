@@ -31,7 +31,7 @@ class GameListApp:
         self.gamelist_path = ctk.StringVar()
         self.updated_gamelist_path = ctk.StringVar(value="updated_gamelist.xml")
         self.missing_games_path = ctk.StringVar(value="failed_games.txt") # Log des jeux en échec
-        self.instructions_path = ctk.StringVar(value="instructions_assisted_gamelist_creator.txt")
+        self.instructions_path = ctk.StringVar(value=os.path.join(os.path.dirname(__file__), "instructions_assisted_gamelist_creator.txt"))
         
         # Variables API
         self.api_key = ctk.StringVar(value="") 

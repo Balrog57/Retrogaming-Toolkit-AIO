@@ -173,6 +173,9 @@ class PDFCBRtoCBZConverter(ctk.CTk):
         self.log_text.see("end")
         self.update()
 
-if __name__ == "__main__":
+def main():
     app = PDFCBRtoCBZConverter()
     app.mainloop()
+
+if __name__ == "__main__":
+    main()

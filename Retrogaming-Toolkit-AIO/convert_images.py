@@ -13,43 +13,64 @@ import logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
+# Import utils
+try:
+    import utils
+except ImportError:
+    utils = None
+
 # Fonction pour vérifier et télécharger FFmpeg
 def check_and_download_ffmpeg():
-    ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
-    if not os.path.exists(ffmpeg_path):
-        try:
-            logging.info("FFmpeg n'est pas trouvé. Téléchargement en cours...")
-            messagebox.showinfo("Téléchargement", "FFmpeg n'est pas trouvé. Téléchargement en cours...")
-            url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"  # Lien officiel vers FFmpeg
-            temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip").name
+    # Use utils if available to find bundled/existing binary
+    if utils:
+        ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
+        if os.path.exists(ffmpeg_path):
+            return ffmpeg_path
+    
+    # Fallback path in AppData
+    app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
+    if not os.path.exists(app_data_dir):
+        os.makedirs(app_data_dir)
+    ffmpeg_dest_path = os.path.join(app_data_dir, "ffmpeg.exe")
+    
+    if os.path.exists(ffmpeg_dest_path):
+        return ffmpeg_dest_path
 
-            # Télécharger FFmpeg
-            response = requests.get(url, stream=True)
-            with open(temp_zip, "wb") as f:
-                shutil.copyfileobj(response.raw, f)
+    # If we are here, we need to download
+    try:
+        logging.info("FFmpeg n'est pas trouvé. Téléchargement en cours...")
+        messagebox.showinfo("Téléchargement", "FFmpeg n'est pas trouvé. Téléchargement en cours...")
+        url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"  # Lien officiel vers FFmpeg
+        temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip").name
 
-            # Extraire le fichier téléchargé
-            extract_dir = tempfile.mkdtemp()
-            with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
-                zip_ref.extractall(extract_dir)
+        # Télécharger FFmpeg
+        response = requests.get(url, stream=True, verify=False)
+        with open(temp_zip, "wb") as f:
+            shutil.copyfileobj(response.raw, f)
 
-            # Rechercher ffmpeg.exe dans le dossier extrait
-            for root, dirs, files in os.walk(extract_dir):
-                if "ffmpeg.exe" in files:
-                    ffmpeg_extracted_path = os.path.join(root, "ffmpeg.exe")
-                    shutil.move(ffmpeg_extracted_path, ffmpeg_path)
-                    break
-            else:
-                raise FileNotFoundError("Le fichier ffmpeg.exe n'a pas été trouvé après extraction.")
+        # Extraire le fichier téléchargé
+        extract_dir = tempfile.mkdtemp()
+        with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
+            zip_ref.extractall(extract_dir)
 
-            os.remove(temp_zip)
-            messagebox.showinfo("Succès", "FFmpeg a été téléchargé et configuré avec succès.")
-            logging.info("FFmpeg a été téléchargé et configuré avec succès.")
-        except Exception as e:
-            logging.error(f"Échec du téléchargement de FFmpeg : {e}")
-            messagebox.showerror("Erreur", f"Échec du téléchargement de FFmpeg : {e}")
-            # Laisser l'utilisateur gérer la fermeture de la fenêtre
-            return  # Ne pas détruire la fenêtre ici
+        # Rechercher ffmpeg.exe dans le dossier extrait
+        for root, dirs, files in os.walk(extract_dir):
+            if "ffmpeg.exe" in files:
+                ffmpeg_extracted_path = os.path.join(root, "ffmpeg.exe")
+                shutil.move(ffmpeg_extracted_path, ffmpeg_dest_path)
+                break
+        else:
+            raise FileNotFoundError("Le fichier ffmpeg.exe n'a pas été trouvé après extraction.")
+
+        os.remove(temp_zip)
+        messagebox.showinfo("Succès", "FFmpeg a été téléchargé et configuré avec succès.")
+        logging.info("FFmpeg a été téléchargé et configuré avec succès.")
+
+    except Exception as e:
+        logging.error(f"Échec du téléchargement de FFmpeg : {e}")
+        messagebox.showerror("Erreur", f"Échec du téléchargement de FFmpeg : {e}")
+        # Laisser l'utilisateur gérer la fermeture de la fenêtre
+        return  # Ne pas détruire la fenêtre ici
 
 # Fonction pour convertir les images
 def convert_images(input_dir, output_dir, input_format, output_format, delete_originals):
@@ -74,8 +95,13 @@ def convert_images(input_dir, output_dir, input_format, output_format, delete_or
                 logging.info(f"Conversion de : {input_path} vers {output_path}")
 
                 # Utilisation de FFmpeg pour la conversion
+                # Use resolved ffmpeg path
+                ffmpeg_exe = check_and_download_ffmpeg()
+                if not ffmpeg_exe:
+                    return # Stop if ffmpeg issue
+                
                 ffmpeg_cmd = [
-                    "ffmpeg",
+                    ffmpeg_exe,
                     "-i", input_path,
                     "-frames:v", "1",  # Ajout de l'argument -frames:v 1
                     "-update", "1",     # Ajout de l'argument -update 1
