@@ -60,7 +60,16 @@ def main():
             if not os.path.exists(app_data_dir):
                 os.makedirs(app_data_dir)
 
-            archive_path, _ = urllib.request.urlretrieve(DOLPHIN_DOWNLOAD_URL, os.path.join(app_data_dir, "dolphin.7z"))
+            # Use requests for better reliability
+            import requests
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            response = requests.get(DOLPHIN_DOWNLOAD_URL, headers=headers, stream=True, verify=False)
+            response.raise_for_status()
+            
+            archive_path = os.path.join(app_data_dir, "dolphin.7z")
+            with open(archive_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
             extract_dolphintool(archive_path)
             if os.path.exists(archive_path):
                 os.remove(archive_path)

@@ -44,7 +44,8 @@ def check_and_download_ffmpeg():
         temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip").name
 
         # Télécharger FFmpeg
-        response = requests.get(url, stream=True, verify=False)
+        headers = {'User-Agent': 'Mozilla/5.0'}
+        response = requests.get(url, headers=headers, stream=True, verify=False)
         with open(temp_zip, "wb") as f:
             shutil.copyfileobj(response.raw, f)
 

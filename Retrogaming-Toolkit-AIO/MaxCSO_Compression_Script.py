@@ -58,7 +58,8 @@ def main():
                 if not os.path.exists(app_data_dir):
                     os.makedirs(app_data_dir)
 
-                response = requests.get(url, stream=True)
+                headers = {'User-Agent': 'Mozilla/5.0'}
+                response = requests.get(url, headers=headers, stream=True)
                 with open(archive_path, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
                         f.write(chunk)
