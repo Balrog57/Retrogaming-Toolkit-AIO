@@ -336,14 +336,7 @@ class CHDmanGUI:
 
             # URL MAME 0.284 Official (GitHub mirror)
             # The file is a self-extracting 7z archive (exe)
-            MAME_URL = "https://github.com/mamedev/mame/releases/download/mame0273/mame0273b_64bit.exe" 
-            # Note: Using 0.273 as a hardcoded stable fallback since 0.284 link structure might vary or be new. 
-            # Searching showed 0.284 exists but the URL pattern for automation is safer with a known one 
-            # or I can trust the user. 
-            # Actually, let's use the pattern found: https://github.com/mamedev/mame/releases/download/mame0273/mame0273b_64bit.exe
-            # For 0.284 it should be https://github.com/mamedev/mame/releases/download/mame0284/mame0284b_64bit.exe
-            # Let's try 0.284 based on standard naming convention
-            MAME_URL = "https://github.com/mamedev/mame/releases/download/mame0284/mame0284b_64bit.exe"
+            MAME_URL = "https://github.com/mamedev/mame/releases/download/mame0284/mame0284b_x64.exe"
 
             mame_exe_path = os.path.join(tempfile.gettempdir(), "mame_setup.exe")
 

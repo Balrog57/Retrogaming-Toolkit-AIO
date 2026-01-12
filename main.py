@@ -51,7 +51,7 @@ except ImportError:
     logger.error("Impossible d'importer utils.py")
     utils = None
 
-VERSION = "2.0.6"
+VERSION = "2.0.7"
 
 # Configuration du logging
 # Configuration du logging
