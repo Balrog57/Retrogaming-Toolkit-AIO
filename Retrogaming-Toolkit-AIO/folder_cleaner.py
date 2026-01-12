@@ -60,26 +60,30 @@ def parcourir_et_supprimer():
     supprimer_dossiers_vides(chemin_repertoire, progress_var)
     label_progression.pack_forget()
 
-# GUI avec customtkinter
-ctk.set_appearance_mode("dark")  # Mode sombre
-ctk.set_default_color_theme("blue")  # Thème bleu
+def main():
+    # GUI avec customtkinter
+    ctk.set_appearance_mode("dark")  # Mode sombre
+    ctk.set_default_color_theme("blue")  # Thème bleu
 
-fenetre = ctk.CTk()
-fenetre.title("Supprimer Dossiers Vides")
+    global fenetre, entry_chemin, label_progression
+    fenetre = ctk.CTk()
+    fenetre.title("Supprimer Dossiers Vides")
 
-label_chemin = ctk.CTkLabel(fenetre, text="Chemin du répertoire:")
-label_chemin.pack(padx=20, pady=20)
+    label_chemin = ctk.CTkLabel(fenetre, text="Chemin du répertoire:")
+    label_chemin.pack(padx=20, pady=20)
 
-entry_chemin = ctk.CTkEntry(fenetre)
-entry_chemin.pack(padx=20, pady=10)
+    entry_chemin = ctk.CTkEntry(fenetre)
+    entry_chemin.pack(padx=20, pady=10)
 
-bouton_parcourir = ctk.CTkButton(fenetre, text="Parcourir", command=parcourir_repertoire)
-bouton_parcourir.pack(padx=20, pady=10)
+    bouton_parcourir = ctk.CTkButton(fenetre, text="Parcourir", command=parcourir_repertoire)
+    bouton_parcourir.pack(padx=20, pady=10)
 
-bouton_supprimer = ctk.CTkButton(fenetre, text="Supprimer", command=parcourir_et_supprimer)
-bouton_supprimer.pack(padx=20, pady=10)
+    bouton_supprimer = ctk.CTkButton(fenetre, text="Supprimer", command=parcourir_et_supprimer)
+    bouton_supprimer.pack(padx=20, pady=10)
 
-label_progression = ctk.CTkLabel(fenetre, textvariable="")
+    label_progression = ctk.CTkLabel(fenetre, textvariable="")
+
+    fenetre.mainloop()
 
 if __name__ == "__main__":
-    fenetre.mainloop()
+    main()

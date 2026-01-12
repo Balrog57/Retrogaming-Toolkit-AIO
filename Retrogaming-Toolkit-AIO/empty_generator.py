@@ -101,6 +101,9 @@ class EmptyFileCreatorApp(ctk.CTk):
 
         messagebox.showinfo("Succès", f"Les fichiers .{extension} ont été créés avec succès.")
 
-if __name__ == "__main__":
+def main():
     app = EmptyFileCreatorApp()
     app.mainloop()
+
+if __name__ == "__main__":
+    main()

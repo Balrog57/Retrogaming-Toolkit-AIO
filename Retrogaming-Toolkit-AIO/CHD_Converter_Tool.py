@@ -11,9 +11,15 @@ import customtkinter as ctk
 from tkinter import filedialog, messagebox, StringVar, IntVar, BooleanVar
 import patoolib  # Remplace py7zr pour gérer les archives
 
+# Import utils
+try:
+    import utils
+except ImportError:
+    pass
+
 CHDMAN_URL = "https://wiki.recalbox.com/tutorials/utilities/rom-conversion/chdman/chdman.zip"
 CHDMAN_ZIP = "chdman.zip"
-CHDMAN_EXE = "chdman.exe"
+CHDMAN_EXE = utils.get_binary_path("chdman.exe") if 'utils' in sys.modules else "chdman.exe"
 
 class CHDmanGUI:
     def __init__(self, root):

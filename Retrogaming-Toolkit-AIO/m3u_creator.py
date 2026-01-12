@@ -132,6 +132,9 @@ class MultiDiscM3UCreator(ctk.CTk):
 
         messagebox.showinfo("Success", "M3U files created successfully.")
 
-if __name__ == "__main__":
+def main():
     app = MultiDiscM3UCreator()
     app.mainloop()
+
+if __name__ == "__main__":
+    main()

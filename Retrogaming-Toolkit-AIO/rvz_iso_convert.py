@@ -12,8 +12,14 @@ def main():
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
 
+    # Import utils
+    try:
+        import utils
+    except ImportError:
+        pass
+
     # Nom du fichier DolphinTool
-    DOLPHIN_TOOL_NAME = "DolphinTool.exe"
+    DOLPHIN_TOOL_NAME = utils.get_binary_path("DolphinTool.exe") if 'utils' in sys.modules else "DolphinTool.exe"
     # URL de téléchargement de Dolphin Emulator
     DOLPHIN_DOWNLOAD_URL = "https://dl.dolphin-emu.org/releases/2412/dolphin-2412-x64.7z"
 

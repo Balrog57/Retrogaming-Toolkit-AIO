@@ -21,6 +21,12 @@ import json
 import re # <-- AJOUT : Importation du module Regex
 from tkinter import filedialog, messagebox, StringVar, BooleanVar
 
+# Import utils
+try:
+    import utils
+except ImportError:
+    pass
+
 def install_package(package):
     """Installe un package pip."""
     print(f"Tentative d'installation de {package}...")
@@ -77,16 +83,26 @@ def check_and_import(package_name, import_name=None):
 print("--- Début du script : Vérification des dépendances ---")
 
 try:
-    print("\n[Étape 1/3] Vérification de customtkinter...")
-    ctk = check_and_import("customtkinter")
-    
-    print("\n[Étape 2/3] Vérification de yt-dlp...")
-    yt_dlp = check_and_import("yt-dlp", "yt_dlp")
-    
-    print("\n[Étape 3/3] Vérification de imageio-ffmpeg...")
-    imageio_ffmpeg = check_and_import("imageio-ffmpeg", "imageio_ffmpeg")
-    
-    print("\n--- Dépendances vérifiées avec succès ---")
+    if 'utils' in sys.modules and utils.is_frozen():
+        # En mode frozen, les imports devraient déjà être là
+        import customtkinter as ctk
+        import yt_dlp
+        # imageio_ffmpeg might not be needed if we force external ffmpeg, but let's import it safely
+        try:
+            import imageio_ffmpeg
+        except ImportError:
+            imageio_ffmpeg = None
+    else:
+        print("\n[Étape 1/3] Vérification de customtkinter...")
+        ctk = check_and_import("customtkinter")
+
+        print("\n[Étape 2/3] Vérification de yt-dlp...")
+        yt_dlp = check_and_import("yt-dlp", "yt_dlp")
+
+        print("\n[Étape 3/3] Vérification de imageio-ffmpeg...")
+        imageio_ffmpeg = check_and_import("imageio-ffmpeg", "imageio_ffmpeg")
+
+        print("\n--- Dépendances vérifiées avec succès ---")
 
 except Exception as e:
     print("\n--- ERREUR FATALE LORS DU BOOTSTRAP ---", file=sys.stderr)
@@ -139,7 +155,20 @@ class YtDlpGui(ctk.CTk):
         
         # Stocker les modules importés
         self.yt_dlp = yt_dlp_module
-        self.ffmpeg_path = ffmpeg_module.get_ffmpeg_exe()
+
+        self.ffmpeg_path = None
+        if 'utils' in sys.modules:
+            bundled_ffmpeg = utils.get_binary_path("ffmpeg.exe")
+            if os.path.exists(bundled_ffmpeg):
+                self.ffmpeg_path = bundled_ffmpeg
+
+        if self.ffmpeg_path is None:
+            if ffmpeg_module:
+                self.ffmpeg_path = ffmpeg_module.get_ffmpeg_exe()
+            else:
+                self.ffmpeg_path = "ffmpeg" # Hope it's in PATH
+
+        print(f"Using ffmpeg at: {self.ffmpeg_path}")
 
         # Configuration de la fenêtre principale
         self.title("YT Downloader Pro (yt-dlp)")
@@ -449,8 +478,7 @@ class YtDlpGui(ctk.CTk):
         self.progress_label.configure(text="Prêt (erreur précédente).")
 
 
-# Lancement de l'application
-if __name__ == "__main__":
+def main():
     print("Lancement de l'application GUI...")
     try:
         app = YtDlpGui(yt_dlp_module=yt_dlp, ffmpeg_module=imageio_ffmpeg)
@@ -467,5 +495,8 @@ if __name__ == "__main__":
         except:
             pass
 
+# Lancement de l'application
+if __name__ == "__main__":
+    main()
 
 

@@ -15,6 +15,12 @@ def main():
     ctk.set_appearance_mode("dark")  # Mode sombre
     ctk.set_default_color_theme("blue")  # Thème bleu
 
+    # Import utils
+    try:
+        import utils
+    except ImportError:
+        pass
+
     def find_7z():
         """Vérifie l'emplacement de 7z.exe et retourne son chemin complet."""
         possible_paths = [
@@ -73,10 +79,14 @@ def main():
 
     def compress_iso(input_dir, output_dir, replace_original, progress_var, progress_label):
         """Compresse les fichiers ISO à l'aide de MaxCSO."""
-        if not download_and_extract_maxcso():
-            return
+        # Use bundled binary if available, otherwise check/download
+        if 'utils' in sys.modules and os.path.exists(utils.get_binary_path("maxcso.exe")):
+            maxcso_path = utils.get_binary_path("maxcso.exe")
+        else:
+            if not download_and_extract_maxcso():
+                return
+            maxcso_path = "maxcso.exe"
 
-        maxcso_path = "maxcso.exe"
         iso_files = [f for f in os.listdir(input_dir) if f.lower().endswith(".iso")]
         if not iso_files:
             messagebox.showinfo("Info", "Aucun fichier ISO trouvé dans le dossier sélectionné.")

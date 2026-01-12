@@ -207,7 +207,10 @@ class GameDeletionApp:
                 else:
                     print(f"[ERREUR] Fichier média introuvable : {file}")
 
-if __name__ == "__main__":
+def main():
     root = ctk.CTk()
     app = GameDeletionApp(root)
     root.mainloop()
+
+if __name__ == "__main__":
+    main()
