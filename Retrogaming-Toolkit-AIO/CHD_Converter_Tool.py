@@ -332,7 +332,10 @@ class CHDmanGUI:
                 
                 # Use requests instead of urllib for better reliability/headers
                 import requests
-                headers = {'User-Agent': 'Mozilla/5.0'}
+                headers = {
+                    'User-Agent': 'Mozilla/5.0',
+                    'Referer': 'https://wiki.recalbox.com/'
+                }
                 response = requests.get(CHDMAN_URL, headers=headers, stream=True, verify=False)
                 response.raise_for_status()
                 
