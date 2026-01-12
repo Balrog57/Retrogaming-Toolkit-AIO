@@ -9,3 +9,6 @@ patool
 pytubefix
 pymupdf
 openai
+pyinstaller
+yt-dlp
+imageio-ffmpeg

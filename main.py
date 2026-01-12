@@ -8,6 +8,7 @@ import multiprocessing
 import importlib
 import tempfile
 import zipfile
+import traceback
 from PIL import Image
 from customtkinter import CTkImage
 import requests
