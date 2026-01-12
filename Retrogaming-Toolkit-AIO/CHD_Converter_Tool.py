@@ -320,58 +320,38 @@ class CHDmanGUI:
                 return
 
     def telecharger_chdman(self):
-        """Télécharge et extrait CHDman."""
+        """Télécharge chdman.exe directement."""
         try:
             # Ensure AppData dir exists
             app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
             if not os.path.exists(app_data_dir):
                 os.makedirs(app_data_dir)
 
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_zip = os.path.join(temp_dir, CHDMAN_ZIP)
-                
-                # Use requests instead of urllib for better reliability/headers
-                import requests
-                headers = {
-                    'User-Agent': 'Mozilla/5.0',
-                    'Referer': 'https://wiki.recalbox.com/'
-                }
-                response = requests.get(CHDMAN_URL, headers=headers, stream=True, verify=False)
-                response.raise_for_status()
-                
-                with open(temp_zip, 'wb') as f:
-                    for chunk in response.iter_content(chunk_size=8192):
-                        f.write(chunk)
+            target_exe = os.path.join(app_data_dir, "chdman.exe")
+            
+            # Direct download URL from reliable GitHub release (namDHC repo)
+            DIRECT_URL = "https://github.com/umageddon/namDHC/releases/download/v1.13/chdman.exe"
 
-                with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
-                    zip_ref.extractall(temp_dir)
-                
-                # Check for chdman.exe in extracted files
-                extracted_chdman = None
-                for root, dirs, files in os.walk(temp_dir):
-                    if "chdman.exe" in files:
-                        extracted_chdman = os.path.join(root, "chdman.exe")
-                        break
-                
-                if extracted_chdman:
-                    # Target is always AppData for updates/downloads
-                    target_exe = os.path.join(app_data_dir, "chdman.exe")
-                    shutil.copy2(extracted_chdman, target_exe)
-                    
-                    # Update global var if needed or just rely on next check
-                    global CHDMAN_EXE
-                    CHDMAN_EXE = target_exe
-                    
-                    messagebox.showinfo("Téléchargement terminé", f"CHDman a été téléchargé dans {target_exe} avec succès.")
-                else:
-                    raise FileNotFoundError(f"chdman.exe non trouvé dans l'archive téléchargée.")
+            import requests
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            response = requests.get(DIRECT_URL, headers=headers, stream=True)
+            response.raise_for_status()
+            
+            with open(target_exe, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+            
+            if os.path.exists(target_exe) and os.path.getsize(target_exe) > 0:
+                global CHDMAN_EXE
+                CHDMAN_EXE = target_exe
+                messagebox.showinfo("Téléchargement terminé", f"CHDman a été téléchargé dans {target_exe} avec succès.")
+            else:
+                raise Exception("Fichier téléchargé vide ou manquant.")
 
-        except PermissionError:
-            messagebox.showerror("Erreur", "Permission refusée. Veuillez exécuter le programme en tant qu'administrateur.")
-            self.root.quit()
         except Exception as e:
             messagebox.showerror("Erreur", f"Échec du téléchargement de CHDman : {e}")
-            self.root.quit()
+            self.root.destroy()
+            sys.exit()
 
     def extraire_archives(self, dossier):
         """Extrait les archives ZIP, RAR et 7z dans le dossier."""

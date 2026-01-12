@@ -79,30 +79,72 @@ def main():
             sys.exit() # Changed from exit() to sys.exit()
 
     def extract_dolphintool(archive_path):
-        """Extrait DolphinTool.exe d'une archive .7z."""
-        try:
-            import py7zr
-            # Extract to temp dir
-            import tempfile
-            with tempfile.TemporaryDirectory() as temp_dir:
-                with py7zr.SevenZipFile(archive_path, mode='r') as archive:
-                    archive.extractall(path=temp_dir)
-                
-                # Find DolphinTool.exe
-                extracted_tool = None
-                for root, dirs, files in os.walk(temp_dir):
-                    if "DolphinTool.exe" in files:
-                        extracted_tool = os.path.join(root, "DolphinTool.exe")
-                        break
-                
-                if extracted_tool:
-                    import shutil
-                    shutil.move(extracted_tool, DOLPHIN_TOOL_NAME)
-                else:
-                    raise FileNotFoundError("DolphinTool.exe non trouvé dans l'archive.")
+        """Extrait DolphinTool.exe d'une archive .7z en utilisant 7za.exe (bootstrapped)."""
+        app_data_dir = os.path.dirname(DOLPHIN_TOOL_NAME)
+        seven_za_path = os.path.join(app_data_dir, "7za.exe")
 
-        except ImportError:
-            messagebox.showerror("Erreur", "Le module py7zr est requis pour extraire l'archive .7z.")
+        try:
+            # Step 1: Bootstrap 7za.exe if needed
+            if not os.path.exists(seven_za_path):
+                import requests
+                import tempfile
+                import zipfile
+                
+                url_7za = "https://www.7-zip.org/a/7za920.zip"
+                zip_7za_path = os.path.join(tempfile.gettempdir(), "7za920.zip")
+                
+                headers = {'User-Agent': 'Mozilla/5.0'}
+                r_7za = requests.get(url_7za, headers=headers, stream=True)
+                r_7za.raise_for_status()
+                with open(zip_7za_path, 'wb') as f:
+                    for chunk in r_7za.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                
+                with zipfile.ZipFile(zip_7za_path, 'r') as z:
+                    for file in z.namelist():
+                        if file == "7za.exe":
+                            z.extract(file, app_data_dir)
+                            break
+                if os.path.exists(zip_7za_path):
+                    os.remove(zip_7za_path)
+
+            if not os.path.exists(seven_za_path):
+                messagebox.showerror("Erreur", "Impossible d'installer le moteur 7-Zip (7za.exe).")
+                sys.exit()
+
+            # Step 2: Extract using 7za.exe
+            import subprocess
+            import tempfile
+            temp_extract_dir = tempfile.mkdtemp()
+            
+            # Command: 7za.exe x archive.7z -o{output_dir} -y
+            cmd = [seven_za_path, 'x', archive_path, f'-o{temp_extract_dir}', '-y']
+            
+            # Hide console
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            
+            subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
+
+            # Find DolphinTool.exe
+            extracted_tool = None
+            for root, dirs, files in os.walk(temp_extract_dir):
+                if "DolphinTool.exe" in files:
+                    extracted_tool = os.path.join(root, "DolphinTool.exe")
+                    break
+            
+            if extracted_tool:
+                import shutil
+                shutil.move(extracted_tool, DOLPHIN_TOOL_NAME)
+            else:
+                raise FileNotFoundError("DolphinTool.exe non trouvé dans l'archive.")
+
+            # Cleanup
+            import shutil
+            shutil.rmtree(temp_extract_dir, ignore_errors=True)
+
+        except Exception as e:
+            messagebox.showerror("Erreur d'extraction", f"Erreur lors de l'extraction de DolphinTool via 7za : {e}")
             sys.exit()
 
     def select_directory(title):
