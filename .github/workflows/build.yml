@@ -1,6 +1,8 @@
 name: Build and Release Installer
 
 on:
+  push:
+    branches: ["main"]
   release:
     types: [created]
   workflow_dispatch:
@@ -46,6 +48,7 @@ jobs:
           path: setup.iss
 
       - name: Rename Installer
+        if: github.event_name == 'release'
         run: |
           if (Test-Path RetrogamingToolkit_Setup.exe) {
               Move-Item RetrogamingToolkit_Setup.exe RetrogamingToolkit_Setup_${{ github.event.release.tag_name }}.exe
