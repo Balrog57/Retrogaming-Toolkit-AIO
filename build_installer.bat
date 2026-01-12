@@ -1,6 +1,9 @@
 @echo off
 setlocal
 
+:: Ensure we are in the script's directory
+cd /d "%~dp0"
+
 echo ========================================================
 echo      Retrogaming Toolkit AIO - Build Installer
 echo ========================================================
@@ -27,6 +30,14 @@ if %ERRORLEVEL% neq 0 (
 :: 3. Build EXE with PyInstaller
 echo.
 echo [2/3] Compilation de l'application (PyInstaller)...
+
+if not exist build.spec (
+    echo [ERREUR] Le fichier "build.spec" est introuvable dans %cd%.
+    echo Assurez-vous d'avoir telecharge tous les fichiers du depot.
+    pause
+    exit /b 1
+)
+
 if exist "dist\RetrogamingToolkit" (
     echo Nettoyage de l'ancienne compilation...
     rmdir /s /q "dist\RetrogamingToolkit"
