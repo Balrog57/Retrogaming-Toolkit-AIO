@@ -7,8 +7,5 @@ lxml
 pyperclip
 patool
 pytubefix
-pymupdf
+PyMuPDF
 openai
-pyinstaller
-yt-dlp
-imageio-ffmpeg
