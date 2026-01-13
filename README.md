@@ -68,8 +68,25 @@ Optimisez votre stockage et gérez vos fichiers de jeux avec des outils de compr
 Manipulez, nettoyez et enrichissez vos fichiers XML pour RetroBat, EmulationStation et HyperSpin.
 
 * **🤖 AssistedGamelist :**
-    * Utilise l'**Intelligence Artificielle** (Gemini/GPT) pour générer les descriptions manquantes.
+    * Utilise l'**Intelligence Artificielle** (Gemini 2.5 Flash via Google AI) pour générer les descriptions manquantes.
     * Scanne vos `gamelist.xml` et complète les synopsis sans écraser les données existantes.
+
+...
+
+## 🚀 Installation
+
+### 🟢 Méthode Recommandée (Tout public)
+
+1.  Rendez-vous sur la page des [**Releases GitHub**](https://github.com/Balrog57/Retrogaming-Toolkit-AIO/releases/latest).
+2.  Téléchargez le fichier **`RetrogamingToolkit_Setup.exe`**.
+3.  Lancez l'installation et ouvrez le logiciel via l'icône sur votre bureau.
+
+### 🟡 Méthode Portable (Avancé)
+
+1.  Sur la même page de Releases, téléchargez **`RetrogamingToolkit_Portable.zip`** (si disponible).
+2.  Extrayez l'archive et lancez directement `RetrogamingToolkit.exe`.
+
+> ⚠️ **Attention :** Ne téléchargez **PAS** les fichiers "Source code (zip)" ou "Source code (tar.gz)" sauf si vous êtes développeur et souhaitez modifier le programme (nécessite Python).
 * **🔄 GamelistHyperlist :**
     * Convertit `gamelist.xml` (RetroBat/ES) vers le format `hyperlist.xml` (HyperSpin/AttractMode).
     * Extrait les descriptions dans des fichiers texte individuels pour l'archivage.
@@ -150,16 +167,18 @@ Outils essentiels pour un environnement Windows sain.
 
 ## 🚀 Installation
 
-1.  **Télécharger :**
-    *   Rendez-vous sur la page des [Releases](https://github.com/Balrog57/Retrogaming-Toolkit-AIO/releases).
-    *   Téléchargez le dernier installateur (`RetrogamingToolkit_Setup.exe`) ou l'archive portable.
+### 🟢 Méthode Recommandée (Tout public)
 
-2.  **Installer :**
-    *   **Installateur :** Lancez le fichier `.exe` et suivez les instructions.
-    *   **Portable :** Extrayez simplement l'archive où vous le souhaitez.
+1.  Rendez-vous sur la page des [**Releases GitHub**](https://github.com/Balrog57/Retrogaming-Toolkit-AIO/releases/latest).
+2.  Téléchargez le fichier **`RetrogamingToolkit_Setup.exe`**.
+3.  Lancez l'installation et ouvrez le logiciel via l'icône sur votre bureau.
 
-3.  **Lancer :**
-    *   Ouvrez `RetrogamingToolkit.exe`. C'est tout ! Pas de Python ni de scripts à configurer.
+### 🟡 Méthode Portable (Avancé)
+
+1.  Sur la même page de Releases, téléchargez **`RetrogamingToolkit_Portable.zip`** (si disponible).
+2.  Extrayez l'archive et lancez directement `RetrogamingToolkit.exe`.
+
+> ⚠️ **Attention :** Ne téléchargez **PAS** les fichiers "Source code (zip)" ou "Source code (tar.gz)" en bas de page, sauf si vous êtes développeur et souhaitez modifier le programme (nécessite Python).
 
 ---
 
