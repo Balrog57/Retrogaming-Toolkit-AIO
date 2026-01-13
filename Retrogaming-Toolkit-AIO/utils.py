@@ -119,6 +119,9 @@ class DependencyManager:
         
         result_container = {"success": False, "error": None}
         
+        import queue
+        progress_queue = queue.Queue()
+        
         def _download_thread():
             try:
                 response = requests.get(url, headers=self.get_headers(), stream=True)
@@ -134,17 +137,39 @@ class DependencyManager:
                         downloaded += len(chunk)
                         if total_size > 0:
                             progress = downloaded / total_size
-                            progress_win.after(0, lambda p=progress: progress_bar.set(p))
-                            progress_win.after(0, lambda p=progress: status_label.configure(text=f"{int(p*100)}%"))
+                            progress_queue.put(("progress", progress))
+                            progress_queue.put(("status", f"{int(progress*100)}%"))
                 
                 result_container["success"] = True
+                progress_queue.put(("done", None))
             except Exception as e:
                 result_container["error"] = str(e)
-            finally:
-                progress_win.after(0, progress_win.destroy)
+                progress_queue.put(("done", None))
 
         t = threading.Thread(target=_download_thread)
         t.start()
+        
+        def process_queue():
+             try:
+                 while True:
+                     msg_type, data = progress_queue.get_nowait()
+                     if msg_type == "progress":
+                         progress_bar.set(data)
+                     elif msg_type == "status":
+                         status_label.configure(text=data)
+                     elif msg_type == "done":
+                         progress_win.destroy()
+                         return # Stop polling
+             except queue.Empty:
+                 pass
+             
+             if progress_win.winfo_exists():
+                progress_win.after(100, process_queue)
+
+        process_queue()
+
+
+
         
         # Keep main loop responsive
         if self.root:

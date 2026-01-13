@@ -369,7 +369,8 @@ class CHDmanGUI:
     def executer_chdman(self, commande, fichier_entree=None, fichier_sortie=None):
         """Exécute une commande CHDman avec gestion de l'interruption."""
         if not os.path.exists(CHDMAN_EXE):
-            self.verifier_chdman()
+            # self.verifier_chdman() # UNSAFE: Calling GUI from thread
+            return "Erreur: chdman.exe introuvable. Veuillez relancer l'outil pour le télécharger."
 
         cmd = [CHDMAN_EXE] + commande
         if fichier_entree:
