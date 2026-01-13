@@ -306,6 +306,9 @@ def main():
     button_convert = ctk.CTkButton(root, text="Convertir", command=start_conversion, width=200)
     button_convert.pack(pady=10)
 
+    # Check dependencies at startup
+    check_and_download_ffmpeg(root)
+
     # Run the application
     root.mainloop()
 
