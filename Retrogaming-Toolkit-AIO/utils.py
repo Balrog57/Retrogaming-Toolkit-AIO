@@ -56,6 +56,7 @@ import zipfile
 import threading
 import customtkinter as ctk
 from tkinter import messagebox
+import logging
 
 class DependencyManager:
     def __init__(self, root=None):
@@ -131,26 +132,38 @@ class DependencyManager:
         
         def _download_thread():
             try:
-                response = requests.get(url, headers=self.get_headers(), stream=True)
+                logging.info(f"Starting download: {url}")
+                response = requests.get(url, headers=self.get_headers(), stream=True, timeout=30)
                 response.raise_for_status()
                 total_size = int(response.headers.get('content-length', 0))
                 downloaded = 0
                 
+                logging.info(f"Content-Length: {total_size}")
+                
                 with open(dest_path, 'wb') as f:
+                    chunk_count = 0
                     for chunk in response.iter_content(chunk_size=8192):
                         if stop_event.is_set():
+                            logging.warning("Download cancelled by user.")
                             raise Exception("Download cancelled")
                         f.write(chunk)
                         downloaded += len(chunk)
+                        chunk_count += 1
+                        
+                        if chunk_count % 100 == 0:
+                            logging.debug(f"Downloaded {downloaded} bytes")
+                            
                         if total_size > 0:
                             progress = downloaded / total_size
                             progress_queue.put(("progress", progress))
                             progress_queue.put(("status", f"{int(progress*100)}%"))
                 
+                logging.info("Download finished.")
                 if not stop_event.is_set():
                     result_container["success"] = True
                     progress_queue.put(("done", None))
             except Exception as e:
+                logging.error(f"Download error: {e}")
                 result_container["error"] = str(e)
                 progress_queue.put(("done", None))
 
