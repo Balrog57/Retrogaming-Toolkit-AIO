@@ -71,7 +71,81 @@ Manipulez, nettoyez et enrichissez vos fichiers XML pour RetroBat, EmulationStat
     * Utilise l'**Intelligence Artificielle** (Gemini 2.5 Flash via Google AI) pour générer les descriptions manquantes.
     * Scanne vos `gamelist.xml` et complète les synopsis sans écraser les données existantes.
 
-...
+* **🔄 GamelistHyperlist :**
+    * Convertit `gamelist.xml` (RetroBat/ES) vers le format `hyperlist.xml` (HyperSpin/AttractMode).
+    * Extrait les descriptions dans des fichiers texte individuels pour l'archivage.
+* **↩️ HyperlistGamelist :**
+    * Migrez vos bases de données HyperSpin vers le format standard `gamelist.xml`.
+    * Reformate les dates, notes et chemins d'accès (extensions zip, 7z, iso...).
+* **🛡️ BGBackup :**
+    * "Assurance-vie" de vos métadonnées : scanne et sauvegarde tous les `gamelist.xml` dans une archive ZIP.
+    * Idéal avant de lancer un scraper ou une modification massive.
+* **📝 StoryHyperlist :**
+    * Fusionne une collection de synopsis (fichiers .txt) directement dans votre XML HyperList.
+    * Gère les encodages pour éviter les caractères corrompus.
+* **🧹 StoryCleaner :**
+    * Nettoie les fichiers textes (biographies, histoires) pour les standards XML.
+    * Remplace les caractères spéciaux et corrige les symboles critiques (comme `&` en `&amp;`).
+* **⚙️ SystemsExtractor :**
+    * Compare votre `es_systems.cfg` avec la version officielle.
+    * Extrait vos systèmes personnalisés dans des fichiers dédiés pour éviter les pertes lors des mises à jour.
+
+### Multimédia & Artworks
+Gérez vos assets visuels et vidéos pour une bibliothèque esthétique.
+
+* **📺 YTDownloader :**
+    * Interface graphique pour `yt-dlp`.
+    * Téléchargement de vidéos uniques, playlists ou chaînes entières.
+    * Choix du format : **Audio MP3** ou **Vidéo (jusqu'en 4K)**.
+    * Mode "Copie Rapide" pour assembler audio/vidéo sans ré-encodage.
+* **🎥 VideoConvert :**
+    * Traitement en masse : conversion, redimensionnement (720p/1080p), et découpe (trim).
+    * Extraction automatique de **screenshots** depuis la vidéo pour créer des couvertures.
+    * Téléchargement auto de FFmpeg.
+* **🖼️ ImageConvert :**
+    * Conversion de dossiers entiers vers le format cible (WebP, PNG, JPG...).
+    * Option de nettoyage pour supprimer les originaux.
+* **📖 CoverExtractor :**
+    * Génère des miniatures (PNG) à partir de la première page de fichiers **PDF, CBZ et CBR**.
+    * Indispensable pour les magazines et comics.
+* **🧹 MediaOrphans :**
+    * Scanne le dossier `medium_artwork` et déplace les images sans jeu associé vers un dossier `orphan`.
+    * Préserve les images système (`default`).
+* **📚 CBZKiller :**
+    * Convertit massivement **PDF et CBR** en format **CBZ** standardisé.
+    * Option pour supprimer les fichiers source après conversion.
+
+### Organisation & Collections
+Structurez votre ludothèque et créez des compilations thématiques.
+
+* **📂 CollectionBuilder :**
+    * Crée des collections thématiques (ex: "Zelda", "Mario") en scannant les mots-clés dans vos descriptions.
+    * Génère la structure de dossiers et les playlists `.sub`.
+* **📦 CollectionExtractor :**
+    * Extrait "chirurgicalement" une collection complète (roms + médias + configs + cœurs) vers un dossier autonome.
+    * Idéal pour créer des packs portables ou partager une configuration système.
+* **💿 M3UCreator :**
+    * **Multi-disques :** Génère les fichiers `.m3u` pour regrouper les CD (PS1, Dreamcast...).
+    * **Vita3K :** Crée des `.m3u` avec le nom réel du jeu à partir des ID cryptiques (PCSB...).
+* **🧹 FolderCleaner :**
+    * Supprime récursivement tous les dossiers vides pour nettoyer l'arborescence.
+* **📄 FolderToTxt :**
+    * Crée un fichier texte vide portant le nom de chaque fichier trouvé (pour les scrappers exigeants).
+* **📄 EmptyGen :**
+    * Génère des fichiers vides ("dummy files") pour les émulateurs spécifiques (ex: `.scummvm`, `.singe`).
+    * Parcourt l'arborescence pour placer les fichiers dans les bons sous-dossiers.
+
+### Maintenance Système
+Outils essentiels pour un environnement Windows sain.
+
+* **🛣️ LongPaths :**
+    * Modifie le registre Windows pour supporter les chemins > 260 caractères.
+    * Évite les erreurs de copie/extraction avec les noms de fichiers longs.
+* **🛠️ InstallDeps :**
+    * Installe/Met à jour les **Visual C++ Runtimes (AIO)**, **DirectX** et **OpenAL**.
+    * Détection automatique de l'architecture (x86/x64) et installation silencieuse.
+* **📝 ListFilesSimple / ListFilesWin :**
+    * Génère des inventaires textuels (`Liste.txt`) du contenu de vos dossiers (arborescence complète ou racine uniquement).
 
 ## 🚀 Installation
 
