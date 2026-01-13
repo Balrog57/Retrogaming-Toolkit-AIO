@@ -147,20 +147,7 @@ Outils essentiels pour un environnement Windows sain.
 * **📝 ListFilesSimple / ListFilesWin :**
     * Génère des inventaires textuels (`Liste.txt`) du contenu de vos dossiers (arborescence complète ou racine uniquement).
 
-## 🚀 Installation
 
-### 🟢 Méthode Recommandée (Tout public)
-
-1.  Rendez-vous sur la page des [**Releases GitHub**](https://github.com/Balrog57/Retrogaming-Toolkit-AIO/releases/latest).
-2.  Téléchargez le fichier **`RetrogamingToolkit_Setup.exe`**.
-3.  Lancez l'installation et ouvrez le logiciel via l'icône sur votre bureau.
-
-### 🟡 Méthode Portable (Avancé)
-
-1.  Sur la même page de Releases, téléchargez **`RetrogamingToolkit_Portable.zip`** (si disponible).
-2.  Extrayez l'archive et lancez directement `RetrogamingToolkit.exe`.
-
-> ⚠️ **Attention :** Ne téléchargez **PAS** les fichiers "Source code (zip)" ou "Source code (tar.gz)" sauf si vous êtes développeur et souhaitez modifier le programme (nécessite Python).
 * **🔄 GamelistHyperlist :**
     * Convertit `gamelist.xml` (RetroBat/ES) vers le format `hyperlist.xml` (HyperSpin/AttractMode).
     * Extrait les descriptions dans des fichiers texte individuels pour l'archivage.
