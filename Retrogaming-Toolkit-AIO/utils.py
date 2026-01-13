@@ -133,7 +133,7 @@ class DependencyManager:
         def _download_thread():
             try:
                 logging.info(f"Starting download: {url}")
-                response = requests.get(url, headers=self.get_headers(), stream=True, timeout=30)
+                response = requests.get(url, headers=self.get_headers(), stream=True, timeout=60)
                 response.raise_for_status()
                 total_size = int(response.headers.get('content-length', 0))
                 downloaded = 0
