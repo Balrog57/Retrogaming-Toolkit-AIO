@@ -29,9 +29,18 @@ def check_and_download_ffmpeg(root=None):
     if 'utils' in sys.modules and root:
         try:
              manager = utils.DependencyManager(root)
+             
+             # Resolve URL dynamically from GitHub
+             ffmpeg_url = utils.fetch_latest_github_asset("GyanD", "codexffmpeg", "essentials")
+             if not ffmpeg_url:
+                ffmpeg_url = utils.fetch_latest_github_asset("GyanD", "codexffmpeg", "full")
+             
+             if not ffmpeg_url:
+                 ffmpeg_url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+             
              result = manager.install_dependency(
                  name="FFmpeg",
-                 url="https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
+                 url=ffmpeg_url,
                  target_exe_name=target_name,
                  archive_type="zip",
                  # utils.DependencyManager logic might need enhancement if we want to extract from subfolder

@@ -46,6 +46,33 @@ def get_binary_path(binary_name):
 
 def is_frozen():
     return getattr(sys, 'frozen', False)
+
+def fetch_latest_github_asset(owner, repo, match_keyword):
+    """
+    Fetches the download URL for the latest release asset from a GitHub repository.
+    match_keyword: substring to look for in asset name (case insensitive).
+    """
+    try:
+        api_url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+        logging.info(f"Checking GitHub latest release: {api_url}")
+        response = requests.get(api_url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)
+        response.raise_for_status()
+        
+        data = response.json()
+        assets = data.get('assets', [])
+        
+        for asset in assets:
+            name = asset.get('name', '').lower()
+            if match_keyword.lower() in name and name.endswith('.zip'):
+                download_url = asset.get('browser_download_url')
+                logging.info(f"Found asset: {name} -> {download_url}")
+                return download_url
+                
+        logging.warning(f"No asset matching '{match_keyword}' found in {owner}/{repo}")
+        return None
+    except Exception as e:
+        logging.error(f"Error fetching GitHub release info: {e}")
+        return None
     
 # --- Dependency Manager ---
 import requests

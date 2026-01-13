@@ -40,9 +40,21 @@ def check_and_download_ffmpeg(root=None):
     if utils and root:
         try:
             manager = utils.DependencyManager(root)
+            
+            # Resolve URL dynamically from GitHub
+            ffmpeg_url = utils.fetch_latest_github_asset("GyanD", "codexffmpeg", "essentials")
+            if not ffmpeg_url:
+                # Fallback to full if essentials missing
+                ffmpeg_url = utils.fetch_latest_github_asset("GyanD", "codexffmpeg", "full")
+            
+            if not ffmpeg_url:
+                 # Last resort fallback if API fails
+                 ffmpeg_url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+                 logging.warning("GitHub API failed, falling back to gyan.dev")
+
             result = manager.install_dependency(
                 name="FFmpeg",
-                url="https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
+                url=ffmpeg_url,
                 target_exe_name=target_name,
                 archive_type="zip",
                 extract_file_in_archive=None # Logic acts recursively if not found or I can specify
