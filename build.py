@@ -1,4 +1,7 @@
-
+import PyInstaller.__main__
+import os
+import glob
+import shutil
 
 def build():
     # Define paths
