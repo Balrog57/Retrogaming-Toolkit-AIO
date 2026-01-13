@@ -311,13 +311,14 @@ class CHDmanGUI:
     def verifier_chdman(self):
         """Vérifie si chdman.exe est disponible ; télécharge-le si nécessaire."""
         if not os.path.exists(CHDMAN_EXE):
-            answer = messagebox.askyesno("CHDman manquant", f"CHDman est introuvable. Voulez-vous le télécharger ?\n{CHDMAN_URL}")
-            if answer:
-                self.telecharger_chdman()
-            else:
-                messagebox.showerror("Erreur", "CHDman est requis pour utiliser cet outil.")
-                self.root.destroy()
-                return
+            # answer = messagebox.askyesno("CHDman manquant", f"CHDman est introuvable. Voulez-vous le télécharger ?\n{CHDMAN_URL}")
+            # if answer:
+            print("CHDman manquant, démarrage du téléchargement automatique via DependencyManager...")
+            self.telecharger_chdman()
+            # else:
+            #     messagebox.showerror("Erreur", "CHDman est requis pour utiliser cet outil.")
+            #     self.root.destroy()
+            #     return
 
     def telecharger_chdman(self):
         """Télécharge chdman.exe depuis la release officielle MAME (via DependencyManager)."""
