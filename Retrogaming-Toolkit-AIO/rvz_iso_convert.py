@@ -39,113 +39,37 @@ def main():
     DOLPHIN_DOWNLOAD_URL = "https://dl.dolphin-emu.org/releases/2412/dolphin-2412-x64.7z"
 
     def check_and_download_dolphintool():
-        """Vérifie la présence de DolphinTool.exe et le télécharge si nécessaire."""
-        if not os.path.isfile(DOLPHIN_TOOL_NAME):
-            response = messagebox.askyesno(
-                "DolphinTool Manquant",
-                f"{DOLPHIN_TOOL_NAME} est introuvable. Voulez-vous le télécharger maintenant ?"
-            )
-            if response:
-                download_dolphintool()
-            else:
-                messagebox.showerror("Erreur", "DolphinTool est requis pour continuer.")
-                root.destroy()
-                return
+        """Vérifie et installe DolphinTool via DependencyManager."""
+        if os.path.exists(DOLPHIN_TOOL_NAME):
+            return
 
-    def download_dolphintool():
-        """Télécharge DolphinTool.exe depuis le site officiel."""
-        try:
-            # Ensure AppData dir exists (since get_dolphin_tool_path defaults to it)
-            app_data_dir = os.path.dirname(DOLPHIN_TOOL_NAME)
-            if not os.path.exists(app_data_dir):
-                os.makedirs(app_data_dir)
+        if 'utils' in sys.modules:
+             # Check bundled first
+             if os.path.exists(utils.get_binary_path("DolphinTool.exe")):
+                 return
 
-            # Use requests for better reliability
-            import requests
-            headers = {'User-Agent': 'Mozilla/5.0'}
-            response = requests.get(DOLPHIN_DOWNLOAD_URL, headers=headers, stream=True, verify=False)
-            response.raise_for_status()
-            
-            archive_path = os.path.join(app_data_dir, "dolphin.7z")
-            with open(archive_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-            extract_dolphintool(archive_path)
-            if os.path.exists(archive_path):
-                os.remove(archive_path)
-            messagebox.showinfo("Téléchargement Réussi", f"DolphinTool a été téléchargé avec succès.")
-        except Exception as e:
-            messagebox.showerror("Erreur de Téléchargement", f"Le téléchargement a échoué : {e}")
-            sys.exit() # Changed from exit() to sys.exit()
-
-    def extract_dolphintool(archive_path):
-        """Extrait DolphinTool.exe d'une archive .7z en utilisant 7za.exe (bootstrapped)."""
-        app_data_dir = os.path.dirname(DOLPHIN_TOOL_NAME)
-        seven_za_path = os.path.join(app_data_dir, "7za.exe")
-
-        try:
-            # Step 1: Bootstrap 7za.exe if needed
-            if not os.path.exists(seven_za_path):
-                import requests
-                import tempfile
-                import zipfile
-                
-                url_7za = "https://www.7-zip.org/a/7za920.zip"
-                zip_7za_path = os.path.join(tempfile.gettempdir(), "7za920.zip")
-                
-                headers = {'User-Agent': 'Mozilla/5.0'}
-                r_7za = requests.get(url_7za, headers=headers, stream=True)
-                r_7za.raise_for_status()
-                with open(zip_7za_path, 'wb') as f:
-                    for chunk in r_7za.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                
-                with zipfile.ZipFile(zip_7za_path, 'r') as z:
-                    for file in z.namelist():
-                        if file == "7za.exe":
-                            z.extract(file, app_data_dir)
-                            break
-                if os.path.exists(zip_7za_path):
-                    os.remove(zip_7za_path)
-
-            if not os.path.exists(seven_za_path):
-                messagebox.showerror("Erreur", "Impossible d'installer le moteur 7-Zip (7za.exe).")
-                sys.exit()
-
-            # Step 2: Extract using 7za.exe
-            import subprocess
-            import tempfile
-            temp_extract_dir = tempfile.mkdtemp()
-            
-            # Command: 7za.exe x archive.7z -o{output_dir} -y
-            cmd = [seven_za_path, 'x', archive_path, f'-o{temp_extract_dir}', '-y']
-            
-            # Hide console
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            
-            subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
-
-            # Find DolphinTool.exe
-            extracted_tool = None
-            for root, dirs, files in os.walk(temp_extract_dir):
-                if "DolphinTool.exe" in files:
-                    extracted_tool = os.path.join(root, "DolphinTool.exe")
-                    break
-            
-            if extracted_tool:
-                import shutil
-                shutil.move(extracted_tool, DOLPHIN_TOOL_NAME)
-            else:
-                raise FileNotFoundError("DolphinTool.exe non trouvé dans l'archive.")
-
-            # Cleanup
-            import shutil
-            shutil.rmtree(temp_extract_dir, ignore_errors=True)
-
-        except Exception as e:
-            messagebox.showerror("Erreur d'extraction", f"Erreur lors de l'extraction de DolphinTool via 7za : {e}")
+             try:
+                manager = utils.DependencyManager(root)
+                result = manager.install_dependency(
+                    name="DolphinTool",
+                    url="https://dl.dolphin-emu.org/releases/2412/dolphin-2412-x64.7z",
+                    target_exe_name="DolphinTool.exe",
+                    archive_type="7z"
+                )
+                if not result:
+                     root.destroy()
+                     sys.exit()
+             except Exception as e:
+                 messagebox.showerror("Erreur", f"Erreur DependencyManager: {e}")
+                 root.destroy()
+                 sys.exit()
+        else:
+            messagebox.showerror("Erreur", "Module 'utils' manquant.")
+            root.destroy()
             sys.exit()
+
+    # Old download/extract functions removed as they are replaced by utils
+
 
     def select_directory(title):
         """Ouvre une boîte de dialogue pour sélectionner un répertoire."""

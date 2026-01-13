@@ -320,83 +320,37 @@ class CHDmanGUI:
                 return
 
     def telecharger_chdman(self):
-        """Télécharge chdman.exe depuis la release officielle MAME (via 7za)."""
-        import requests
-        import subprocess
-        import sys 
+        """Télécharge chdman.exe depuis la release officielle MAME (via DependencyManager)."""
+        target_name = "chdman.exe"
+        if not LOGIC_UTILS: # Global var check based on previous file content import likely
+             messagebox.showerror("Erreur", "Module 'utils' non chargé.")
+             return
+
+        # Check existing (already done in verifier_chdman but good to double check or use manager to just install)
+        # manager.install_dependency checks existing.
         
         try:
-            # Ensure AppData dir exists
-            app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
-            if not os.path.exists(app_data_dir):
-                os.makedirs(app_data_dir)
-
-            target_exe = os.path.join(app_data_dir, "chdman.exe")
-            seven_za_path = os.path.join(app_data_dir, "7za.exe")
-
-            # URL MAME 0.284 Official (GitHub mirror)
-            # The file is a self-extracting 7z archive (exe)
+            manager = utils.DependencyManager(self.root)
+            # MAME 0.284b URL
             MAME_URL = "https://github.com/mamedev/mame/releases/download/mame0284/mame0284b_x64.exe"
-
-            mame_exe_path = os.path.join(tempfile.gettempdir(), "mame_setup.exe")
-
-            # 1. Start Download MAME (Progress UI would be nice but simple logic for now)
-            # Use requests
-            headers = {'User-Agent': 'Mozilla/5.0'}
-            # Note: This is a large file (~90MB), might take a while.
-            messagebox.showinfo("Téléchargement en cours", "Téléchargement de MAME (env. 90Mo) pour extraire CHDman.\nVeuillez patienter...")
             
-            with requests.get(MAME_URL, headers=headers, stream=True) as r:
-                r.raise_for_status()
-                with open(mame_exe_path, 'wb') as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        f.write(chunk)
-
-            # 2. Bootstrap 7za if needed
-            if not os.path.exists(seven_za_path):
-                url_7za = "https://www.7-zip.org/a/7za920.zip"
-                zip_7za_path = os.path.join(tempfile.gettempdir(), "7za920.zip")
-                
-                r_7za = requests.get(url_7za, headers=headers, stream=True)
-                r_7za.raise_for_status()
-                with open(zip_7za_path, 'wb') as f:
-                    for chunk in r_7za.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                
-                import zipfile
-                with zipfile.ZipFile(zip_7za_path, 'r') as z:
-                    for file in z.namelist():
-                        if file == "7za.exe":
-                            z.extract(file, app_data_dir)
-                            break
-                if os.path.exists(zip_7za_path):
-                    os.remove(zip_7za_path)
+            result_path = manager.install_dependency(
+                name="CHDman (MAME)",
+                url=MAME_URL,
+                target_exe_name=target_name,
+                archive_type='exe_sfx',
+                extract_file_in_archive='chdman.exe'
+            )
             
-            if not os.path.exists(seven_za_path):
-                raise Exception("Impossible d'installer 7za.exe")
-
-            # 3. Extract ONLY chdman.exe from mame exe using 7za
-            # Command: 7za.exe e mame.exe -o{app_data_dir} chdman.exe -y
-            cmd = [seven_za_path, 'e', mame_exe_path, f'-o{app_data_dir}', 'chdman.exe', '-y']
-            
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            
-            subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
-
-            # 4. Cleanup
-            if os.path.exists(mame_exe_path):
-                os.remove(mame_exe_path)
-
-            if os.path.exists(target_exe):
+            if result_path:
                 global CHDMAN_EXE
-                CHDMAN_EXE = target_exe
-                messagebox.showinfo("Succès", f"CHDman extrait avec succès depuis la release officielle MAME.")
+                CHDMAN_EXE = result_path
             else:
-                raise Exception("chdman.exe non trouvé après extraction de MAME.")
+                self.root.destroy()
+                sys.exit()
 
         except Exception as e:
-            messagebox.showerror("Erreur", f"Échec de l'installation MAME/CHDman : {e}")
+            messagebox.showerror("Erreur", f"Échec de l'installation CHDman : {e}")
             self.root.destroy()
             sys.exit()
 

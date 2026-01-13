@@ -20,58 +20,43 @@ except ImportError:
     utils = None
 
 # Fonction pour vérifier et télécharger FFmpeg
-def check_and_download_ffmpeg():
-    # Use utils if available to find bundled/existing binary
+# Fonction pour vérifier et télécharger FFmpeg
+def check_and_download_ffmpeg(root=None):
+    target_name = "ffmpeg.exe"
+    
+    # Check bundled/existing via utils first if possible
     if utils:
-        ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
+        ffmpeg_path = utils.get_binary_path(target_name)
         if os.path.exists(ffmpeg_path):
             return ffmpeg_path
     
-    # Fallback path in AppData
+    # AppData fallback path check
     app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
-    if not os.path.exists(app_data_dir):
-        os.makedirs(app_data_dir)
-    ffmpeg_dest_path = os.path.join(app_data_dir, "ffmpeg.exe")
-    
+    ffmpeg_dest_path = os.path.join(app_data_dir, target_name)
     if os.path.exists(ffmpeg_dest_path):
         return ffmpeg_dest_path
 
     # If we are here, we need to download
-    try:
-        logging.info("FFmpeg n'est pas trouvé. Téléchargement en cours...")
-        messagebox.showinfo("Téléchargement", "FFmpeg n'est pas trouvé. Téléchargement en cours...")
-        url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"  # Lien officiel vers FFmpeg
-        temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip").name
-
-        # Télécharger FFmpeg
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        response = requests.get(url, headers=headers, stream=True, verify=False)
-        with open(temp_zip, "wb") as f:
-            shutil.copyfileobj(response.raw, f)
-
-        # Extraire le fichier téléchargé
-        extract_dir = tempfile.mkdtemp()
-        with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
-            zip_ref.extractall(extract_dir)
-
-        # Rechercher ffmpeg.exe dans le dossier extrait
-        for root, dirs, files in os.walk(extract_dir):
-            if "ffmpeg.exe" in files:
-                ffmpeg_extracted_path = os.path.join(root, "ffmpeg.exe")
-                shutil.move(ffmpeg_extracted_path, ffmpeg_dest_path)
-                break
-        else:
-            raise FileNotFoundError("Le fichier ffmpeg.exe n'a pas été trouvé après extraction.")
-
-        os.remove(temp_zip)
-        messagebox.showinfo("Succès", "FFmpeg a été téléchargé et configuré avec succès.")
-        logging.info("FFmpeg a été téléchargé et configuré avec succès.")
-
-    except Exception as e:
-        logging.error(f"Échec du téléchargement de FFmpeg : {e}")
-        messagebox.showerror("Erreur", f"Échec du téléchargement de FFmpeg : {e}")
-        # Laisser l'utilisateur gérer la fermeture de la fenêtre
-        return  # Ne pas détruire la fenêtre ici
+    if utils and root:
+        try:
+            manager = utils.DependencyManager(root)
+            result = manager.install_dependency(
+                name="FFmpeg",
+                url="https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
+                target_exe_name=target_name,
+                archive_type="zip",
+                extract_file_in_archive=None # Logic acts recursively if not found or I can specify
+                # The zip structure is ffmpeg-release-essentials/bin/ffmpeg.exe usually.
+                # install_dependency searches recursively if file not found in root of extract.
+            )
+            return result
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Échec du téléchargement de FFmpeg : {e}")
+            return None
+    else:
+        # Fallback if utils missing (should not happen)
+        messagebox.showerror("Erreur", "Impossible de télécharger FFmpeg (utils manquant).")
+        return None
 
 # Fonction pour convertir les images
 def convert_images(input_dir, output_dir, input_format, output_format, delete_originals):
@@ -97,7 +82,10 @@ def convert_images(input_dir, output_dir, input_format, output_format, delete_or
 
                 # Utilisation de FFmpeg pour la conversion
                 # Use resolved ffmpeg path
-                ffmpeg_exe = check_and_download_ffmpeg()
+                # Note: Assuming startup check ensured download. Re-checking with None root if needed, 
+                # or we trust it exists. If it was deleted, this might pop a window without parent or fail.
+                # Let's try to find root from default if possible or pass None (new toplevel)
+                ffmpeg_exe = check_and_download_ffmpeg(None) 
                 if not ffmpeg_exe:
                     return # Stop if ffmpeg issue
                 
@@ -192,9 +180,13 @@ def create_gui():
 
 def main():
     # Vérifier FFmpeg et lancer l'interface graphique
-    check_and_download_ffmpeg()
-    if root := create_gui(): # Assignation possible depuis Python 3.8
-        root.mainloop()
+    # Create root first to allow progress window
+    root = create_gui()
+    if root:
+        if check_and_download_ffmpeg(root):
+            root.mainloop()
+        else:
+            root.destroy()
 
 if __name__ == "__main__":
     main()

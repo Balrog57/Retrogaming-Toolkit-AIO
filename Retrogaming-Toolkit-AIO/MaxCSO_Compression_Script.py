@@ -35,97 +35,30 @@ def main():
         return None
 
     def download_and_extract_maxcso():
-        """Télécharge et extrait maxcso.exe en utilisant 7za.exe (bootstrapped)."""
-        app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
-        target_path = os.path.join(app_data_dir, "maxcso.exe")
-        seven_za_path = os.path.join(app_data_dir, "7za.exe")
-
-        # Check existing
-        if os.path.exists(target_path):
-            return True
+        """Télécharge et extrait maxcso.exe en utilisant DependencyManager."""
+        target_name = "maxcso.exe"
         if 'utils' in sys.modules:
-             bundled_path = utils.get_binary_path("maxcso.exe")
-             if os.path.exists(bundled_path):
-                 return True
-
-        if not messagebox.askyesno("Téléchargement Requis", "maxcso.exe est manquant. Télécharger (et le gestionnaire 7zip) ?"):
-            return False
-
-        try:
-            if not os.path.exists(app_data_dir):
-                os.makedirs(app_data_dir)
-
-            # Step 1: Bootstrap 7za.exe if needed
-            if not os.path.exists(seven_za_path):
-                url_7za = "https://www.7-zip.org/a/7za920.zip"
-                zip_7za_path = os.path.join(tempfile.gettempdir(), "7za920.zip")
-                
-                headers = {'User-Agent': 'Mozilla/5.0'}
-                r_7za = requests.get(url_7za, headers=headers, stream=True)
-                r_7za.raise_for_status()
-                with open(zip_7za_path, 'wb') as f:
-                    for chunk in r_7za.iter_content(chunk_size=8192):
-                        f.write(chunk)
-                
-                # Extract 7za.exe using Python's zipfile (it supports zip)
-                import zipfile
-                with zipfile.ZipFile(zip_7za_path, 'r') as z:
-                    for file in z.namelist():
-                        if file == "7za.exe":
-                            z.extract(file, app_data_dir)
-                            break
-                if os.path.exists(zip_7za_path):
-                    os.remove(zip_7za_path)
-            
-            if not os.path.exists(seven_za_path):
-                messagebox.showerror("Erreur", "Impossible d'installer le moteur 7-Zip (7za.exe).")
-                return False
-
-            # Step 2: Download MaxCSO .7z
-            url_maxcso = "https://github.com/unknownbrackets/maxcso/releases/download/v1.13.0/maxcso_v1.13.0_windows.7z"
-            archive_path = os.path.join(tempfile.gettempdir(), "maxcso.7z")
-            
-            headers = {'User-Agent': 'Mozilla/5.0'}
-            response = requests.get(url_maxcso, headers=headers, stream=True)
-            response.raise_for_status()
-            with open(archive_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
-
-            # Step 3: Extract using 7za.exe
-            # Command: 7za.exe e archive.7z -o{output_dir} -y
-            temp_extract_dir = tempfile.mkdtemp()
-            cmd = [seven_za_path, 'x', archive_path, f'-o{temp_extract_dir}', '-y']
-            
-            # Hide console window
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            
-            subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
-
-            # Locate and move maxcso.exe
-            found = False
-            for root, dirs, files in os.walk(temp_extract_dir):
-                if "maxcso.exe" in files:
-                    shutil.move(os.path.join(root, "maxcso.exe"), target_path)
-                    found = True
-                    break
-            
-            # Cleanup
-            shutil.rmtree(temp_extract_dir, ignore_errors=True)
-            if os.path.exists(archive_path):
-                os.remove(archive_path)
-
-            if found:
-                messagebox.showinfo("Succès", "MaxCSO téléchargé et installé.")
+            # check bundled first
+            bundled = utils.get_binary_path(target_name)
+            if os.path.exists(bundled):
                 return True
-            else:
-                messagebox.showerror("Erreur", "maxcso.exe introuvable après extraction.")
+            
+            # Use Dependency Manager
+            try:
+                manager = utils.DependencyManager(root)
+                result = manager.install_dependency(
+                    name="MaxCSO",
+                    url="https://github.com/unknownbrackets/maxcso/releases/download/v1.13.0/maxcso_v1.13.0_windows.7z",
+                    target_exe_name=target_name,
+                    archive_type="7z"
+                )
+                return result is not None
+            except Exception as e:
+                messagebox.showerror("Erreur", f"Erreur DependencyManager: {e}")
                 return False
-
-        except Exception as e:
-            messagebox.showerror("Erreur Critique", f"Échec du téléchargement : {e}")
-            return False
+        else:
+             messagebox.showerror("Erreur", "Module 'utils' non chargé.")
+             return False
 
     def get_cpu_count():
         """Retourne le nombre de cœurs CPU disponibles."""

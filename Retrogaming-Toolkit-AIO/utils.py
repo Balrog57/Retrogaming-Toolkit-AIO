@@ -46,3 +46,182 @@ def get_binary_path(binary_name):
 
 def is_frozen():
     return getattr(sys, 'frozen', False)
+    
+# --- Dependency Manager ---
+import requests
+import subprocess
+import shutil
+import tempfile
+import zipfile
+import threading
+import customtkinter as ctk
+from tkinter import messagebox
+
+class DependencyManager:
+    def __init__(self, root=None):
+        self.app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
+        if not os.path.exists(self.app_data_dir):
+            os.makedirs(self.app_data_dir)
+        self.seven_za_path = os.path.join(self.app_data_dir, "7za.exe")
+        self.root = root
+
+    def get_headers(self):
+        return {'User-Agent': 'Mozilla/5.0'}
+
+    def bootstrap_7za(self):
+        """Ensures 7za.exe is available for extracting other archives."""
+        if os.path.exists(self.seven_za_path):
+            return True
+        
+        # Download 7za
+        url = "https://www.7-zip.org/a/7za920.zip"
+        zip_path = os.path.join(tempfile.gettempdir(), "7za920.zip")
+        
+        try:
+            r = requests.get(url, headers=self.get_headers(), stream=True)
+            r.raise_for_status()
+            with open(zip_path, 'wb') as f:
+                f.write(r.content)
+            
+            with zipfile.ZipFile(zip_path, 'r') as z:
+                for file in z.namelist():
+                    if file == "7za.exe":
+                        z.extract(file, self.app_data_dir)
+                        break
+            
+            return os.path.exists(self.seven_za_path)
+        except Exception as e:
+            print(f"Failed to bootstrap 7za: {e}")
+            return False
+        finally:
+            if os.path.exists(zip_path):
+                os.remove(zip_path)
+
+    def download_with_progress(self, url, dest_path, description="Téléchargement"):
+        """Downloads a file with a progress bar UI."""
+        # Setup UI
+        progress_win = ctk.CTkToplevel(self.root)
+        progress_win.title("Téléchargement Requis")
+        progress_win.geometry("400x150")
+        progress_win.transient(self.root) 
+        progress_win.grab_set()
+        
+        # Center window logic could be added here
+        
+        ctk.CTkLabel(progress_win, text=f"{description}...", font=("Arial", 14)).pack(pady=10)
+        
+        progress_bar = ctk.CTkProgressBar(progress_win, width=300)
+        progress_bar.pack(pady=10)
+        progress_bar.set(0)
+        
+        status_label = ctk.CTkLabel(progress_win, text="0%")
+        status_label.pack(pady=5)
+        
+        result_container = {"success": False, "error": None}
+        
+        def _download_thread():
+            try:
+                response = requests.get(url, headers=self.get_headers(), stream=True)
+                response.raise_for_status()
+                total_size = int(response.headers.get('content-length', 0))
+                downloaded = 0
+                
+                with open(dest_path, 'wb') as f:
+                    for chunk in response.iter_content(chunk_size=8192):
+                        if not progress_win.winfo_exists():
+                            raise Exception("Download cancelled")
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size > 0:
+                            progress = downloaded / total_size
+                            progress_win.after(0, lambda p=progress: progress_bar.set(p))
+                            progress_win.after(0, lambda p=progress: status_label.configure(text=f"{int(p*100)}%"))
+                
+                result_container["success"] = True
+            except Exception as e:
+                result_container["error"] = str(e)
+            finally:
+                progress_win.after(0, progress_win.destroy)
+
+        t = threading.Thread(target=_download_thread)
+        t.start()
+        
+        # Keep main loop responsive
+        if self.root:
+            self.root.wait_window(progress_win)
+        else:
+            t.join()
+            
+        if not result_container["success"]:
+            raise Exception(result_container["error"] if result_container["error"] else "Unknown error")
+
+    def install_dependency(self, name, url, target_exe_name, archive_type='7z', extract_file_in_archive=None):
+        """
+        Main method to install a dependency.
+        name: Display name (e.g. "MaxCSO")
+        url: Download URL
+        target_exe_name: Name of the final exe (e.g. "maxcso.exe")
+        archive_type: '7z', 'zip', 'exe_sfx' (like MAME)
+        extract_file_in_archive: If specific file needs to be pulled from archive. If None, assumes simple structure or looks for target_exe_name.
+        """
+        target_path = os.path.join(self.app_data_dir, target_exe_name)
+        
+        # Check existing
+        if os.path.exists(target_path):
+            return target_path
+            
+        bundled = get_binary_path(target_exe_name)
+        if os.path.exists(bundled) and bundled != target_path: # Avoid circular if bundled is appdata
+             return bundled
+
+        # If missing, ask user
+        if not messagebox.askyesno("Outil Manquant", f"{name} est manquant. Voulez-vous le télécharger et l'installer ?"):
+             return None
+
+        try:
+             # Ensure 7za
+             if not self.bootstrap_7za():
+                 raise Exception("Could not install 7-Zip engine.")
+
+             # Download
+             temp_download = os.path.join(tempfile.gettempdir(), f"temp_dep_{target_exe_name}.{archive_type}")
+             self.download_with_progress(url, temp_download, f"Téléchargement de {name}")
+             
+             # Extract
+             extract_dir = tempfile.mkdtemp()
+             
+             # Command construction
+             # 7za x archive -o{dir} -y
+             cmd = [self.seven_za_path, 'x' if archive_type != 'exe_sfx' else 'e', temp_download, f'-o{extract_dir}', '-y']
+             
+             if extract_file_in_archive:
+                 cmd.append(extract_file_in_archive)
+                 
+             startupinfo = subprocess.STARTUPINFO()
+             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+             
+             subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
+             
+             # Find file
+             found_file = None
+             for root, dirs, files in os.walk(extract_dir):
+                 if target_exe_name in files:
+                     found_file = os.path.join(root, target_exe_name)
+                     break
+             
+             if found_file:
+                 shutil.move(found_file, target_path)
+             else:
+                 raise Exception(f"{target_exe_name} not found in archive.")
+                 
+             # Cleanup
+             shutil.rmtree(extract_dir, ignore_errors=True)
+             if os.path.exists(temp_download):
+                 os.remove(temp_download)
+                 
+             messagebox.showinfo("Succès", f"{name} installé avec succès.")
+             return target_path
+
+        except Exception as e:
+            messagebox.showerror("Erreur", f"Échec de l'installation de {name} : {e}")
+            return None
