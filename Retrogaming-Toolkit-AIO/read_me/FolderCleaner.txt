@@ -1,3 +1,3 @@
-🧹 Folder Cleaner
+🧹 FolderCleaner
 Faites le grand ménage de printemps dans votre arborescence de fichiers en un clic. Après avoir trié, déplacé ou supprimé des ROMs, il reste souvent une multitude de dossiers vides parasites qui polluent votre navigation.
 Ce module scanne récursivement le répertoire de votre choix pour détecter et supprimer tous ces dossiers inutiles, y compris dans les sous-répertoires profonds. C’est un outil de maintenance sûr et visuel (avec barre de progression)  qui ne touche jamais à vos données : il élimine uniquement le vide pour laisser votre bibliothèque de jeux impeccable et parfaitement organisée.

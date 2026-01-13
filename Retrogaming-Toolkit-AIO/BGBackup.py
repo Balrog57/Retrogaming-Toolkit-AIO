@@ -1,5 +1,5 @@
 import os
-import zipfile
+# import zipfile
 import shutil
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
@@ -41,22 +41,56 @@ class BGBackupApp:
             messagebox.showerror("Erreur", "Aucun dossier roms sélectionné.")
             return
 
-        # Création du fichier ZIP
-        zip_filename = "gamelist_backup.zip"
+        import subprocess
+        import tempfile
         try:
-            with zipfile.ZipFile(zip_filename, "w") as zipf:
-                # Parcours des sous-dossiers sur 2 niveaux
-                for root_dir, dirs, files in os.walk(self.roms_folder):
-                    if "gamelist.xml" in files:
-                        gamelist_path = os.path.join(root_dir, "gamelist.xml")
-                        # Calcul du chemin relatif pour conserver la structure des dossiers
-                        relative_path = os.path.relpath(gamelist_path, self.roms_folder)
-                        # Ajout du fichier au ZIP avec le chemin relatif
-                        zipf.write(gamelist_path, relative_path)
+             import utils
+        except ImportError:
+             messagebox.showerror("Erreur", "Utils manquant")
+             return
 
-                    # Limite la profondeur de recherche à 2 niveaux
-                    if os.path.relpath(root_dir, self.roms_folder).count(os.sep) >= 2:
-                        dirs.clear()
+        manager = utils.DependencyManager()
+        if not manager.bootstrap_7za():
+             messagebox.showerror("Erreur", "7za manquant")
+             return
+
+        # Création du fichier ZIP
+        zip_filename = os.path.abspath("gamelist_backup.zip") # Use absolute to avoid confusion if we change cwd
+        
+        # Collect files
+        files_to_zip = []
+        for root_dir, dirs, files in os.walk(self.roms_folder):
+            if "gamelist.xml" in files:
+                gamelist_path = os.path.join(root_dir, "gamelist.xml")
+                relative_path = os.path.relpath(gamelist_path, self.roms_folder)
+                files_to_zip.append(relative_path)
+
+            # Limite la profondeur de recherche à 2 niveaux
+            if os.path.relpath(root_dir, self.roms_folder).count(os.sep) >= 2:
+                dirs.clear()
+        
+        if not files_to_zip:
+             messagebox.showinfo("Info", "Aucun fichier gamelist.xml trouvé.")
+             return
+
+        try:
+            # Create listfile
+            fd, list_path = tempfile.mkstemp(text=True)
+            with os.fdopen(fd, 'w') as f:
+                for item in files_to_zip:
+                    f.write(item + "\n")
+            
+            # Run 7za
+            # 7za a zip_filename @list_path
+            # We must run inside roms_folder so relative paths work
+            cmd = [manager.seven_za_path, 'a', '-tzip', zip_filename, f'@{list_path}']
+            
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            
+            subprocess.run(cmd, cwd=self.roms_folder, check=True, startupinfo=startupinfo, capture_output=True)
+            
+            os.remove(list_path)
 
             messagebox.showinfo("Succès", f"Backup créé avec succès : {zip_filename}")
         except Exception as e:

@@ -1,3 +1,3 @@
-🎥 Video Converter
+🎥 VideoConvert
 Maîtrisez vos vidéos d'introduction et snaps de jeux. Ce module complet vous permet de convertir, redimensionner (ex: 1080p, 720p) et couper (trimmer) vos vidéos en masse pour qu'elles s'adaptent parfaitement à votre frontend.
 Plus besoin de logiciels de montage lourds : définissez simplement vos paramètres (débit, FPS, durée) et l'outil traite toute votre liste à la chaîne. En bonus, il peut extraire automatiquement une image (screenshot) de la première frame de chaque vidéo pour générer vos couvertures, avec ou sans rotation. L'outil gère tout, y compris le téléchargement automatique de FFmpeg pour une autonomie totale.

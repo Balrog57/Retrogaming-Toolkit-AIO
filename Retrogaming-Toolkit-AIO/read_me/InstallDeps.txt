@@ -1,3 +1,3 @@
-🛠️ Install Dependencies
+⬇️ InstallDeps
 Ne laissez plus les erreurs de "DLL manquantes" gâcher votre expérience de jeu. Ce module est votre pack de survie technique : il installe et met à jour automatiquement tous les composants vitaux pour Windows (Visual C++, DirectX, OpenAL).
 L'outil détecte intelligemment votre architecture (32 ou 64 bits) et déploie toutes les bibliothèques nécessaires (de 2005 à aujourd'hui) en mode "silencieux", sans aucune intervention de votre part. C'est la solution en un clic pour garantir un système sain, prêt à lancer n'importe quel émulateur ou jeu PC instantanément.

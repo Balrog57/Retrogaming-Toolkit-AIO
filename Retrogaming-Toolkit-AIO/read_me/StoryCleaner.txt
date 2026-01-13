@@ -1,3 +1,3 @@
-📝 Story Format Cleaner
+📖 StoryCleaner
 Assurez une compatibilité totale de vos synopsis avec tous les frontends. Ce module nettoie vos fichiers textes (histoires, biographies) en remplaçant les caractères spéciaux et accents problématiques par leur équivalent standard international (ASCII).
 Il corrige également automatiquement les symboles critiques comme le "&" (transformé en &amp;) qui font souvent planter la lecture des fichiers XML. C'est l'étape indispensable pour garantir que vos descriptions s'affichent correctement, sans bug d'affichage ni caractère corrompu, quelle que soit l'interface utilisée.

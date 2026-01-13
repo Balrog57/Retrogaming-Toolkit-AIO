@@ -1,7 +1,7 @@
 import os
 import subprocess
 import requests
-import zipfile
+# import zipfile
 import tempfile
 import shutil
 import customtkinter as ctk

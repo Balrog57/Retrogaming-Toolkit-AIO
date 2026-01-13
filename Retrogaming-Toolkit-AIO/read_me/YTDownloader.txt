@@ -1,3 +1,3 @@
-📺 YT Downloader Pro
+📺 YTDownloader
 Sauvegardez vos contenus YouTube préférés sans toucher à une ligne de commande. Ce module offre une interface graphique moderne et intuitive pour piloter le puissant moteur yt-dlp. Il gère automatiquement l'installation des composants nécessaires au premier lancement pour être opérationnel immédiatement.
 Que vous souhaitiez télécharger une vidéo unique, une playlist entière ou tout le contenu d'une chaîne, il vous suffit de coller le lien. L'outil vous laisse le choix des armes : extrayez uniquement l'audio en MP3 , ou récupérez la vidéo dans sa meilleure qualité possible (jusqu'en 4K). Il intègre même un mode "Copie Rapide" intelligent qui assemble l'image et le son en quelques secondes, vous évitant les longs temps de ré-encodage.

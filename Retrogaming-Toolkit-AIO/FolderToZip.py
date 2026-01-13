@@ -1,5 +1,5 @@
 import os
-import zipfile
+# import zipfile
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 
@@ -29,14 +29,29 @@ def compress_and_delete_roms(source_dir):
                 zip_filename = os.path.splitext(filename)[0] + ".zip"
                 zip_path = os.path.join(source_dir, zip_filename)
 
-                # Compresse le fichier
-                with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-                    zipf.write(file_path, arcname=filename)
-                print(f"Fichier compressé : {zip_filename}")
+                # Compresse le fichier avec 7za
+                try:
+                    import utils
+                    import subprocess
+                    
+                    manager = utils.DependencyManager()
+                    if not manager.bootstrap_7za():
+                         print("7za non trouvé")
+                         continue
 
-                # Supprime le fichier d'origine
-                os.remove(file_path)
-                print(f"Fichier supprimé : {filename}")
+                    cmd = [manager.seven_za_path, 'a', '-tzip', zip_path, file_path]
+                    
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    
+                    subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
+                    print(f"Fichier compressé : {zip_filename}")
+    
+                    # Supprime le fichier d'origine
+                    os.remove(file_path)
+                    print(f"Fichier supprimé : {filename}")
+                except Exception as e:
+                     print(f"Erreur compression {filename}: {e}")
 
         messagebox.showinfo("Succès", "Compression et suppression terminées.")
     except Exception as e:

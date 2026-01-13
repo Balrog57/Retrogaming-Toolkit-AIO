@@ -1,3 +1,3 @@
-🖼️ Convertisseur d'Images
+🎨 ImageConvert
 Uniformisez vos visuels (boxarts, screenshots, logos) en toute simplicité. Cet outil de conversion en masse transforme vos dossiers d'images d'un format à l'autre (WebP, PNG, JPG, etc.) pour garantir une compatibilité parfaite avec vos émulateurs ou frontends.
 Plus besoin de chercher des logiciels tiers : le script télécharge et configure automatiquement le puissant moteur FFmpeg si nécessaire. Profitez d'une interface moderne pour convertir des centaines de fichiers en quelques clics, avec une option de nettoyage automatique pour supprimer les originaux et libérer de l'espace disque instantanément.

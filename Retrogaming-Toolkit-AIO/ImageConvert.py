@@ -6,7 +6,7 @@ import subprocess
 import requests
 import tempfile
 import shutil
-import zipfile
+# import zipfile
 import logging
 
 # Configuration du logging

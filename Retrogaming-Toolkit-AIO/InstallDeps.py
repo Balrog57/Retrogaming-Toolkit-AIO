@@ -2,7 +2,7 @@ import os
 import shutil
 import subprocess
 import requests
-import zipfile
+# import zipfile
 import re
 import glob
 import tempfile
@@ -95,12 +95,17 @@ def download_file(url, target_path):
 
 def extract_zip(zip_path, extract_to):
     """
-    Extracts a zip file to the specified directory.
+    Extracts a zip file using 7za via utils.
     """
     try:
         log(f"Extracting {zip_path} to {extract_to}...")
-        with zipfile.ZipFile(zip_path, 'r') as zip_ref:
-            zip_ref.extractall(extract_to)
+        try:
+            import utils
+        except ImportError:
+            log("Error: utils module not found. cannot use 7za.")
+            return False
+
+        utils.extract_with_7za(zip_path, extract_to)
         return True
     except Exception as e:
         log(f"Error extracting {zip_path}: {e}")

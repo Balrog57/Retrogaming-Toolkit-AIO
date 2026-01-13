@@ -1,3 +1,3 @@
-💿 CHD Converter Tool
+💿 CHDManager
 Ce module est l'outil idéal pour optimiser le stockage de vos jeux CD (PS1, Dreamcast, etc.) sans effort technique. Il convertit vos fichiers volumineux (ISO, GDI, CUE) au format CHD compressé pour économiser de l'espace disque , tout en permettant l'opération inverse si nécessaire.
 Fini les lignes de commande complexes : profitez d'une interface visuelle moderne qui gère tout, de l'extraction automatique de vos archives (ZIP, RAR) à la vérification de vos fichiers. Le logiciel détecte et utilise intelligemment toute la puissance de votre processeur pour garantir une vitesse de traitement maximale, tout en vous laissant le contrôle (pause/arrêt) à tout moment.

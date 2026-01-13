@@ -1,3 +1,3 @@
-🐬 RVZ/ISO Converter
+🐬 DolphinConvert
 Optimisez votre collection GameCube et Wii avec ce convertisseur spécialisé. Il transforme vos volumineux fichiers ISO en format RVZ, une compression "sans perte" moderne qui réduit drastiquement la taille des jeux tout en restant parfaitement lisible par l'émulateur Dolphin (et inversement).
 Le module est entièrement autonome : il télécharge et configure automatiquement DolphinTool si nécessaire. Profitez d'une interface claire pour convertir vos jeux en masse, avec un contrôle total sur la puissance de compression pour économiser un maximum d'espace de stockage.
