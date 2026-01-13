@@ -151,23 +151,15 @@ Outils essentiels pour un environnement Windows sain.
 ## 🚀 Installation
 
 1.  **Télécharger :**
-    * Clonez ce dépôt : `git clone https://github.com/Balrog57/Retrogaming-Toolkit-AIO.git`
-    * Ou téléchargez la dernière [Release](https://github.com/Balrog57/Retrogaming-Toolkit-AIO/releases) au format ZIP.
+    *   Rendez-vous sur la page des [Releases](https://github.com/Balrog57/Retrogaming-Toolkit-AIO/releases).
+    *   Téléchargez le dernier installateur (`RetrogamingToolkit_Setup.exe`) ou l'archive portable.
 
-2.  **Prérequis :**
-    * Windows 10/11.
-    * [Python 3.10+](https://www.python.org/downloads/) installé (cochez "Add Python to PATH" lors de l'installation).
+2.  **Installer :**
+    *   **Installateur :** Lancez le fichier `.exe` et suivez les instructions.
+    *   **Portable :** Extrayez simplement l'archive où vous le souhaitez.
 
-3.  **Installation des dépendances :**
-    * **Automatique :** Double-cliquez sur `installation.bat`.
-    * **Manuelle :** Ouvrez un terminal dans le dossier et exécutez :
-        ```bash
-        pip install -r requirements.txt
-        ```
-
-4.  **Démarrage :**
-    * Lancez `main.py` (double-clic ou via terminal `python main.py`).
-    * Une fois compilé (si vous utilisez l'exe), lancez simplement l'application.
+3.  **Lancer :**
+    *   Ouvrez `RetrogamingToolkit.exe`. C'est tout ! Pas de Python ni de scripts à configurer.
 
 ---
 
@@ -179,17 +171,17 @@ Outils essentiels pour un environnement Windows sain.
 4.  Cliquez sur le bouton **"Lisez-moi"** associé à un module pour le guide détaillé.
 5.  Cliquez sur le **Nom du module** pour lancer l'outil dans une nouvelle fenêtre.
 
-> **Note importante :** La première fois que vous lancez un outil nécessitant une dépendance externe (comme `FFmpeg` pour la vidéo ou `CHDman` pour la compression), le toolkit vous proposera de la télécharger automatiquement. Acceptez pour garantir le bon fonctionnement.
+> **Note importante :** Les outils nécessitant des dépendances externes (comme `FFmpeg`, `CHDman`, `MaxCSO`) les téléchargeront **automatiquement et silencieusement** lors de leur première utilisation ou au lancement du toolkit. Aucune action de votre part n'est requise.
 
 ---
 
 ## 🔄 Mises à jour
 
-Le logiciel intègre un système de mise à jour **OTA (Over-The-Air)** :
+Le logiciel intègre un système de vérification de version :
 
-* Au lancement, il compare votre version locale avec le dépôt GitHub.
-* Si une nouvelle version est disponible, une notification verte apparaît en bas de l'interface.
-* Cliquez sur **"Mettre à jour"** : le script `update.bat` se lancera pour récupérer les derniers correctifs et nouvelles fonctionnalités automatiquement.
+*   Au lancement, il compare votre version locale avec la dernière disponible sur GitHub.
+*   Si une nouvelle version est disponible, une notification verte apparaît en bas de l'interface.
+*   Cliquez sur **"Mettre à jour"** : cela vous dirigera vers la page de téléchargement de la nouvelle version. Il vous suffit de l'installer par-dessus l'ancienne.
 
 ---
 *Développé avec ❤️ pour la communauté de l'émulation.*
