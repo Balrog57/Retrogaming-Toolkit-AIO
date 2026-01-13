@@ -155,18 +155,47 @@ class YtDlpGui(ctk.CTk):
         
         # Stocker les modules importés
         self.yt_dlp = yt_dlp_module
-
+        
+        # Ensure FFmpeg is available via DependencyManager
         self.ffmpeg_path = None
+        target_name = "ffmpeg.exe"
+        
+        # 1. Check bundled/existing
         if 'utils' in sys.modules:
-            bundled_ffmpeg = utils.get_binary_path("ffmpeg.exe")
-            if os.path.exists(bundled_ffmpeg):
-                self.ffmpeg_path = bundled_ffmpeg
+            bundled = utils.get_binary_path(target_name)
+            if os.path.exists(bundled):
+                self.ffmpeg_path = bundled
+        
+        # 2. Check AppData
+        if not self.ffmpeg_path:
+             app_data = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit', target_name)
+             if os.path.exists(app_data):
+                 self.ffmpeg_path = app_data
 
-        if self.ffmpeg_path is None:
-            if ffmpeg_module:
-                self.ffmpeg_path = ffmpeg_module.get_ffmpeg_exe()
-            else:
-                self.ffmpeg_path = "ffmpeg" # Hope it's in PATH
+        # 3. If missing, Use DependencyManager
+        if not self.ffmpeg_path and 'utils' in sys.modules:
+            try:
+                # We need to map options to common logic if possible or just use it here
+                # Since we are in __init__ of a root window, we can pass self
+                manager = utils.DependencyManager(self)
+                self.ffmpeg_path = manager.install_dependency(
+                     name="FFmpeg",
+                     url="https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
+                     target_exe_name=target_name,
+                     archive_type="zip"
+                )
+            except Exception as e:
+                print(f"Dependency Manager failed: {e}")
+                
+        # 4. Fallback to imageio_ffmpeg if still missing
+        if not self.ffmpeg_path and ffmpeg_module:
+             try:
+                 self.ffmpeg_path = ffmpeg_module.get_ffmpeg_exe()
+             except:
+                 pass
+        
+        if not self.ffmpeg_path:
+            self.ffmpeg_path = "ffmpeg" # Path fallback
 
         print(f"Using ffmpeg at: {self.ffmpeg_path}")
 

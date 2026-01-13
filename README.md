@@ -41,109 +41,109 @@
 ### Gestion des Jeux & ROMs
 Optimisez votre stockage et gérez vos fichiers de jeux avec des outils de compression de pointe.
 
-* **💿 CHD Converter Tool :**
+* **💿 CHDManager :**
     * Convertit les images disques (ISO, CUE, GDI) en format **CHD** compressé pour économiser de l'espace (PS1, Dreamcast, Saturn...).
     * Gère l'extraction automatique des archives **ZIP/RAR/7Z** en entrée.
     * Permet l'opération inverse (CHD vers CUE/BIN).
     * Utilisation multi-cœurs pour une vitesse maximale.
-* **🗜️ MaxCSO Compression :**
+* **🗜️ MaxCSO :**
     * Compression ultra-rapide des ISO (PSP/PS2) en format **CSO** ou **ZSO**.
     * Réduction drastique de la taille tout en restant lisible par les émulateurs.
     * Traitement par lots de dossiers entiers.
-* **🐬 RVZ/ISO Converter :**
+* **🐬 DolphinConvert :**
     * Conversion "sans perte" pour GameCube et Wii via **DolphinTool**.
     * Transforme les ISO en **RVZ** (et inversement) pour une compression optimale compatible avec Dolphin.
     * Téléchargement automatique de DolphinTool si absent.
-* **📦 Folder to ZIP :**
+* **📦 FolderToZip :**
     * Compresse chaque jeu (dossier) dans une archive ZIP individuelle.
     * Supprime automatiquement le dossier original après compression réussie.
-* **🚀 Game Batch Creator :**
+* **🚀 GameBatch :**
     * Génère des scripts `.bat` pour lancer vos jeux PC (Windows, Steam, Epic) via votre frontend.
     * Lanceur universel prêt à l'emploi (surveillance du processus pour fermeture propre).
-* **🗑️ Game Removal :**
+* **🗑️ GameRemoval :**
     * Supprime proprement un jeu et **tous** ses médias associés (images, vidéos, manuels).
     * Évite les fichiers orphelins dans vos dossiers médias.
 
 ### Métadonnées & Gamelists
 Manipulez, nettoyez et enrichissez vos fichiers XML pour RetroBat, EmulationStation et HyperSpin.
 
-* **🤖 Assisted Gamelist Creator :**
+* **🤖 AssistedGamelist :**
     * Utilise l'**Intelligence Artificielle** (Gemini/GPT) pour générer les descriptions manquantes.
     * Scanne vos `gamelist.xml` et complète les synopsis sans écraser les données existantes.
-* **🔄 Gamelist to Hyperlist :**
+* **🔄 GamelistHyperlist :**
     * Convertit `gamelist.xml` (RetroBat/ES) vers le format `hyperlist.xml` (HyperSpin/AttractMode).
     * Extrait les descriptions dans des fichiers texte individuels pour l'archivage.
-* **↩️ Hyperlist to Gamelist :**
+* **↩️ HyperlistGamelist :**
     * Migrez vos bases de données HyperSpin vers le format standard `gamelist.xml`.
     * Reformate les dates, notes et chemins d'accès (extensions zip, 7z, iso...).
 * **🛡️ BGBackup :**
     * "Assurance-vie" de vos métadonnées : scanne et sauvegarde tous les `gamelist.xml` dans une archive ZIP.
     * Idéal avant de lancer un scraper ou une modification massive.
-* **📝 Merge Story Hyperlist :**
+* **📝 StoryHyperlist :**
     * Fusionne une collection de synopsis (fichiers .txt) directement dans votre XML HyperList.
     * Gère les encodages pour éviter les caractères corrompus.
-* **🧹 Story Format Cleaner :**
+* **🧹 StoryCleaner :**
     * Nettoie les fichiers textes (biographies, histoires) pour les standards XML.
     * Remplace les caractères spéciaux et corrige les symboles critiques (comme `&` en `&amp;`).
-* **⚙️ ES Systems Custom :**
+* **⚙️ SystemsExtractor :**
     * Compare votre `es_systems.cfg` avec la version officielle.
     * Extrait vos systèmes personnalisés dans des fichiers dédiés pour éviter les pertes lors des mises à jour.
 
 ### Multimédia & Artworks
 Gérez vos assets visuels et vidéos pour une bibliothèque esthétique.
 
-* **📺 YT Downloader Pro :**
+* **📺 YTDownloader :**
     * Interface graphique pour `yt-dlp`.
     * Téléchargement de vidéos uniques, playlists ou chaînes entières.
     * Choix du format : **Audio MP3** ou **Vidéo (jusqu'en 4K)**.
     * Mode "Copie Rapide" pour assembler audio/vidéo sans ré-encodage.
-* **🎥 Video Converter :**
+* **🎥 VideoConvert :**
     * Traitement en masse : conversion, redimensionnement (720p/1080p), et découpe (trim).
     * Extraction automatique de **screenshots** depuis la vidéo pour créer des couvertures.
     * Téléchargement auto de FFmpeg.
-* **🖼️ Convert Images :**
+* **🖼️ ImageConvert :**
     * Conversion de dossiers entiers vers le format cible (WebP, PNG, JPG...).
     * Option de nettoyage pour supprimer les originaux.
-* **📖 Cover Extractor :**
+* **📖 CoverExtractor :**
     * Génère des miniatures (PNG) à partir de la première page de fichiers **PDF, CBZ et CBR**.
     * Indispensable pour les magazines et comics.
-* **🧹 Media Orphan Detector :**
+* **🧹 MediaOrphans :**
     * Scanne le dossier `medium_artwork` et déplace les images sans jeu associé vers un dossier `orphan`.
     * Préserve les images système (`default`).
-* **📚 CBZ Killer :**
+* **📚 CBZKiller :**
     * Convertit massivement **PDF et CBR** en format **CBZ** standardisé.
     * Option pour supprimer les fichiers source après conversion.
 
 ### Organisation & Collections
 Structurez votre ludothèque et créez des compilations thématiques.
 
-* **📂 Collection Builder :**
+* **📂 CollectionBuilder :**
     * Crée des collections thématiques (ex: "Zelda", "Mario") en scannant les mots-clés dans vos descriptions.
     * Génère la structure de dossiers et les playlists `.sub`.
-* **📦 Collection Extractor :**
+* **📦 CollectionExtractor :**
     * Extrait "chirurgicalement" une collection complète (roms + médias + configs + cœurs) vers un dossier autonome.
     * Idéal pour créer des packs portables ou partager une configuration système.
-* **💿 M3U Creator :**
+* **💿 M3UCreator :**
     * **Multi-disques :** Génère les fichiers `.m3u` pour regrouper les CD (PS1, Dreamcast...).
     * **Vita3K :** Crée des `.m3u` avec le nom réel du jeu à partir des ID cryptiques (PCSB...).
-* **🧹 Folder Cleaner :**
+* **🧹 FolderCleaner :**
     * Supprime récursivement tous les dossiers vides pour nettoyer l'arborescence.
-* **📄 Folder Name to TXT :**
+* **📄 FolderToTxt :**
     * Crée un fichier texte vide portant le nom de chaque fichier trouvé (pour les scrappers exigeants).
-* **📄 Empty Generator :**
+* **📄 EmptyGen :**
     * Génère des fichiers vides ("dummy files") pour les émulateurs spécifiques (ex: `.scummvm`, `.singe`).
     * Parcourt l'arborescence pour placer les fichiers dans les bons sous-dossiers.
 
 ### Maintenance Système
 Outils essentiels pour un environnement Windows sain.
 
-* **🛣️ Enable Long Paths :**
+* **🛣️ LongPaths :**
     * Modifie le registre Windows pour supporter les chemins > 260 caractères.
     * Évite les erreurs de copie/extraction avec les noms de fichiers longs.
-* **🛠️ Install Dependencies :**
+* **🛠️ InstallDeps :**
     * Installe/Met à jour les **Visual C++ Runtimes (AIO)**, **DirectX** et **OpenAL**.
     * Détection automatique de l'architecture (x86/x64) et installation silencieuse.
-* **📝 Liste Fichier Simple / Windows :**
+* **📝 ListFilesSimple / ListFilesWin :**
     * Génère des inventaires textuels (`Liste.txt`) du contenu de vos dossiers (arborescence complète ou racine uniquement).
 
 ---

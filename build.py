@@ -41,7 +41,7 @@ def build():
     # Add hidden imports
     hidden_imports.append("py7zr")
     hidden_imports.append("patoolib")
-    hidden_imports.append("convert_images")
+    hidden_imports.append("ImageConvert")
     for hidden in hidden_imports:
         args.append(f'--hidden-import={hidden}')
 

@@ -14,46 +14,49 @@ try:
 except ImportError:
     pass
 
-def check_and_download_ffmpeg():
+def check_and_download_ffmpeg(root=None):
+    target_name = "ffmpeg.exe"
     if 'utils' in sys.modules:
-        ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
+        ffmpeg_path = utils.get_binary_path(target_name)
     else:
-        ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
+        # Fallback if utils not loaded (should not happen in main app)
+        ffmpeg_path = os.path.join(os.getcwd(), target_name)
 
-    if not os.path.exists(ffmpeg_path):
+    if os.path.exists(ffmpeg_path):
+        return ffmpeg_path
+    
+    # Try using DependencyManager
+    if 'utils' in sys.modules and root:
         try:
-            messagebox.showinfo("Téléchargement", "FFmpeg n'est pas trouvé. Téléchargement en cours...")
-            url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"  # Lien officiel vers FFmpeg
-            temp_zip = tempfile.NamedTemporaryFile(delete=False, suffix=".zip").name
-
-            # Télécharger FFmpeg
-            response = requests.get(url, stream=True)
-            with open(temp_zip, "wb") as f:
-                shutil.copyfileobj(response.raw, f)
-
-            # Extraire le fichier téléchargé
-            extract_dir = tempfile.mkdtemp()
-            with zipfile.ZipFile(temp_zip, 'r') as zip_ref:
-                zip_ref.extractall(extract_dir)
-
-            # Rechercher ffmpeg.exe dans le dossier extrait
-            for root, dirs, files in os.walk(extract_dir):
-                if "ffmpeg.exe" in files:
-                    ffmpeg_extracted_path = os.path.join(root, "ffmpeg.exe")
-                    shutil.move(ffmpeg_extracted_path, ffmpeg_path)
-                    break
-            else:
-                raise FileNotFoundError("Le fichier ffmpeg.exe n'a pas été trouvé après extraction.")
-
-            os.remove(temp_zip)
-            messagebox.showinfo("Succès", "FFmpeg a été téléchargé et configuré avec succès.")
+             manager = utils.DependencyManager(root)
+             result = manager.install_dependency(
+                 name="FFmpeg",
+                 url="https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
+                 target_exe_name=target_name,
+                 archive_type="zip",
+                 # utils.DependencyManager logic might need enhancement if we want to extract from subfolder
+                 # The current generic extract logic in utils might fail if ffmpeg.exe is in a subfolder 
+                 # BUT, I already updated convert_images which uses the same install_dependency call 
+                 # and I didn't see an explicit "scan subfolders" update in utils.
+                 # Wait, looking at utils.py code earlier...
+                 # It does:
+                 # for root, dirs, files in os.walk(extract_dir):
+                 #    if target_exe_name in files:
+                 #        found_file = os.path.join(root, target_exe_name)
+                 # So yes, it finds it recursively!
+                 extract_file_in_archive=None
+             )
+             return result
         except Exception as e:
-            messagebox.showerror("Erreur", f"Échec du téléchargement de FFmpeg : {e}")
-            root.destroy()
-            return
+            messagebox.showerror("Erreur", f"Échec de l'installation de FFmpeg: {e}")
+            return None
+    else:
+         # Fallback manual if utils or root missing (CLI/Standlone test?)
+         messagebox.showerror("Erreur", "Impossible de télécharger FFmpeg (utils ou root manquant).")
+         return None
 
-def convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution):
-    check_and_download_ffmpeg()  # Vérifiez et téléchargez FFmpeg si nécessaire
+def convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution, root=None):
+    check_and_download_ffmpeg(root)  # Vérifiez et téléchargez FFmpeg si nécessaire
     if 'utils' in sys.modules:
         ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
     else:
@@ -82,8 +85,8 @@ def convert_video(input_file, start_time, end_time, output_file, video_bitrate, 
     except Exception as e:
         messagebox.showerror("Erreur", f"Une erreur inattendue s'est produite : {e}")
 
-def capture_first_frame(input_file, output_file, rotate=False):
-    check_and_download_ffmpeg()  # Vérifiez et téléchargez FFmpeg si nécessaire
+def capture_first_frame(input_file, output_file, rotate=False, root=None):
+    check_and_download_ffmpeg(root)  # Vérifiez et téléchargez FFmpeg si nécessaire
     if 'utils' in sys.modules:
         ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
     else:
@@ -149,11 +152,11 @@ def start_conversion():
                 output_file = os.path.join(output_dir, file_name)  # Utilise le nom d'origine sans ajouter "trimmed_"
             else:
                 temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                convert_video(input_file, start_time, end_time, temp_file, video_bitrate, audio_bitrate, fps, resolution)
+                convert_video(input_file, start_time, end_time, temp_file, video_bitrate, audio_bitrate, fps, resolution, root)
                 shutil.move(temp_file, input_file)
                 continue
 
-            convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution)
+            convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution, root)
 
             # Capture d'image si les options sont cochées
             if capture_without_rotation_var.get() or capture_with_rotation_var.get():
@@ -163,9 +166,9 @@ def start_conversion():
                 output_image = os.path.join(capture_dir, f"screenshot-{os.path.splitext(file_name)[0]}.png")
 
                 if capture_without_rotation_var.get():
-                    capture_first_frame(input_file, output_image, rotate=False)
+                    capture_first_frame(input_file, output_image, rotate=False, root=root)
                 if capture_with_rotation_var.get():
-                    capture_first_frame(input_file, output_image, rotate=True)
+                    capture_first_frame(input_file, output_image, rotate=True, root=root)
 
         messagebox.showinfo("Succès", "Traitement terminé pour toutes les vidéos.")
     except Exception as e:
