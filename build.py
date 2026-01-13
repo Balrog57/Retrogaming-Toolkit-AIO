@@ -1,6 +1,4 @@
-import PyInstaller.__main__
-import os
-import glob
+
 
 def build():
     # Define paths
@@ -65,6 +63,16 @@ def build():
         print(f"  {arg}")
 
     PyInstaller.__main__.run(args)
+
+    # Post-build: Copy instructions file to the root of the dist folder (next to exe)
+    print("Post-build: Copying instructions file to dist root...")
+    dist_dir = os.path.join(base_dir, "dist", "RetrogamingToolkit")
+    inst_source = os.path.join(toolkit_dir, "instructions_assisted_gamelist_creator.txt")
+    if os.path.exists(dist_dir) and os.path.exists(inst_source):
+        shutil.copy2(inst_source, dist_dir)
+        print(f"Copied {inst_source} to {dist_dir}")
+    else:
+        print(f"Warning: Could not copy instructions file. Source or Dest missing.\nSrc: {inst_source}\nDst: {dist_dir}")
 
 if __name__ == "__main__":
     build()

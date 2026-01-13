@@ -32,23 +32,34 @@ class GameListApp:
         self.updated_gamelist_path = ctk.StringVar(value="updated_gamelist.xml")
         self.missing_games_path = ctk.StringVar(value="failed_games.txt") # Log des jeux en échec
         
-        # Logic to find instructions file (handles Clean vs Frozen paths)
-        base_dir = os.path.dirname(__file__)
+        # Logic to find instructions file
         inst_filename = "instructions_assisted_gamelist_creator.txt"
-        inst_path = os.path.join(base_dir, inst_filename)
         
-        # Check subfolder (common in PyInstaller --add-data with folder)
-        if not os.path.exists(inst_path):
-            alt_path = os.path.join(base_dir, "Retrogaming-Toolkit-AIO", inst_filename)
-            if os.path.exists(alt_path):
-                inst_path = alt_path
-                
+        # Default: relative to this script (dev mode) or internal in frozen
+        base_dir = os.path.dirname(__file__)
+        inst_path = os.path.join(base_dir, inst_filename)
+
+        # If frozen (compiled), prioritize the executable's directory (User accessible)
+        if getattr(sys, 'frozen', False):
+             exe_dir = os.path.dirname(sys.executable)
+             exe_inst_path = os.path.join(exe_dir, inst_filename)
+             # We prefer the one next to EXE if it exists (which build.py will copy there)
+             # If not, we fall back to the one near the script (internal)
+             if os.path.exists(exe_inst_path):
+                 inst_path = exe_inst_path
+        else:
+             # Dev mode check
+             if not os.path.exists(inst_path):
+                 alt_path = os.path.join(base_dir, "Retrogaming-Toolkit-AIO", inst_filename)
+                 if os.path.exists(alt_path):
+                     inst_path = alt_path
+
         self.instructions_path = ctk.StringVar(value=inst_path)
         
         # Variables API
         self.api_key = ctk.StringVar(value="") 
         self.base_url = ctk.StringVar(value="https://generativelanguage.googleapis.com/v1beta/openai/") 
-        self.model_name = ctk.StringVar(value="gemini-1.5-flash") 
+        self.model_name = ctk.StringVar(value="gemini-2.5-flash") 
         
         # Variables d'état
         self.missing_games = [] # Liste des jeux à traiter
