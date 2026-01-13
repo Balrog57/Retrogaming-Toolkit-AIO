@@ -322,7 +322,7 @@ class CHDmanGUI:
     def telecharger_chdman(self):
         """Télécharge chdman.exe depuis la release officielle MAME (via DependencyManager)."""
         target_name = "chdman.exe"
-        if not LOGIC_UTILS: # Global var check based on previous file content import likely
+        if 'utils' not in sys.modules:
              messagebox.showerror("Erreur", "Module 'utils' non chargé.")
              return
 

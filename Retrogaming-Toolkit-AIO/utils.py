@@ -121,6 +121,13 @@ class DependencyManager:
         
         import queue
         progress_queue = queue.Queue()
+        stop_event = threading.Event()
+        
+        def on_close():
+            stop_event.set()
+            progress_win.destroy()
+            
+        progress_win.protocol("WM_DELETE_WINDOW", on_close)
         
         def _download_thread():
             try:
@@ -131,7 +138,7 @@ class DependencyManager:
                 
                 with open(dest_path, 'wb') as f:
                     for chunk in response.iter_content(chunk_size=8192):
-                        if not progress_win.winfo_exists():
+                        if stop_event.is_set():
                             raise Exception("Download cancelled")
                         f.write(chunk)
                         downloaded += len(chunk)
@@ -140,8 +147,9 @@ class DependencyManager:
                             progress_queue.put(("progress", progress))
                             progress_queue.put(("status", f"{int(progress*100)}%"))
                 
-                result_container["success"] = True
-                progress_queue.put(("done", None))
+                if not stop_event.is_set():
+                    result_container["success"] = True
+                    progress_queue.put(("done", None))
             except Exception as e:
                 result_container["error"] = str(e)
                 progress_queue.put(("done", None))
@@ -154,17 +162,22 @@ class DependencyManager:
                  while True:
                      msg_type, data = progress_queue.get_nowait()
                      if msg_type == "progress":
-                         progress_bar.set(data)
+                         if progress_win.winfo_exists():
+                            progress_bar.set(data)
                      elif msg_type == "status":
-                         status_label.configure(text=data)
+                         if progress_win.winfo_exists():
+                            status_label.configure(text=data)
                      elif msg_type == "done":
-                         progress_win.destroy()
+                         if progress_win.winfo_exists():
+                            progress_win.destroy()
                          return # Stop polling
              except queue.Empty:
                  pass
              
-             if progress_win.winfo_exists():
+             if not stop_event.is_set() and progress_win.winfo_exists():
                 progress_win.after(100, process_queue)
+             else:
+                stop_event.set() # Ensure thread stops if window died unexpectedly
 
         process_queue()
 
