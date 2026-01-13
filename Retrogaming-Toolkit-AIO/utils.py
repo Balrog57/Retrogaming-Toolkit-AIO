@@ -169,6 +169,8 @@ class DependencyManager:
                 
                 with open(dest_path, 'wb') as f:
                     chunk_count = 0
+                    last_reported_bytes = 0
+                    
                     for chunk in response.iter_content(chunk_size=8192):
                         if stop_event.is_set():
                             logging.warning("Download cancelled by user.")
@@ -177,13 +179,20 @@ class DependencyManager:
                         downloaded += len(chunk)
                         chunk_count += 1
                         
-                        if chunk_count % 100 == 0:
+                        # Update GUI every 200KB or so to prevent freeze, logic simplified via mod
+                        # 8KB * 25 = 200KB
+                        if chunk_count % 25 == 0 or downloaded == total_size:
+                            if total_size > 0:
+                                progress = downloaded / total_size
+                                progress_queue.put(("progress", progress))
+                                progress_queue.put(("status", f"{int(progress*100)}%"))
+                            else:
+                                # Unknown size, just show downloaded MB
+                                mb = downloaded / (1024*1024)
+                                progress_queue.put(("status", f"{mb:.1f} MB"))
+                                
+                        if chunk_count % 500 == 0: # Log every ~4MB
                             logging.debug(f"Downloaded {downloaded} bytes")
-                            
-                        if total_size > 0:
-                            progress = downloaded / total_size
-                            progress_queue.put(("progress", progress))
-                            progress_queue.put(("status", f"{int(progress*100)}%"))
                 
                 logging.info("Download finished.")
                 if not stop_event.is_set():
@@ -252,9 +261,10 @@ class DependencyManager:
         if os.path.exists(bundled) and bundled != target_path: # Avoid circular if bundled is appdata
              return bundled
 
-        # If missing, ask user
-        if not messagebox.askyesno("Outil Manquant", f"{name} est manquant. Voulez-vous le télécharger et l'installer ?"):
-             return None
+        # If missing, automatically download (User requested no prompt)
+        logging.info(f"Dependency {name} missing, starting auto-download.")
+        # if not messagebox.askyesno("Outil Manquant", f"{name} est manquant. Voulez-vous le télécharger et l'installer ?"):
+        #      return None
 
         try:
              # Ensure 7za
@@ -297,7 +307,9 @@ class DependencyManager:
              if os.path.exists(temp_download):
                  os.remove(temp_download)
                  
-             messagebox.showinfo("Succès", f"{name} installé avec succès.")
+             # messagebox.showinfo("Succès", f"{name} installé avec succès.") # Implicit success, no popup needed if auto
+             # Maybe just log it? User wants "ouvre le script demande".
+             logging.info(f"{name} installed successfully.")
              return target_path
 
         except Exception as e:
