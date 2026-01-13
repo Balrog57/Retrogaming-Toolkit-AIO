@@ -27,16 +27,28 @@ class GameListApp:
         self.root.geometry("900x700")
         self.root.minsize(900, 700)
 
-        # --- Variables de l'application ---
+        # Variables de l'application
         self.gamelist_path = ctk.StringVar()
         self.updated_gamelist_path = ctk.StringVar(value="updated_gamelist.xml")
         self.missing_games_path = ctk.StringVar(value="failed_games.txt") # Log des jeux en échec
-        self.instructions_path = ctk.StringVar(value=os.path.join(os.path.dirname(__file__), "instructions_assisted_gamelist_creator.txt"))
+        
+        # Logic to find instructions file (handles Clean vs Frozen paths)
+        base_dir = os.path.dirname(__file__)
+        inst_filename = "instructions_assisted_gamelist_creator.txt"
+        inst_path = os.path.join(base_dir, inst_filename)
+        
+        # Check subfolder (common in PyInstaller --add-data with folder)
+        if not os.path.exists(inst_path):
+            alt_path = os.path.join(base_dir, "Retrogaming-Toolkit-AIO", inst_filename)
+            if os.path.exists(alt_path):
+                inst_path = alt_path
+                
+        self.instructions_path = ctk.StringVar(value=inst_path)
         
         # Variables API
         self.api_key = ctk.StringVar(value="") 
         self.base_url = ctk.StringVar(value="https://generativelanguage.googleapis.com/v1beta/openai/") 
-        self.model_name = ctk.StringVar(value="gemini-2.5-flash-preview-09-2025") 
+        self.model_name = ctk.StringVar(value="gemini-1.5-flash") 
         
         # Variables d'état
         self.missing_games = [] # Liste des jeux à traiter
