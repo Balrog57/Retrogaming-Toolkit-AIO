@@ -1,7 +1,7 @@
 import os
-import zipfile
-import rarfile
-from patoolib import extract_archive
+# import zipfile # Removed for 7za
+# import rarfile # Removed for 7za
+# from patoolib import extract_archive # Removed for 7za
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, scrolledtext
 import threading
@@ -147,20 +147,36 @@ class PDFCBRtoCBZConverter(ctk.CTk):
             raise
 
     def convert_cbr_to_cbz(self, cbr_path, cbz_path):
-        """Convertit un fichier CBR en CBZ."""
+        """Convertit un fichier CBR en CBZ using 7za."""
+        import shutil
+        import subprocess
         try:
-            extract_archive(cbr_path, outdir="temp_extract")
-            with zipfile.ZipFile(cbz_path, 'w') as cbz:
-                for root, _, files in os.walk("temp_extract"):
-                    for file in files:
-                        file_path = os.path.join(root, file)
-                        cbz.write(file_path, os.path.relpath(file_path, "temp_extract"))
-            for root, dirs, files in os.walk("temp_extract", topdown=False):
-                for name in files:
-                    os.remove(os.path.join(root, name))
-                for name in dirs:
-                    os.rmdir(os.path.join(root, name))
-            os.rmdir("temp_extract")
+            # Extraction
+            temp_dir = "temp_extract"
+            if os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir)
+            
+            # Use utils for 7za extraction
+            try:
+                import utils
+                utils.extract_with_7za(cbr_path, temp_dir, root=self)
+            except ImportError:
+                 self.log("Module utils manquant, impossible d'utiliser 7za.")
+                 return
+
+            # Création du CBZ (ZIP) avec 7za également pour respecter la demande
+            # Si utils a le path de 7za, on l'utilise
+            manager = utils.DependencyManager(self)
+            seven_za = manager.seven_za_path
+            
+            # cmd: 7za a -tzip "archive.cbz" "./temp_extract/*"
+            cmd = [seven_za, 'a', '-tzip', cbz_path, f'.{os.sep}{temp_dir}{os.sep}*']
+            
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
+
+            shutil.rmtree(temp_dir)
         except Exception as e:
             self.log(f"Erreur lors de la conversion du CBR {cbr_path} : {type(e).__name__} - {str(e)}")
             raise

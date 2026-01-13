@@ -9,7 +9,7 @@ import threading
 import time
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, StringVar, IntVar, BooleanVar
-import patoolib
+# import patoolib
 import sys
 
 # Import utils
@@ -360,8 +360,8 @@ class CHDmanGUI:
             file_path = os.path.join(dossier, file)
             if file.lower().endswith((".zip", ".rar", ".7z")):
                 try:
-                    # Utilisation de patool pour extraire les archives
-                    patoolib.extract_archive(file_path, outdir=dossier)
+                    # Utilisation de utils pour extraire les archives via 7za
+                    utils.extract_with_7za(file_path, dossier, root=self.root)
                     print(f"Archive extraite : {file_path}")
                 except Exception as e:
                     print(f"Erreur lors de l'extraction de {file_path}: {e}")

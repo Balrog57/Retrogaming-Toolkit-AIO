@@ -250,3 +250,23 @@ class DependencyManager:
         except Exception as e:
             messagebox.showerror("Erreur", f"Échec de l'installation de {name} : {e}")
             return None
+
+def extract_with_7za(archive_path, output_dir, file_to_extract=None, root=None):
+    """
+    Extracts an archive using the bootstrapped 7za.exe.
+    Supports 7z, zip, rar, etc.
+    """
+    manager = DependencyManager(root)
+    if not manager.bootstrap_7za():
+        raise Exception("Impossible d'installer 7za.exe pour l'extraction.")
+    
+    cmd = [manager.seven_za_path, 'x', archive_path, f'-o{output_dir}', '-y']
+    
+    if file_to_extract:
+         cmd.append(file_to_extract)
+         
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    
+    subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
+
