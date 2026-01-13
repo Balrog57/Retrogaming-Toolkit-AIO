@@ -35,7 +35,7 @@ def build():
         f'--paths={toolkit_dir}',
         
         # Icon
-        f'--icon={os.path.join(toolkit_dir, "icons", "game_batch_creator.ico")}',
+        f'--icon={os.path.join(toolkit_dir, "icons", "GameBatch.ico")}',
     ]
 
     # Add hidden imports
