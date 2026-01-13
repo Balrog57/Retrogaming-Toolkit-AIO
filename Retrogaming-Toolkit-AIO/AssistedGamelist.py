@@ -168,15 +168,21 @@ class GameListApp:
         webbrowser.open_new_tab("https://aistudio.google.com/app/apikey")
 
     def validate_file(self):
-        """Valide que le fichier XML sélectionné est un 'gameList'."""
+        """Valide que le fichier XML sélectionné est un 'gameList' et met à jour les chemins de sortie."""
         file_path = self.gamelist_path.get()
         if os.path.exists(file_path):
             try:
+                # Update output paths to be relative to the source file
+                base_dir = os.path.dirname(file_path)
+                self.updated_gamelist_path.set(os.path.join(base_dir, "updated_gamelist.xml"))
+                self.missing_games_path.set(os.path.join(base_dir, "failed_games.txt"))
+                
                 tree = etree.parse(file_path)
                 root = tree.getroot()
                 if (root.tag == "gameList"):
                     self.start_button.configure(state="normal")
-                    self.log_message("Fichier XML valide sélectionné.")
+                    self.log_message(f"Fichier XML valide : {file_path}")
+                    self.log_message(f"Les fichiers de sortie seront créés dans : {base_dir}")
                 else:
                     self.start_button.configure(state="disabled")
                     self.log_message("Erreur : Le fichier XML ne contient pas de balise <gameList>.")

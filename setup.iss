@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Retrogaming Toolkit AIO"
-#define MyAppVersion "2.0.21"
+#define MyAppVersion "2.0.22"
 #define MyAppPublisher "Balrog57"
 #define MyAppURL "https://github.com/Balrog57/Retrogaming-Toolkit-AIO"
 #define MyAppExeName "RetrogamingToolkit.exe"
