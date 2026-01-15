@@ -144,11 +144,9 @@ def start_conversion():
             messagebox.showerror("Erreur", "Veuillez entrer les heures de début et de fin.")
             return
 
-        if selected_output_option.get() == "folder":
-            output_dir = os.path.join(os.getcwd(), "vidéos_converties")
-            os.makedirs(output_dir, exist_ok=True)
-        else:
-            output_dir = None
+        if not start_time or not end_time:
+            messagebox.showerror("Erreur", "Veuillez entrer les heures de début et de fin.")
+            return
 
         for index in range(listbox_files.size()):
             input_file = listbox_files.get(index)
@@ -156,10 +154,16 @@ def start_conversion():
                 messagebox.showerror("Erreur", f"Fichier non valide : {input_file}")
                 continue
 
-            if output_dir:
-                file_name = os.path.basename(input_file)  # Récupère le nom du fichier d'origine
-                output_file = os.path.join(output_dir, file_name)  # Utilise le nom d'origine sans ajouter "trimmed_"
+            if selected_output_option.get() == "folder":
+                # Create output dir relative to input file
+                input_dir = os.path.dirname(input_file)
+                output_dir = os.path.join(input_dir, "vidéos_converties")
+                os.makedirs(output_dir, exist_ok=True)
+                
+                file_name = os.path.basename(input_file)
+                output_file = os.path.join(output_dir, file_name)
             else:
+                # Replace mode
                 temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
                 convert_video(input_file, start_time, end_time, temp_file, video_bitrate, audio_bitrate, fps, resolution, root)
                 shutil.move(temp_file, input_file)

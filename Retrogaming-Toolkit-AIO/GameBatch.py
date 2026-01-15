@@ -61,13 +61,40 @@ goto WAITLOOP
 :notfound
 exit
 """
-    with open(batch_name, "w") as file:
-        file.write(batch_content)
-    messagebox.showinfo("Succès", f"Batch pour jeu Epic créé : {batch_name}")
+    try:
+        with open(batch_name, "w") as file:
+            file.write(batch_content)
+        messagebox.showinfo("Succès", f"Batch pour jeu Epic créé : {batch_name}")
+    except Exception as e:
+        messagebox.showerror("Erreur", f"Impossible de créer le fichier batch : {e}")
 
 # Fonction principale pour l'interface graphique
 def main_gui():
     try:
+        # Création de la fenêtre principale (Doit être fait en premier pour les StringVars)
+        root = ctk.CTk()
+        root.title("Créateur de Batch GUI")
+        root.geometry("800x600")
+
+        # Variable globale pour le dossier de destination
+        dest_folder_var = ctk.StringVar(value="")
+
+        def select_dest_folder():
+            folder = filedialog.askdirectory(title="Choisir le dossier de destination")
+            if folder:
+                dest_folder_var.set(folder)
+                btn_dest.configure(text=f"Dossier: {os.path.basename(folder)}")
+
+        def get_full_batch_path(batch_name):
+            folder = dest_folder_var.get()
+            if not folder:
+                folder = os.getcwd() # Default to current dir if not selected
+            
+            if not batch_name.endswith('.bat'):
+                batch_name += '.bat'
+            
+            return os.path.join(folder, batch_name)
+
         def on_create_normal():
             batch_name = entry_normal_batch_name.get().strip()
             game_name = entry_game_name.get().strip()
@@ -77,9 +104,8 @@ def main_gui():
                 messagebox.showerror("Erreur", "Tous les champs doivent être remplis")
                 return
                 
-            if not batch_name.endswith('.bat'):
-                batch_name += '.bat'
-            create_normal_batch(game_name, game_path, batch_name)
+            full_path = get_full_batch_path(batch_name)
+            create_normal_batch(game_name, game_path, full_path)
 
         def on_create_steam():
             batch_name = entry_steam_batch_name.get().strip()
@@ -90,9 +116,8 @@ def main_gui():
                 messagebox.showerror("Erreur", "Tous les champs doivent être remplis")
                 return
                 
-            if not batch_name.endswith('.bat'):
-                batch_name += '.bat'
-            create_steam_batch(steam_id, steam_exe, batch_name)
+            full_path = get_full_batch_path(batch_name)
+            create_steam_batch(steam_id, steam_exe, full_path)
 
         def on_create_epic():
             batch_name = entry_epic_batch_name.get().strip()
@@ -109,9 +134,8 @@ def main_gui():
             if not url_file:
                 return
                 
-            if not batch_name.endswith('.bat'):
-                batch_name += '.bat'
-            create_epic_batch(epic_exe, url_file, batch_name)
+            full_path = get_full_batch_path(batch_name)
+            create_epic_batch(epic_exe, url_file, full_path)
 
         def on_closing():
             try:
@@ -122,15 +146,18 @@ def main_gui():
                 print(f"Erreur lors de la fermeture: {str(e)}")
                 sys.exit(1)
 
-        # Création de la fenêtre principale
-        root = ctk.CTk()
-        root.title("Créateur de Batch GUI")
-        root.geometry("800x600")  # Taille de la fenêtre
         root.protocol("WM_DELETE_WINDOW", on_closing)  # Gestionnaire de fermeture
 
         # Cadre principal scrollable
         main_frame = ctk.CTkScrollableFrame(root, width=800, height=900)
         main_frame.pack(fill="both", expand=True)
+
+        # Destination Folder Selection
+        ctk.CTkLabel(main_frame, text="Dossier de Destination (Optionnel)", font=("Arial", 16)).pack(pady=10)
+        btn_dest = ctk.CTkButton(main_frame, text="Choisir le dossier de destination", command=select_dest_folder, width=300)
+        btn_dest.pack(pady=5)
+        # Separator (simulated with empty label)
+        ctk.CTkLabel(main_frame, text="------------------------------------------------", text_color="gray").pack(pady=5)
 
         # Section pour les jeux normaux
         ctk.CTkLabel(main_frame, text="Créer un Batch pour un Jeu Normal", font=("Arial", 16)).pack(pady=10)
