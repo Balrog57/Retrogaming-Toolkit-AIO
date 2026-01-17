@@ -15,22 +15,12 @@ import requests
 import webbrowser
 
 # Import utils
-# Import utils
-# Fix sys.path for bundled modules
+# Fix sys.path for bundled modules and data directory
 if getattr(sys, 'frozen', False):
     # In frozen mode, we are in sys._MEIPASS
-    # We need to add Retrogaming-Toolkit-AIO to sys.path so 'import convert_images' works
-    # if convert_images.py is located at Retrogaming-Toolkit-AIO/convert_images.py inside the bundle.
-    # Check where build.py put it. 
-    # build.py adds paths={toolkit_dir}, so imports are at top level?
-    # No, --onedir means structure is preserved usually?
-    # --hidden-import bundles them inside the PYZ.
-    # If hidden import is used, 'import convert_images' should JUST WORK from anywhere.
-    # But usually hidden imports are top-level in the PYZ.
-    # The error 'No module named convert_images' means it's NOT in the PYZ.
-    # Why?
-    # Maybe because of the hyphen in folder name 'Retrogaming-Toolkit-AIO'? No.
-    # I'll ensure we try to add the path anyway.
+    # We add Retrogaming-Toolkit-AIO to sys.path to allow loading scripts that might be 
+    # in the data directory (fallback or user-modified versions), 
+    # even though bundled modules are already in the PYZ.
     base_path = sys._MEIPASS
     toolkit_path = os.path.join(base_path, "Retrogaming-Toolkit-AIO")
     if toolkit_path not in sys.path:
@@ -51,7 +41,7 @@ except ImportError:
     logger.error("Impossible d'importer utils.py")
     utils = None
 
-VERSION = "2.0.26"
+VERSION = "2.0.27"
 
 # Configuration du logging
 # Configuration du logging

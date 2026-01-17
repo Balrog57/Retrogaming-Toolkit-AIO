@@ -16,6 +16,10 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Constantes
+CDATA_PATTERN = re.compile(r'<!\[CDATA\[(.*?)\]\]>', re.DOTALL)
+TEXT_PATTERN = re.compile(r'>(.*?)<', re.DOTALL)
+AMPERSAND_PATTERN = re.compile(r'&(?!amp;|lt;|gt;|apos;|quot;)')
+
 BASE_DIR_TEMPLATE = "CTP - {collection_name}"
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
@@ -81,21 +85,20 @@ def read_xml_file(file_path: str) -> str:
 def fix_xml_ampersands(xml_content: str) -> str:
     """Corrige les '&' non échappés dans le contenu XML."""
     # Remplacer '&' par '&amp;' dans les sections de texte hors CDATA et balises
-    cdata_pattern = re.compile(r'<!\[CDATA\[(.*?)\]\]>', re.DOTALL)
+    # Remplacer '&' par '&amp;' dans les sections de texte hors CDATA et balises
     cdata_sections = []
     def replace_cdata(match):
         placeholder = f'CDATA_PLACEHOLDER_{len(cdata_sections)}'
         cdata_sections.append((placeholder, match.group(0)))
         return placeholder
-    temp_xml = cdata_pattern.sub(replace_cdata, xml_content)
+    temp_xml = CDATA_PATTERN.sub(replace_cdata, xml_content)
     
     # Remplacer '&' par '&amp;' dans les sections de texte
-    text_pattern = re.compile(r'>(.*?)<', re.DOTALL)
     def replace_ampersands(match):
         text = match.group(1)
-        text = re.sub(r'&(?!amp;|lt;|gt;|apos;|quot;)', '&amp;', text)
+        text = AMPERSAND_PATTERN.sub('&amp;', text)
         return f'>{text}<'
-    corrected_xml = text_pattern.sub(replace_ampersands, temp_xml)
+    corrected_xml = TEXT_PATTERN.sub(replace_ampersands, temp_xml)
     
     # Remplacer les placeholders CDATA par leur contenu original
     for placeholder, original in cdata_sections:

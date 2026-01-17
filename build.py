@@ -55,7 +55,7 @@ def build():
     # Format: src;dest
     # We copy the ENTIRE Retrogaming-Toolkit-AIO folder to ensure all scripts and resources are available
     # This solves issues where child processes (multiprocessing) fail to import modules from PYZ.
-    args.append(f'--add-data={toolkit_dir};Retrogaming-Toolkit-AIO')
+    args.append(f'--add-data={toolkit_dir}{os.pathsep}Retrogaming-Toolkit-AIO')
 
     # Binaries (ffmpeg, chdman, etc.) are NOT bundled anymore.
     # The tools will download them on demand if missing.

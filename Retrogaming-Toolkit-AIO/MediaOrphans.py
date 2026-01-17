@@ -20,6 +20,17 @@ def main():
             messagebox.showerror("Erreur", f"Le dossier 'medium_artwork' n'existe pas dans le même répertoire que 'roms'.")
             return
 
+        # Optimization: Pre-fetch valid ROM names into a set for O(1) lookup
+        valid_rom_names = set()
+        try:
+            for f in os.listdir(roms_dir):
+                if os.path.isfile(os.path.join(roms_dir, f)):
+                    # Store as normalized (lowercase on Windows) for case-insensitive matching
+                    valid_rom_names.add(os.path.normcase(os.path.splitext(f)[0]))
+        except Exception as e:
+             messagebox.showerror("Erreur", f"Impossible de lire le dossier roms: {e}")
+             return
+
         # Iterate over each subdirectory in 'medium_artwork'
         for subdir in os.listdir(medium_artwork_dir):
             subdir_path = os.path.join(medium_artwork_dir, subdir)
@@ -33,16 +44,19 @@ def main():
                 for file in os.listdir(subdir_path):
                     file_path = os.path.join(subdir_path, file)
                     file_name_without_ext = os.path.splitext(file)[0]
+                    normalized_name = os.path.normcase(file_name_without_ext)
 
                     # Skip files named "default" and the 'orphan' directory itself
-                    if file_name_without_ext.lower() == "default" or file == "orphan":
+                    if normalized_name == "default" or file == "orphan":
                         continue
 
-                    # Check if a corresponding file exists in the 'roms' directory
-                    roms_file_path = os.path.join(roms_dir, f"{file_name_without_ext}.*")
-                    if not any([os.path.exists(roms_file_path.replace("*", ext)) for ext in ["txt", "png", "jpg", "zip", "bin"]]):
+                    # Optimization: O(1) Check if normalized name exists in ROM set
+                    if normalized_name not in valid_rom_names:
                         # Move the file to the 'orphan' directory inside the current subdirectory
-                        shutil.move(file_path, orphan_dir)
+                        try:
+                            shutil.move(file_path, orphan_dir)
+                        except Exception as e:
+                            print(f"Erreur lors du déplacement de {file}: {e}")
 
         messagebox.showinfo("Succès", "La détection des fichiers orphelins est terminée.")
 

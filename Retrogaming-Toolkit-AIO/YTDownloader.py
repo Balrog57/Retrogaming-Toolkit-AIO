@@ -19,6 +19,9 @@ import traceback
 import threading
 import json
 import re # <-- AJOUT : Importation du module Regex
+
+# Pre-compile ANSI escape regex for performance
+ANSI_ESCAPE_REGEX = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 from tkinter import filedialog, messagebox, StringVar, BooleanVar
 
 # Import utils
@@ -402,8 +405,7 @@ class YtDlpGui(ctk.CTk):
                 # --- CORRECTION 3: Nettoyage robuste de la string de progression ---
                 percent_str = d['_percent_str'].replace('%', '').strip()
                 # Supprimer les codes ANSI juste au cas où 'no_color' ne suffirait pas
-                ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-                percent_str = ansi_escape.sub('', percent_str)
+                percent_str = ANSI_ESCAPE_REGEX.sub('', percent_str)
                 
                 percent = float(percent_str) / 100.0
                 # --- Fin de la correction 3 ---

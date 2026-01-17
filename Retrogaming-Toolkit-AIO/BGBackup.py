@@ -156,27 +156,30 @@ class BGBackupApp:
 
             # Create listfile
             fd, list_path = tempfile.mkstemp(text=True)
-            with os.fdopen(fd, 'w') as f:
-                for item in files_to_zip:
-                    f.write(item + "\n")
+            try:
+                with os.fdopen(fd, 'w') as f:
+                    for item in files_to_zip:
+                        f.write(item + "\n")
+                
+                # Run 7za
+                cmd = [manager.seven_za_path, 'a', '-tzip', zip_filename, f'@{list_path}']
+                
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                
+                self.current_status = f"Compression en cours de {count} fichiers..."
+                # Run properly
+                subprocess.run(cmd, cwd=self.roms_folder, check=True, startupinfo=startupinfo, capture_output=True)
+                
+                self.backup_success = zip_filename
+                self.current_status = "Terminé !"
             
-            # Run 7za
-            cmd = [manager.seven_za_path, 'a', '-tzip', zip_filename, f'@{list_path}']
-            
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            
-            self.current_status = f"Compression en cours de {count} fichiers..."
-            # Run properly
-            subprocess.run(cmd, cwd=self.roms_folder, check=True, startupinfo=startupinfo, capture_output=True)
-            
-            os.remove(list_path)
-            self.backup_success = zip_filename
-            self.current_status = "Terminé !"
+            finally:
+                if os.path.exists(list_path):
+                    os.remove(list_path)
 
         except Exception as e:
             self.backup_error = str(e)
-            # Clean up listfile if exists? (Ignored for now, temp file)
 
 def main():
     root = ctk.CTk()
