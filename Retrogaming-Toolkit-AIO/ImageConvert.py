@@ -71,7 +71,7 @@ def check_and_download_ffmpeg(root=None):
         return None
 
 # Fonction pour convertir les images
-def convert_images(input_dir, output_dir, input_format, output_format, delete_originals):
+def convert_images(root, input_dir, output_dir, input_format, output_format, delete_originals):
     try:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -94,10 +94,8 @@ def convert_images(input_dir, output_dir, input_format, output_format, delete_or
 
                 # Utilisation de FFmpeg pour la conversion
                 # Use resolved ffmpeg path
-                # Note: Assuming startup check ensured download. Re-checking with None root if needed, 
-                # or we trust it exists. If it was deleted, this might pop a window without parent or fail.
-                # Let's try to find root from default if possible or pass None (new toplevel)
-                ffmpeg_exe = check_and_download_ffmpeg(None) 
+                # Re-check ffmpeg availability, ensuring download UI has a parent window.
+                ffmpeg_exe = check_and_download_ffmpeg(root)
                 if not ffmpeg_exe:
                     return # Stop if ffmpeg issue
                 
@@ -174,7 +172,7 @@ def create_gui():
     check_delete_originals.grid(row=4, column=0, columnspan=3, pady=5)
 
     # Bouton de conversion
-    button_convert = ctk.CTkButton(root, text="Convertir", command=lambda: convert_images(entry_input_dir.get(), entry_output_dir.get(), input_format_var.get(), output_format_var.get(), delete_originals_var.get()), width=200)
+    button_convert = ctk.CTkButton(root, text="Convertir", command=lambda: convert_images(root, entry_input_dir.get(), entry_output_dir.get(), input_format_var.get(), output_format_var.get(), delete_originals_var.get()), width=200)
     button_convert.pack(pady=10)
 
     # Fonction de validation des choix de format
