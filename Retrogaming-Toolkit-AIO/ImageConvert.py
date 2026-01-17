@@ -84,6 +84,15 @@ def convert_images(input_dir, output_dir, input_format, output_format, delete_or
         elif input_format.lower() == "tiff":
             input_extensions = ["tiff", "tif"]
 
+        # Utilisation de FFmpeg pour la conversion
+        # Use resolved ffmpeg path
+        # Note: Assuming startup check ensured download. Re-checking with None root if needed,
+        # or we trust it exists. If it was deleted, this might pop a window without parent or fail.
+        # Let's try to find root from default if possible or pass None (new toplevel)
+        ffmpeg_exe = check_and_download_ffmpeg(None)
+        if not ffmpeg_exe:
+            return # Stop if ffmpeg issue
+
         for filename in os.listdir(input_dir):
             if any(filename.lower().endswith(f".{ext}") for ext in input_extensions):
                 input_path = os.path.join(input_dir, filename)
@@ -91,15 +100,6 @@ def convert_images(input_dir, output_dir, input_format, output_format, delete_or
                 output_path = os.path.join(output_dir, output_filename)
 
                 logging.info(f"Conversion de : {input_path} vers {output_path}")
-
-                # Utilisation de FFmpeg pour la conversion
-                # Use resolved ffmpeg path
-                # Note: Assuming startup check ensured download. Re-checking with None root if needed, 
-                # or we trust it exists. If it was deleted, this might pop a window without parent or fail.
-                # Let's try to find root from default if possible or pass None (new toplevel)
-                ffmpeg_exe = check_and_download_ffmpeg(None) 
-                if not ffmpeg_exe:
-                    return # Stop if ffmpeg issue
                 
                 ffmpeg_cmd = [
                     ffmpeg_exe,
