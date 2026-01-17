@@ -18,9 +18,6 @@ try:
 except ImportError:
     pass
 
-CHDMAN_URL = "https://wiki.recalbox.com/tutorials/utilities/rom-conversion/chdman/chdman.zip"
-CHDMAN_ZIP = "chdman.zip"
-
 def get_chdman_path():
     # 1. Check bundled/utils path
     if 'utils' in sys.modules:
@@ -332,16 +329,8 @@ class CHDmanGUI:
         
         try:
             manager = utils.DependencyManager(self.root)
-            # MAME 0.284b URL
-            MAME_URL = "https://github.com/mamedev/mame/releases/download/mame0284/mame0284b_x64.exe"
             
-            result_path = manager.install_dependency(
-                name="CHDman (MAME)",
-                url=MAME_URL,
-                target_exe_name=target_name,
-                archive_type='exe_sfx',
-                extract_file_in_archive='chdman.exe'
-            )
+            result_path = manager.install_dependency(name="CHDman (MAME)")
             
             if result_path:
                 global CHDMAN_EXE

@@ -46,12 +46,7 @@ def main():
             # Use Dependency Manager
             try:
                 manager = utils.DependencyManager(root)
-                result = manager.install_dependency(
-                    name="MaxCSO",
-                    url="https://github.com/unknownbrackets/maxcso/releases/download/v1.13.0/maxcso_v1.13.0_windows.7z",
-                    target_exe_name=target_name,
-                    archive_type="7z"
-                )
+                result = manager.install_dependency(name="MaxCSO")
                 return result is not None
             except Exception as e:
                 messagebox.showerror("Erreur", f"Erreur DependencyManager: {e}")

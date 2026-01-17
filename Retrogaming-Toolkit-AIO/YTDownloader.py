@@ -175,15 +175,9 @@ class YtDlpGui(ctk.CTk):
         # 3. If missing, Use DependencyManager
         if not self.ffmpeg_path and 'utils' in sys.modules:
             try:
-                # We need to map options to common logic if possible or just use it here
                 # Since we are in __init__ of a root window, we can pass self
                 manager = utils.DependencyManager(self)
-                self.ffmpeg_path = manager.install_dependency(
-                     name="FFmpeg",
-                     url="https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
-                     target_exe_name=target_name,
-                     archive_type="zip"
-                )
+                self.ffmpeg_path = manager.install_dependency(name="FFmpeg")
             except Exception as e:
                 print(f"Dependency Manager failed: {e}")
                 

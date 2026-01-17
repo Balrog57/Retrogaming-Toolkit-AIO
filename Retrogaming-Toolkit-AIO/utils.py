@@ -85,6 +85,25 @@ import customtkinter as ctk
 from tkinter import messagebox
 import logging
 
+KNOWN_DEPENDENCIES = {
+    "FFmpeg": {
+        "url": "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip",
+        "target_exe_name": "ffmpeg.exe",
+        "archive_type": "zip"
+    },
+    "MaxCSO": {
+        "url": "https://github.com/unknownbrackets/maxcso/releases/download/v1.13.0/maxcso_v1.13.0_windows.7z",
+        "target_exe_name": "maxcso.exe",
+        "archive_type": "7z"
+    },
+    "CHDman (MAME)": {
+        "url": "https://github.com/mamedev/mame/releases/download/mame0284/mame0284b_x64.exe",
+        "target_exe_name": "chdman.exe",
+        "archive_type": "exe_sfx",
+        "extract_file_in_archive": "chdman.exe"
+    }
+}
+
 class DependencyManager:
     def __init__(self, root=None):
         self.app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
@@ -242,15 +261,30 @@ class DependencyManager:
         if not result_container["success"]:
             raise Exception(result_container["error"] if result_container["error"] else "Unknown error")
 
-    def install_dependency(self, name, url, target_exe_name, archive_type='7z', extract_file_in_archive=None):
+    def install_dependency(self, name, url=None, target_exe_name=None, archive_type=None, extract_file_in_archive=None):
         """
         Main method to install a dependency.
         name: Display name (e.g. "MaxCSO")
-        url: Download URL
-        target_exe_name: Name of the final exe (e.g. "maxcso.exe")
-        archive_type: '7z', 'zip', 'exe_sfx' (like MAME)
-        extract_file_in_archive: If specific file needs to be pulled from archive. If None, assumes simple structure or looks for target_exe_name.
+        url: Download URL (optional if name is in KNOWN_DEPENDENCIES)
+        target_exe_name: Name of the final exe (optional if name is in KNOWN_DEPENDENCIES)
+        archive_type: '7z', 'zip', 'exe_sfx' (optional if name is in KNOWN_DEPENDENCIES)
+        extract_file_in_archive: If specific file needs to be pulled from archive.
         """
+        # Apply defaults from KNOWN_DEPENDENCIES if available
+        if name in KNOWN_DEPENDENCIES:
+            config = KNOWN_DEPENDENCIES[name]
+            url = url or config.get("url")
+            target_exe_name = target_exe_name or config.get("target_exe_name")
+            archive_type = archive_type or config.get("archive_type", "7z")
+            extract_file_in_archive = extract_file_in_archive or config.get("extract_file_in_archive")
+
+        # Set default archive_type if still None
+        if archive_type is None:
+            archive_type = '7z'
+
+        if not url or not target_exe_name:
+             raise ValueError(f"Missing configuration for dependency '{name}' and no defaults found.")
+
         target_path = os.path.join(self.app_data_dir, target_exe_name)
         
         # Check existing
