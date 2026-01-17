@@ -20,6 +20,15 @@ def main():
             messagebox.showerror("Erreur", f"Le dossier 'medium_artwork' n'existe pas dans le même répertoire que 'roms'.")
             return
 
+        # Get list of rom files once to avoid N+1 filesystem checks
+        rom_files = set()
+        valid_extensions = {".txt", ".png", ".jpg", ".zip", ".bin"}
+        if os.path.exists(roms_dir):
+            for f in os.listdir(roms_dir):
+                name, ext = os.path.splitext(f)
+                if ext.lower() in valid_extensions:
+                    rom_files.add(os.path.normcase(name))
+
         # Iterate over each subdirectory in 'medium_artwork'
         for subdir in os.listdir(medium_artwork_dir):
             subdir_path = os.path.join(medium_artwork_dir, subdir)
@@ -39,8 +48,7 @@ def main():
                         continue
 
                     # Check if a corresponding file exists in the 'roms' directory
-                    roms_file_path = os.path.join(roms_dir, f"{file_name_without_ext}.*")
-                    if not any([os.path.exists(roms_file_path.replace("*", ext)) for ext in ["txt", "png", "jpg", "zip", "bin"]]):
+                    if os.path.normcase(file_name_without_ext) not in rom_files:
                         # Move the file to the 'orphan' directory inside the current subdirectory
                         shutil.move(file_path, orphan_dir)
 
