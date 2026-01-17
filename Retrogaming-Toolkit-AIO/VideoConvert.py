@@ -64,12 +64,13 @@ def check_and_download_ffmpeg(root=None):
          messagebox.showerror("Erreur", "Impossible de télécharger FFmpeg (utils ou root manquant).")
          return None
 
-def convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution, root=None):
-    check_and_download_ffmpeg(root)  # Vérifiez et téléchargez FFmpeg si nécessaire
-    if 'utils' in sys.modules:
-        ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
-    else:
-        ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
+def convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution, root=None, ffmpeg_path=None):
+    if not ffmpeg_path:
+        check_and_download_ffmpeg(root)  # Vérifiez et téléchargez FFmpeg si nécessaire
+        if 'utils' in sys.modules:
+            ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
+        else:
+            ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
     try:
         command = [
             ffmpeg_path,
@@ -94,12 +95,13 @@ def convert_video(input_file, start_time, end_time, output_file, video_bitrate, 
     except Exception as e:
         messagebox.showerror("Erreur", f"Une erreur inattendue s'est produite : {e}")
 
-def capture_first_frame(input_file, output_file, rotate=False, root=None):
-    check_and_download_ffmpeg(root)  # Vérifiez et téléchargez FFmpeg si nécessaire
-    if 'utils' in sys.modules:
-        ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
-    else:
-        ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
+def capture_first_frame(input_file, output_file, rotate=False, root=None, ffmpeg_path=None):
+    if not ffmpeg_path:
+        check_and_download_ffmpeg(root)  # Vérifiez et téléchargez FFmpeg si nécessaire
+        if 'utils' in sys.modules:
+            ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
+        else:
+            ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
     try:
         command = [
             ffmpeg_path,
@@ -148,6 +150,13 @@ def start_conversion():
             messagebox.showerror("Erreur", "Veuillez entrer les heures de début et de fin.")
             return
 
+        # Pre-check dependency once
+        check_and_download_ffmpeg(root)
+        if 'utils' in sys.modules:
+            ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
+        else:
+            ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
+
         for index in range(listbox_files.size()):
             input_file = listbox_files.get(index)
             if not os.path.isfile(input_file):
@@ -165,11 +174,11 @@ def start_conversion():
             else:
                 # Replace mode
                 temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
-                convert_video(input_file, start_time, end_time, temp_file, video_bitrate, audio_bitrate, fps, resolution, root)
+                convert_video(input_file, start_time, end_time, temp_file, video_bitrate, audio_bitrate, fps, resolution, root, ffmpeg_path=ffmpeg_path)
                 shutil.move(temp_file, input_file)
                 continue
 
-            convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution, root)
+            convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution, root, ffmpeg_path=ffmpeg_path)
 
             # Capture d'image si les options sont cochées
             if capture_without_rotation_var.get() or capture_with_rotation_var.get():
@@ -179,9 +188,9 @@ def start_conversion():
                 output_image = os.path.join(capture_dir, f"screenshot-{os.path.splitext(file_name)[0]}.png")
 
                 if capture_without_rotation_var.get():
-                    capture_first_frame(input_file, output_image, rotate=False, root=root)
+                    capture_first_frame(input_file, output_image, rotate=False, root=root, ffmpeg_path=ffmpeg_path)
                 if capture_with_rotation_var.get():
-                    capture_first_frame(input_file, output_image, rotate=True, root=root)
+                    capture_first_frame(input_file, output_image, rotate=True, root=root, ffmpeg_path=ffmpeg_path)
 
         messagebox.showinfo("Succès", "Traitement terminé pour toutes les vidéos.")
     except Exception as e:
