@@ -5,20 +5,14 @@ import customtkinter as ctk
 
 def supprimer_dossiers_vides(chemin, progress_var):
     """
-    Supprime récursivement tous les dossiers vides dans un répertoire donné et met à jour le pourcentage de progression.
+    Supprime récursivement tous les dossiers vides dans un répertoire donné et affiche le nombre de dossiers traités.
 
     Args:
         chemin (str): Le chemin d'accès au répertoire à analyser.
-        progress_var (tk.StringVar): Variable pour stocker le pourcentage de progression.
+        progress_var (tk.StringVar): Variable pour afficher la progression.
     """
     try:
-        total_elements = sum([len(dirs) for _, dirs, _ in os.walk(chemin)])
         elements_traites = 0
-
-        if total_elements == 0:
-            print("Le répertoire est vide ou ne contient pas de sous-dossiers.")
-            progress_var.set("Progression: 100%")
-            return
 
         for root, dirs, _ in os.walk(chemin, topdown=False):
             for dir in dirs:
@@ -31,9 +25,16 @@ def supprimer_dossiers_vides(chemin, progress_var):
                     print(f"Erreur lors de la suppression de {chemin_element}: {e}")
                 finally:
                     elements_traites += 1
-                    pourcentage = elements_traites / total_elements * 100
-                    progress_var.set(f"Progression: {pourcentage:.1f}%")
-                    fenetre.update_idletasks()
+                    if elements_traites % 10 == 0:
+                        progress_var.set(f"Dossiers traités: {elements_traites}")
+                        fenetre.update_idletasks()
+
+        if elements_traites == 0:
+            print("Le répertoire est vide ou ne contient pas de sous-dossiers.")
+            progress_var.set("Aucun sous-dossier trouvé.")
+        else:
+            progress_var.set(f"Terminé. Dossiers traités: {elements_traites}")
+
     except Exception as e:
         print(f"Erreur lors du traitement du répertoire: {e}")
         progress_var.set(f"Erreur: {e}")
