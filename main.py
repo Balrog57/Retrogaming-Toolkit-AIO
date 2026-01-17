@@ -45,7 +45,11 @@ VERSION = "2.0.28"
 
 # Configuration du logging
 # Configuration du logging
-app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
+local_app_data = os.getenv('LOCALAPPDATA')
+if not local_app_data:
+    local_app_data = os.path.expanduser("~") # Fallback to user home if LOCALAPPDATA is missing
+
+app_data_dir = os.path.join(local_app_data, 'RetrogamingToolkit')
 if not os.path.exists(app_data_dir):
     try:
         os.makedirs(app_data_dir)
