@@ -71,7 +71,8 @@ def check_and_download_ffmpeg(root=None):
         return None
 
 # Fonction pour convertir les images
-def convert_images(input_dir, output_dir, input_format, output_format, delete_originals):
+# Fonction pour convertir les images
+def convert_images(root, input_dir, output_dir, input_format, output_format, delete_originals):
     try:
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
@@ -85,7 +86,8 @@ def convert_images(input_dir, output_dir, input_format, output_format, delete_or
             input_extensions = ["tiff", "tif"]
 
         # Optimize: Check FFmpeg once before processing files
-        ffmpeg_exe = check_and_download_ffmpeg(None)
+        # Fix: Pass root to ensure download dialog has a parent window
+        ffmpeg_exe = check_and_download_ffmpeg(root)
         if not ffmpeg_exe:
             return
 
@@ -174,7 +176,8 @@ def create_gui():
     check_delete_originals.grid(row=4, column=0, columnspan=3, pady=5)
 
     # Bouton de conversion
-    button_convert = ctk.CTkButton(root, text="Convertir", command=lambda: convert_images(entry_input_dir.get(), entry_output_dir.get(), input_format_var.get(), output_format_var.get(), delete_originals_var.get()), width=200)
+    # Update call to include root
+    button_convert = ctk.CTkButton(root, text="Convertir", command=lambda: convert_images(root, entry_input_dir.get(), entry_output_dir.get(), input_format_var.get(), output_format_var.get(), delete_originals_var.get()), width=200)
     button_convert.pack(pady=10)
 
     # Fonction de validation des choix de format
