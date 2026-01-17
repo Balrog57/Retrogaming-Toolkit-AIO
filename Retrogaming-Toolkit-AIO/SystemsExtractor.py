@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO,
 
 def download_official_es_systems_cfg(output_path):
     """Downloads the official es_systems.cfg file from RetroBat's GitHub."""
-    url = "https://github.com/RetroBat-Official/retrobat-setup/blob/master/system/templates/emulationstation/es_systems.cfg?raw=true"
+    url = "https://raw.githubusercontent.com/RetroBat-Official/retrobat/main/system/templates/emulationstation/es_systems.cfg"
     try:
         response = requests.get(url)
         response.raise_for_status()
