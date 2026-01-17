@@ -15,22 +15,13 @@ import requests
 import webbrowser
 
 # Import utils
-# Import utils
 # Fix sys.path for bundled modules
 if getattr(sys, 'frozen', False):
     # In frozen mode, we are in sys._MEIPASS
-    # We need to add Retrogaming-Toolkit-AIO to sys.path so 'import convert_images' works
-    # if convert_images.py is located at Retrogaming-Toolkit-AIO/convert_images.py inside the bundle.
-    # Check where build.py put it. 
-    # build.py adds paths={toolkit_dir}, so imports are at top level?
-    # No, --onedir means structure is preserved usually?
-    # --hidden-import bundles them inside the PYZ.
-    # If hidden import is used, 'import convert_images' should JUST WORK from anywhere.
-    # But usually hidden imports are top-level in the PYZ.
-    # The error 'No module named convert_images' means it's NOT in the PYZ.
-    # Why?
-    # Maybe because of the hyphen in folder name 'Retrogaming-Toolkit-AIO'? No.
-    # I'll ensure we try to add the path anyway.
+    # We add Retrogaming-Toolkit-AIO to sys.path to allow importing modules
+    # from the bundled data directory. This acts as a fallback or allows
+    # for user-modifiable scripts in the data directory, supplementing
+    # the modules that are already bundled in the PYZ.
     base_path = sys._MEIPASS
     toolkit_path = os.path.join(base_path, "Retrogaming-Toolkit-AIO")
     if toolkit_path not in sys.path:
@@ -53,7 +44,6 @@ except ImportError:
 
 VERSION = "2.0.26"
 
-# Configuration du logging
 # Configuration du logging
 app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
 if not os.path.exists(app_data_dir):
@@ -83,7 +73,6 @@ def get_path(p):
         return utils.resource_path(p)
     return p
 
-# Liste des scripts avec descriptions, chemins des icônes et fichiers "Lisez-moi"
 # Liste des scripts avec descriptions, chemins des icônes et fichiers "Lisez-moi"
 scripts = [
     {"name": "AssistedGamelist", "description": "(Retrobat) Gère et enrichit les listes de jeux XML.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "AssistedGamelist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "AssistedGamelist.txt"))},

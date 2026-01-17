@@ -20,7 +20,6 @@ except ImportError:
     utils = None
 
 # Fonction pour vérifier et télécharger FFmpeg
-# Fonction pour vérifier et télécharger FFmpeg
 def check_and_download_ffmpeg(root=None):
     target_name = "ffmpeg.exe"
     
