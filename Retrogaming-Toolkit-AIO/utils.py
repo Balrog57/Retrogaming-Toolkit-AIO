@@ -266,6 +266,8 @@ class DependencyManager:
         # if not messagebox.askyesno("Outil Manquant", f"{name} est manquant. Voulez-vous le télécharger et l'installer ?"):
         #      return None
 
+        temp_download = None
+        extract_dir = None
         try:
              # Ensure 7za
              if not self.bootstrap_7za():
@@ -302,19 +304,21 @@ class DependencyManager:
              else:
                  raise Exception(f"{target_exe_name} not found in archive.")
                  
-             # Cleanup
-             shutil.rmtree(extract_dir, ignore_errors=True)
-             if os.path.exists(temp_download):
-                 os.remove(temp_download)
-                 
-             # messagebox.showinfo("Succès", f"{name} installé avec succès.") # Implicit success, no popup needed if auto
-             # Maybe just log it? User wants "ouvre le script demande".
              logging.info(f"{name} installed successfully.")
              return target_path
 
         except Exception as e:
             messagebox.showerror("Erreur", f"Échec de l'installation de {name} : {e}")
             return None
+        finally:
+            # Cleanup
+            if extract_dir and os.path.exists(extract_dir):
+                shutil.rmtree(extract_dir, ignore_errors=True)
+            if temp_download and os.path.exists(temp_download):
+                try:
+                    os.remove(temp_download)
+                except OSError:
+                    pass
 
 def extract_with_7za(archive_path, output_dir, file_to_extract=None, root=None):
     """

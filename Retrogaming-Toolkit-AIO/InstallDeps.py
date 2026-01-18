@@ -2,6 +2,7 @@ import os
 import shutil
 import subprocess
 import requests
+import shlex
 
 import re
 import glob
@@ -113,11 +114,20 @@ def extract_zip(zip_path, extract_to):
 def run_command(command, args, cwd=None):
     """
     Runs a command with arguments.
+    Refactored to avoid shell=True for security.
     """
     try:
-        full_command = f'"{command}" {args}'
-        log(f"Executing: {full_command}")
-        process = subprocess.Popen(full_command, shell=True, cwd=cwd)
+        # Check if it's a batch file
+        if command.lower().endswith(".bat") or command.lower().endswith(".cmd"):
+            # Batch files need shell execution or cmd /c
+            # We use cmd /c to avoid shell=True
+            cmd_args = ["cmd.exe", "/c", command] + shlex.split(args, posix=False)
+        else:
+            # Standard executable
+            cmd_args = [command] + shlex.split(args, posix=False)
+            
+        log(f"Executing: {cmd_args}")
+        process = subprocess.Popen(cmd_args, shell=False, cwd=cwd)
         process.wait()
         return process.returncode == 0
     except Exception as e:

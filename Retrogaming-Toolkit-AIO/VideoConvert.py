@@ -163,6 +163,15 @@ def start_conversion():
             if not os.path.isfile(input_file):
                 messagebox.showerror("Erreur", f"Fichier non valide : {input_file}")
                 continue
+            
+            # Determine output extension
+            format_choice = selected_format.get()
+            if format_choice == "MP4":
+                ext = ".mp4"
+            elif format_choice == "MKV":
+                ext = ".mkv"
+            else: # Source
+                 ext = os.path.splitext(input_file)[1]
 
             if selected_output_option.get() == "folder":
                 # Create output dir relative to input file
@@ -170,13 +179,29 @@ def start_conversion():
                 output_dir = os.path.join(input_dir, "vidéos_converties")
                 os.makedirs(output_dir, exist_ok=True)
                 
-                file_name = os.path.basename(input_file)
-                output_file = os.path.join(output_dir, file_name)
+                base_name = os.path.splitext(os.path.basename(input_file))[0]
+                output_file = os.path.join(output_dir, base_name + ext)
             else:
                 # Replace mode
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4").name
+                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext).name
                 convert_video(input_file, start_time, end_time, temp_file, video_bitrate, audio_bitrate, fps, resolution, root, ffmpeg_path=ffmpeg_path)
-                shutil.move(temp_file, input_file)
+                
+                # If extension changed, we must rename the target file
+                if ext != os.path.splitext(input_file)[1]:
+                     new_input_path = os.path.splitext(input_file)[0] + ext
+                     # If target exists (e.g. video.mp4 exists and we convert video.avi to video.mp4), what to do?
+                     # Replace mode usually implies replacing the *source content*. 
+                     # If we change extension, we should probably delete the old file and save new one.
+                     # But strictly speaking 'replace' might mean 'overwrite in place'.
+                     # Let's assume user wants to replace the old file with the new converted file.
+                     
+                     shutil.move(temp_file, new_input_path)
+                     try:
+                        os.remove(input_file) # Remove the old extension file
+                     except:
+                        pass
+                else:
+                    shutil.move(temp_file, input_file)
                 continue
 
             convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution, root, ffmpeg_path=ffmpeg_path)
@@ -213,7 +238,7 @@ root = ctk.CTk()
 root.title("Trim et Convertisseur Vidéo par Lot")
 
 def main():
-    global root, listbox_files, entry_start_time, entry_end_time, entry_video_bitrate, entry_audio_bitrate, entry_fps, entry_resolution, selected_output_option, capture_without_rotation_var, capture_with_rotation_var
+    global root, listbox_files, entry_start_time, entry_end_time, entry_video_bitrate, entry_audio_bitrate, entry_fps, entry_resolution, selected_output_option, capture_without_rotation_var, capture_with_rotation_var, selected_format
 
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
@@ -288,6 +313,14 @@ def main():
     entry_resolution = ctk.CTkEntry(frame_settings, width=100)
     entry_resolution.insert(0, "1920x1080")
     entry_resolution.pack(side="left", padx=5)
+
+    # Output Format Selection
+    label_format = ctk.CTkLabel(frame_settings, text="Format :", font=("Arial", 14))
+    label_format.pack(side="left", padx=(10, 0))
+    
+    selected_format = ctk.StringVar(value="Source")
+    combo_format = ctk.CTkComboBox(frame_settings, variable=selected_format, values=["Source", "MP4", "MKV"], width=80)
+    combo_format.pack(side="left", padx=5)
 
     # Output options
     frame_output_options = ctk.CTkFrame(root)

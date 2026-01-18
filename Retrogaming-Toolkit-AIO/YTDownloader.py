@@ -206,11 +206,12 @@ class YtDlpGui(ctk.CTk):
         self.resizable(False, False)
 
         # Variables globales
-        self.destination_folder = StringVar(value=os.getcwd())
+        self.destination_folder = StringVar(value=os.path.join(os.path.expanduser("~"), "Downloads"))
         self.audio_only = BooleanVar(value=False)
         # NOUVELLES options
         self.no_playlist = BooleanVar(value=False)
         self.quality = StringVar(value='Source (Best)') # Qualité par défaut
+        self.codec = StringVar(value='Copier la vidéo (Rapide)')
 
         
         ctk.CTkLabel(self, text="URL (Vidéo, Playlist ou Chaîne) :", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5), anchor="w", padx=10)

@@ -7,11 +7,38 @@ import requests
 import tempfile
 import shutil
 
+import concurrent.futures
 import logging
 
-
 logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+                    format='%(asctime)s - %(levelname)s - %(message)s')   
+
+def process_single_image(ffmpeg_exe, input_path, output_path, delete_originals):
+    """Traite une seule image avec FFmpeg."""
+    try:
+        logging.info(f"Conversion de : {input_path} vers {output_path}")
+        
+        ffmpeg_cmd = [
+            ffmpeg_exe,
+            "-i", input_path,
+            "-frames:v", "1",
+            "-update", "1",
+            output_path
+        ]
+        # Capture stderr to identify specific ffmpeg errors if needed, but check=True raises CalledProcessError
+        subprocess.run(ffmpeg_cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+        if delete_originals:
+            os.remove(input_path)
+            logging.info(f"Fichier original supprimé : {input_path}")
+            
+        return True, input_path, None
+    except subprocess.CalledProcessError as e:
+        return False, input_path, f"FFmpeg Error: {e.stderr.decode('utf-8', errors='ignore')}"
+    except Exception as e:
+        return False, input_path, str(e)
+
+
 
 
 try:
@@ -89,33 +116,52 @@ def convert_images(root, input_dir, output_dir, input_format, output_format, del
         if not ffmpeg_exe:
             return
 
+        files_to_process = []
         for filename in os.listdir(input_dir):
             if any(filename.lower().endswith(f".{ext}") for ext in input_extensions):
                 input_path = os.path.join(input_dir, filename)
                 output_filename = os.path.splitext(filename)[0] + f".{output_format.lower()}"
                 output_path = os.path.join(output_dir, output_filename)
-
-                logging.info(f"Conversion de : {input_path} vers {output_path}")
-
-                # Utilisation de FFmpeg pour la conversion
-                # Use resolved ffmpeg path
-
                 
-                ffmpeg_cmd = [
-                    ffmpeg_exe,
-                    "-i", input_path,
-                    "-frames:v", "1",  # Ajout de l'argument -frames:v 1
-                    "-update", "1",     # Ajout de l'argument -update 1
-                    output_path
-                ]
-                subprocess.run(ffmpeg_cmd, check=True)
+                # Pre-calculating arguments for the worker
+                files_to_process.append((ffmpeg_exe, input_path, output_path, delete_originals))
 
-                if delete_originals:
-                    os.remove(input_path)
-                    logging.info(f"Fichier original supprimé : {input_path}")
+        if not files_to_process:
+            messagebox.showinfo("Info", "Aucune image correspondante trouvée dans le dossier d'entrée.")
+            return
 
-        messagebox.showinfo("Succès", "Conversion terminée.")
-        logging.info("Conversion terminée avec succès.")
+        # Parallel Processing
+        # Use simple os.cpu_count() to determine workers, defaulting to 4 if None
+        max_workers = os.cpu_count() or 4
+        logging.info(f"Démarrage de la conversion avec {max_workers} threads...")
+        
+        failed_files = []
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            # Start all tasks
+            future_to_file = {executor.submit(process_single_image, *args): args[1] for args in files_to_process}
+            
+            # Process results as they complete
+            for future in concurrent.futures.as_completed(future_to_file):
+                input_file_path = future_to_file[future]
+                try:
+                    success, f_path, error_msg = future.result()
+                    if not success:
+                        failed_files.append((f_path, error_msg))
+                        logging.error(f"Échec pour {f_path}: {error_msg}")
+                except Exception as exc:
+                    failed_files.append((input_file_path, str(exc)))
+                    logging.error(f"Exception worker pour {input_file_path}: {exc}")
+
+        if failed_files:
+            error_details = "\n".join([f"{os.path.basename(f)}: {e}" for f, e in failed_files[:5]])
+            if len(failed_files) > 5:
+                error_details += f"\n... et {len(failed_files) - 5} autres erreurs."
+            messagebox.showwarning("Attention", f"Conversion terminée avec {len(failed_files)} erreurs.\n\n{error_details}")
+        else:
+            messagebox.showinfo("Succès", "Conversion terminée avec succès (Parallèle).")
+            
+        logging.info("Batch terminé.")
     except Exception as e:
         logging.error(f"Une erreur s'est produite lors de la conversion : {e}")
         messagebox.showerror("Erreur", f"Une erreur s'est produite lors de la conversion : {e}")

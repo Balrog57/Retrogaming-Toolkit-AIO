@@ -36,24 +36,15 @@ class GameListApp:
         # Logic to find instructions file
         inst_filename = "instructions_assisted_gamelist_creator.txt"
         
-        # Default: relative to this script (dev mode) or internal in frozen
+        # Default: relative to this script (dev mode)
         base_dir = os.path.dirname(__file__)
         inst_path = os.path.join(base_dir, inst_filename)
 
         # If frozen (compiled), prioritize the executable's directory (User accessible)
         if getattr(sys, 'frozen', False):
+             # Force path to be next to executable, so the UI defaults to the correct external file
              exe_dir = os.path.dirname(sys.executable)
-             exe_inst_path = os.path.join(exe_dir, inst_filename)
-             # We prefer the one next to EXE if it exists (which build.py will copy there)
-             # If not, we fall back to the one near the script (internal)
-             if os.path.exists(exe_inst_path):
-                 inst_path = exe_inst_path
-        else:
-             # Dev mode check
-             if not os.path.exists(inst_path):
-                 alt_path = os.path.join(base_dir, "Retrogaming-Toolkit-AIO", inst_filename)
-                 if os.path.exists(alt_path):
-                     inst_path = alt_path
+             inst_path = os.path.join(exe_dir, inst_filename)
 
         self.instructions_path = ctk.StringVar(value=inst_path)
         

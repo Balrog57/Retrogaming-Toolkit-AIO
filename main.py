@@ -40,7 +40,7 @@ except ImportError:
     logger.error("Impossible d'importer utils.py")
     utils = None
 
-VERSION = "2.0.29"
+VERSION = "2.0.31"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')
@@ -274,10 +274,23 @@ class Application(ctk.CTk):
         self.geometry("800x400")  # Taille initiale
 
         self.scripts = scripts
+        self.filtered_scripts = list(self.scripts)  # Initialiser avec tous les scripts
         self.page = 0
         self.scripts_per_page = 10
         self.min_window_height = 400
         self.preferred_width = 800
+
+        # Barre de recherche
+        self.search_frame = ctk.CTkFrame(self, corner_radius=10)
+        self.search_frame.pack(fill="x", padx=10, pady=(10, 0))
+
+        self.search_label = ctk.CTkLabel(self.search_frame, text="Rechercher :", font=("Arial", 14))
+        self.search_label.pack(side="left", padx=10)
+
+        self.search_var = ctk.StringVar()
+        self.search_var.trace("w", self.filter_scripts)
+        self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_var, width=300, placeholder_text="Nom ou description...")
+        self.search_entry.pack(side="left", padx=10, pady=10, fill="x", expand=True)
 
         # Conteneur principal
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
@@ -296,8 +309,7 @@ class Application(ctk.CTk):
         self.next_button = ctk.CTkButton(self.nav_frame, text="Suivant ▶", command=self.next_page, width=100)
         self.next_button.pack(side="right", padx=10)
 
-        # Afficher les scripts de la première page
-        self.update_page()
+
 
         # Ajouter une zone en bas pour la version et les mises à jour
         self.bottom_frame = ctk.CTkFrame(self)
@@ -312,6 +324,9 @@ class Application(ctk.CTk):
         # Vérifier les mises à jour
         self.check_updates()
 
+        # Afficher les scripts de la première page (APRÈS l'initialisation de tous les frames)
+        self.update_page()
+
     def check_updates(self):
         """Vérifie les mises à jour et met à jour l'interface."""
         update_available, latest_version = check_for_updates()
@@ -322,6 +337,20 @@ class Application(ctk.CTk):
         else:
             self.update_label.configure(text="Aucune mise à jour disponible", text_color="gray")
 
+    def filter_scripts(self, *args):
+        """Filtre la liste des scripts en fonction de la recherche."""
+        query = self.search_var.get().lower()
+        if not query:
+            self.filtered_scripts = list(self.scripts)
+        else:
+            self.filtered_scripts = [
+                s for s in self.scripts 
+                if query in s["name"].lower() or query in s["description"].lower()
+            ]
+        
+        self.page = 0 # Réinitialiser à la première page
+        self.update_page()
+
     def update_page(self):
         """Met à jour l'affichage des scripts pour la page courante."""
         # Efface les widgets existants
@@ -331,7 +360,14 @@ class Application(ctk.CTk):
         # Afficher les scripts de la page courante
         start_index = self.page * self.scripts_per_page
         end_index = start_index + self.scripts_per_page
-        for script in self.scripts[start_index:end_index]:
+        
+        current_scripts = self.filtered_scripts[start_index:end_index]
+        
+        if not current_scripts:
+            no_result_label = ctk.CTkLabel(self.main_frame, text="Aucun outil trouvé.", font=("Arial", 14))
+            no_result_label.pack(pady=20)
+        
+        for script in current_scripts:
             frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
             frame.pack(fill="x", pady=5, padx=10)
 
@@ -368,16 +404,28 @@ class Application(ctk.CTk):
             readme_button.pack(side="right", padx=10)
 
         # Mettre à jour l'indicateur de page
-        total_pages = (len(self.scripts) - 1) // self.scripts_per_page + 1
-        self.page_label.configure(text=f"Page {self.page + 1} sur {total_pages}")
+        total_pages = (len(self.filtered_scripts) - 1) // self.scripts_per_page + 1
+        page_display = self.page + 1 if total_pages > 0 else 0
+        self.page_label.configure(text=f"Page {page_display} sur {max(1, total_pages)}")
 
         # Activer/Désactiver les boutons de navigation
         self.previous_button.configure(state="normal" if self.page > 0 else "disabled")
-        self.next_button.configure(state="normal" if end_index < len(self.scripts) else "disabled")
+        self.next_button.configure(state="normal" if end_index < len(self.filtered_scripts) else "disabled")
 
         # Ajuster la taille de la fenêtre
         self.update_idletasks()
-        new_height = max(self.min_window_height, self.main_frame.winfo_reqheight() + 150)
+        
+        # Calculer la hauteur totale nécessaire
+        total_height = 0
+        total_height += self.search_frame.winfo_reqheight() + 10 # + pady
+        total_height += self.main_frame.winfo_reqheight() + 20   # + pady top/bottom
+        total_height += self.nav_frame.winfo_reqheight() + 10    # + pady
+        total_height += self.bottom_frame.winfo_reqheight() + 10 # + pady
+        
+        # Ajouter une marge de sécurité
+        total_height += 20 
+
+        new_height = max(self.min_window_height, total_height)
         self.geometry(f"{self.preferred_width}x{new_height}")
 
     def execute_module(self, module_name):
@@ -387,7 +435,7 @@ class Application(ctk.CTk):
 
     def next_page(self):
         """Passe à la page suivante."""
-        if (self.page + 1) * self.scripts_per_page < len(self.scripts):
+        if (self.page + 1) * self.scripts_per_page < len(self.filtered_scripts):
             self.page += 1
             self.update_page()
 
