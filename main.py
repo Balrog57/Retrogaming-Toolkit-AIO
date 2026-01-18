@@ -273,11 +273,27 @@ class Application(ctk.CTk):
         self.title("Lanceur de Modules - Retrogaming-Toolkit-AIO")
         self.geometry("800x400")  # Taille initiale
 
-        self.scripts = scripts
+        self.all_scripts = scripts
+        self.scripts = list(self.all_scripts)
         self.page = 0
         self.scripts_per_page = 10
         self.min_window_height = 400
         self.preferred_width = 800
+
+        # Barre de recherche
+        self.search_var = ctk.StringVar()
+        self.search_var.trace_add("write", self.on_search)
+
+        self.search_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.search_frame.pack(fill="x", padx=10, pady=(10, 0))
+
+        self.search_entry = ctk.CTkEntry(
+            self.search_frame,
+            placeholder_text="🔍 Rechercher un outil...",
+            textvariable=self.search_var,
+            width=300
+        )
+        self.search_entry.pack(side="right", padx=10)
 
         # Conteneur principal
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
@@ -311,6 +327,19 @@ class Application(ctk.CTk):
 
         # Vérifier les mises à jour
         self.check_updates()
+
+    def on_search(self, *args):
+        """Filtre la liste des scripts en fonction de la recherche."""
+        query = self.search_var.get().lower()
+        if not query:
+            self.scripts = list(self.all_scripts)
+        else:
+            self.scripts = [
+                s for s in self.all_scripts
+                if query in s["name"].lower() or query in s["description"].lower()
+            ]
+        self.page = 0
+        self.update_page()
 
     def check_updates(self):
         """Vérifie les mises à jour et met à jour l'interface."""
