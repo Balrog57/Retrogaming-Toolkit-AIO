@@ -273,11 +273,27 @@ class Application(ctk.CTk):
         self.title("Lanceur de Modules - Retrogaming-Toolkit-AIO")
         self.geometry("800x400")  # Taille initiale
 
-        self.scripts = scripts
+        self.all_scripts = scripts
+        self.filtered_scripts = scripts
         self.page = 0
         self.scripts_per_page = 10
         self.min_window_height = 400
         self.preferred_width = 800
+
+        # Barre de recherche
+        self.search_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.search_frame.pack(fill="x", padx=20, pady=(10, 0))
+
+        self.search_var = ctk.StringVar()
+        self.search_var.trace("w", self.filter_scripts)
+
+        self.search_entry = ctk.CTkEntry(
+            self.search_frame,
+            placeholder_text="Rechercher un outil...",
+            textvariable=self.search_var,
+            width=300
+        )
+        self.search_entry.pack(side="left", fill="x", expand=True)
 
         # Conteneur principal
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
@@ -322,6 +338,19 @@ class Application(ctk.CTk):
         else:
             self.update_label.configure(text="Aucune mise à jour disponible", text_color="gray")
 
+    def filter_scripts(self, *args):
+        """Filtre la liste des scripts en fonction de la recherche."""
+        query = self.search_var.get().lower()
+        if not query:
+            self.filtered_scripts = self.all_scripts
+        else:
+            self.filtered_scripts = [
+                s for s in self.all_scripts
+                if query in s['name'].lower() or query in s['description'].lower()
+            ]
+        self.page = 0
+        self.update_page()
+
     def update_page(self):
         """Met à jour l'affichage des scripts pour la page courante."""
         # Efface les widgets existants
@@ -331,7 +360,7 @@ class Application(ctk.CTk):
         # Afficher les scripts de la page courante
         start_index = self.page * self.scripts_per_page
         end_index = start_index + self.scripts_per_page
-        for script in self.scripts[start_index:end_index]:
+        for script in self.filtered_scripts[start_index:end_index]:
             frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
             frame.pack(fill="x", pady=5, padx=10)
 
@@ -368,12 +397,16 @@ class Application(ctk.CTk):
             readme_button.pack(side="right", padx=10)
 
         # Mettre à jour l'indicateur de page
-        total_pages = (len(self.scripts) - 1) // self.scripts_per_page + 1
+        if len(self.filtered_scripts) == 0:
+            total_pages = 1
+        else:
+            total_pages = (len(self.filtered_scripts) - 1) // self.scripts_per_page + 1
+
         self.page_label.configure(text=f"Page {self.page + 1} sur {total_pages}")
 
         # Activer/Désactiver les boutons de navigation
         self.previous_button.configure(state="normal" if self.page > 0 else "disabled")
-        self.next_button.configure(state="normal" if end_index < len(self.scripts) else "disabled")
+        self.next_button.configure(state="normal" if end_index < len(self.filtered_scripts) else "disabled")
 
         # Ajuster la taille de la fenêtre
         self.update_idletasks()
@@ -387,7 +420,7 @@ class Application(ctk.CTk):
 
     def next_page(self):
         """Passe à la page suivante."""
-        if (self.page + 1) * self.scripts_per_page < len(self.scripts):
+        if (self.page + 1) * self.scripts_per_page < len(self.filtered_scripts):
             self.page += 1
             self.update_page()
 
