@@ -66,9 +66,8 @@ def parcourir_et_supprimer():
     label_progression.pack_forget()
 
 def main():
-    # GUI avec customtkinter
-    ctk.set_appearance_mode("dark")  # Mode sombre
-    ctk.set_default_color_theme("blue")  # Thème bleu
+    ctk.set_appearance_mode("dark")
+    ctk.set_default_color_theme("blue")
 
     global fenetre, entry_chemin, label_progression
     fenetre = ctk.CTk()

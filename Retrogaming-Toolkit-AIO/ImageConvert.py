@@ -6,20 +6,19 @@ import subprocess
 import requests
 import tempfile
 import shutil
-# import zipfile
+
 import logging
 
-# Configuration du logging
+
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-# Import utils
+
 try:
     import utils
 except ImportError:
     utils = None
 
-# Fonction pour vérifier et télécharger FFmpeg
 # Fonction pour vérifier et télécharger FFmpeg
 def check_and_download_ffmpeg(root=None):
     target_name = "ffmpeg.exe"
@@ -70,7 +69,6 @@ def check_and_download_ffmpeg(root=None):
         messagebox.showerror("Erreur", "Impossible de télécharger FFmpeg (utils manquant).")
         return None
 
-# Fonction pour convertir les images
 # Fonction pour convertir les images
 def convert_images(root, input_dir, output_dir, input_format, output_format, delete_originals):
     try:
@@ -127,7 +125,6 @@ def create_gui():
     root = ctk.CTk()
     root.title("Convertisseur d'Images")
 
-    # Configuration du thème sombre et bleu
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
 
@@ -176,7 +173,7 @@ def create_gui():
     check_delete_originals.grid(row=4, column=0, columnspan=3, pady=5)
 
     # Bouton de conversion
-    # Update call to include root
+
     button_convert = ctk.CTkButton(root, text="Convertir", command=lambda: convert_images(root, entry_input_dir.get(), entry_output_dir.get(), input_format_var.get(), output_format_var.get(), delete_originals_var.get()), width=200)
     button_convert.pack(pady=10)
 

@@ -12,11 +12,9 @@ def main():
     import multiprocessing
     import sys
 
-    # Configuration du thème
-    ctk.set_appearance_mode("dark")  # Mode sombre
-    ctk.set_default_color_theme("blue")  # Thème bleu
+    ctk.set_appearance_mode("dark")
+    ctk.set_default_color_theme("blue")
 
-    # Import utils
     try:
         import utils
     except ImportError:

@@ -18,7 +18,7 @@ import importlib
 import traceback
 import threading
 import json
-import re # <-- AJOUT : Importation du module Regex
+import re
 
 # Pre-compile ANSI escape regex for performance
 ANSI_ESCAPE_REGEX = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
@@ -123,7 +123,6 @@ except Exception as e:
 
 # --- Fin de la section dépendances ---
 
-# Configuration de l'apparence de l'interface
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
@@ -204,8 +203,6 @@ class YtDlpGui(ctk.CTk):
 
         # Configuration de la fenêtre principale
         self.title("YT Downloader Pro (yt-dlp)")
-        # SUPPRESSION de la géométrie fixe pour laisser la fenêtre s'adapter au contenu
-        # self.geometry("600x550") 
         self.resizable(False, False)
 
         # Variables globales
@@ -214,10 +211,7 @@ class YtDlpGui(ctk.CTk):
         # NOUVELLES options
         self.no_playlist = BooleanVar(value=False)
         self.quality = StringVar(value='Source (Best)') # Qualité par défaut
-        self.codec = StringVar(value='Copier la vidéo (Rapide)') # <-- NOUVEAU : Codec par défaut
 
-        # --- SUPPRESSION DES ONGLETS ---
-        # Les widgets d'URL et de Destination sont ajoutés directement à la fenêtre principale
         
         ctk.CTkLabel(self, text="URL (Vidéo, Playlist ou Chaîne) :", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5), anchor="w", padx=10)
         self.url_entry = ctk.CTkEntry(self, width=580) # Largeur ajustée
@@ -266,7 +260,6 @@ class YtDlpGui(ctk.CTk):
         ctk.CTkLabel(left_frame, text="Options :", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(10, 5))
         ctk.CTkCheckBox(left_frame, text="Audio seulement (MP3)", variable=self.audio_only, command=self.toggle_quality_menu).pack(anchor="w", pady=10, padx=10)
         
-        # Checkbox "vidéo seule" déplacée ici
         ctk.CTkCheckBox(left_frame, text="Télécharger la vidéo seule (si c'est une playlist)", variable=self.no_playlist).pack(anchor="w", pady=10, padx=10)
         
         # --- Frame droite (Qualité) ---
@@ -279,22 +272,17 @@ class YtDlpGui(ctk.CTk):
 
         # --- Menu Codec ---
         ctk.CTkLabel(right_frame, text="Codec Vidéo :", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(10, 5))
-        # Suppression de 'AV1' car le ffmpeg inclus ne le supporte pas (cause "Encoder not found")
-        # Ajout du mode "Copier" (vcodec copy) pour des performances maximales
         self.codec_menu = ctk.CTkOptionMenu(right_frame, variable=self.codec, values=['Copier la vidéo (Rapide)', 'h264 (Lent)', 'h265 (Très lent)'])
         self.codec_menu.pack(anchor="w", pady=(0, 10), fill="x", padx=10)
-
-
-        # --- Frame bas (Options Playlist) SUPPRIMÉE ---
 
     def toggle_quality_menu(self):
         """Active/Désactive le menu qualité si "audio only" est coché."""
         if self.audio_only.get():
             self.quality_menu.configure(state="disabled")
-            self.codec_menu.configure(state="disabled") # <-- AJOUT
+            self.codec_menu.configure(state="disabled")
         else:
             self.quality_menu.configure(state="normal")
-            self.codec_menu.configure(state="normal") # <-- AJOUT
+            self.codec_menu.configure(state="normal")
 
     def browse_destination(self):
         """Ouvre une boîte de dialogue pour sélectionner un dossier de destination."""
@@ -308,32 +296,22 @@ class YtDlpGui(ctk.CTk):
         out_path = self.destination_folder.get()
         os.makedirs(out_path, exist_ok=True)
         
-        # --- CORRECTION DU BUG ---
-        # Au lieu d'un template yt-dlp conditionnel complexe qui cause des KeyErrors,
-        # nous utilisons la logique Python pour choisir le bon template.
-        
         if self.no_playlist.get():
-            # Si l'utilisateur coche "vidéo seule", on n'inclut jamais l'index de playlist.
             template_name = '%(title)s.%(ext)s'
         else:
-            # Si c'est une playlist, yt-dlp mettra le numéro (ex: "01 - Titre.mp4").
-            # Si c'est une vidéo seule, yt-dlp mettra "NA" (ex: "NA - Titre.mp4").
-            # C'est un peu moins joli pour les vidéos seules, mais c'est 100% robuste
-            # et évite le crash.
             template_name = '%(playlist_index)s - %(title)s.%(ext)s'
         
         out_template = os.path.join(out_path, template_name)
-        # --- FIN DE LA CORRECTION ---
 
         common_options = {
             'logger': YtdlpLogger(self),
             'progress_hooks': [self.hook_progress],
-            'postprocessor_hooks': [self.hook_postprocessing], # <-- AJOUT : Hook pour l'encodage
+            'postprocessor_hooks': [self.hook_postprocessing],
             'outtmpl': out_template,
             'noplaylist': self.no_playlist.get(),
             'encoding': 'utf-8',
             'ffmpeg_location': self.ffmpeg_path,
-            'no_color': True, # <-- CORRECTION 1: Désactiver les codes de couleur
+            'no_color': True,
         }
         
         if self.audio_only.get():
@@ -356,41 +334,34 @@ class YtDlpGui(ctk.CTk):
         else: # Mode vidéo
             quality_str = self.quality.get()
             quality_map = {
-                'Source (Best)': 'bestvideo+bestaudio/best', # <-- MODIFIÉ
+                'Source (Best)': 'bestvideo+bestaudio/best',
                 '1080p': 'bestvideo[height<=1080]+bestaudio/best[height<=1080]',
                 '720p': 'bestvideo[height<=720]+bestaudio/best[height<=720]',
                 '480p': 'bestvideo[height<=480]+bestaudio/best[height<=480]',
             }
             
-            # --- NOUVEAU : Logique pour le codec ---
             selected_codec = self.codec.get()
             codec_map = {
                 'Copier la vidéo (Rapide)': 'copy',
                 'h264 (Lent)': 'libx264',
                 'h265 (Très lent)': 'libx265',
             }
+
             # Par défaut 'copy' si sélection invalide
             ffmpeg_vcodec = codec_map.get(selected_codec, 'copy') 
             
             video_options = {
                 'format': quality_map.get(quality_str, 'bestvideo+bestaudio/best'),
                 'merge_output_format': 'mp4',
-                
-                # --- CORRECTION DE L'ERREUR TypeError ---
-                # Au lieu de 'FFmpegVideoConvertor', nous passons les arguments
-                # de codec directement au 'merger' (FFmpegMerger).
                 'postprocessor_args': {
                     'merger': [
-                        '-vcodec', ffmpeg_vcodec, # Force le codec vidéo choisi
-                        '-acodec', 'aac',         # Force le codec audio en AAC
+                        '-vcodec', ffmpeg_vcodec,
+                        '-acodec', 'aac',
                     ]
                 },
-                
-                # Nous gardons 'FFmpegMetadata' pour écrire les métadonnées
                 'postprocessors': [
                     {'key': 'FFmpegMetadata', 'add_metadata': True},
                 ],
-                # --- FIN DE LA CORRECTION ---
             }
             return {**common_options, **video_options}
 
@@ -402,13 +373,10 @@ class YtDlpGui(ctk.CTk):
         
         if d['status'] == 'downloading':
             try:
-                # --- CORRECTION 3: Nettoyage robuste de la string de progression ---
                 percent_str = d['_percent_str'].replace('%', '').strip()
-                # Supprimer les codes ANSI juste au cas où 'no_color' ne suffirait pas
                 percent_str = ANSI_ESCAPE_REGEX.sub('', percent_str)
                 
                 percent = float(percent_str) / 100.0
-                # --- Fin de la correction 3 ---
 
                 eta = d.get('_eta_str', 'N/A')
                 speed = d.get('_speed_str', 'N/A')

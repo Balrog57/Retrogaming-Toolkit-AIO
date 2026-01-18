@@ -7,7 +7,6 @@ import customtkinter as ctk
 from tkinter import filedialog
 from typing import List
 
-# Configuration du logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',

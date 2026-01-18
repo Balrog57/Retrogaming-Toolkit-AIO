@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from tkinter import messagebox  # messagebox est toujours utilisé depuis tkinter
+from tkinter import messagebox
 import os
 import sys
 import logging
@@ -14,7 +14,6 @@ from customtkinter import CTkImage
 import requests
 import webbrowser
 
-# Import utils
 # Fix sys.path for bundled modules and data directory
 if getattr(sys, 'frozen', False):
     # In frozen mode, we are in sys._MEIPASS
@@ -41,9 +40,8 @@ except ImportError:
     logger.error("Impossible d'importer utils.py")
     utils = None
 
-VERSION = "2.0.28"
+VERSION = "2.0.29"
 
-# Configuration du logging
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')
 if not local_app_data:
@@ -68,16 +66,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Configuration du thème
-ctk.set_appearance_mode("dark")  # Mode sombre
-ctk.set_default_color_theme("blue")  # Thème de couleur bleu
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
-# Helper pour resource path
 def get_path(p):
     if utils:
         return utils.resource_path(p)
     return p
 
-# Liste des scripts avec descriptions, chemins des icônes et fichiers "Lisez-moi"
 # Liste des scripts avec descriptions, chemins des icônes et fichiers "Lisez-moi"
 scripts = [
     {"name": "AssistedGamelist", "description": "(Retrobat) Gère et enrichit les listes de jeux XML.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "AssistedGamelist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "AssistedGamelist.txt"))},
@@ -113,7 +109,6 @@ scripts = [
 
 def run_module_process(module_name):
     """Fonction exécutée dans le processus enfant pour lancer le module."""
-    # Re-configure logging for child process (multiprocessing doesn't share logging config automatically on Windows)
     app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
     if not os.path.exists(app_data_dir):
         try:
@@ -404,7 +399,6 @@ class Application(ctk.CTk):
 
 def main():
     """Point d'entrée principal de l'application"""
-    # Nécessaire pour PyInstaller + Multiprocessing sous Windows
     multiprocessing.freeze_support()
 
     app = Application()

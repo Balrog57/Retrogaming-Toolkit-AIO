@@ -2,7 +2,7 @@ import os
 import shutil
 import subprocess
 import requests
-# import zipfile
+
 import re
 import glob
 import tempfile
@@ -10,7 +10,6 @@ import customtkinter as ctk
 from tkinter import messagebox
 from threading import Thread
 
-# Configuration de l'apparence et du thème
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 

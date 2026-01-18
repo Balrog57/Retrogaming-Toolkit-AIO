@@ -1,12 +1,11 @@
 import os
-# import zipfile
+
 import shutil
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 
-# Configuration de l'apparence de l'interface
-ctk.set_appearance_mode("dark")  # Mode sombre
-ctk.set_default_color_theme("blue")  # Thème bleu
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
 class BGBackupApp:
     def __init__(self, root):
@@ -39,7 +38,6 @@ class BGBackupApp:
         self.status_label = ctk.CTkLabel(root, text="")
         self.status_label.pack(pady=5)
 
-        # Variable pour stocker le chemin du dossier roms et destination
         self.roms_folder = None
         self.dest_folder = None
         

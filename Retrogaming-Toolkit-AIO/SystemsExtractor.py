@@ -5,9 +5,9 @@ import xml.etree.ElementTree as ET
 import os
 import requests
 import logging
-from xml.dom import minidom  # Import minidom
+from xml.dom import minidom
 
-# Configuration du logging (console only)
+
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 

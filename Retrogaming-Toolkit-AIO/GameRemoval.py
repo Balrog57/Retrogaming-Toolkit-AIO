@@ -4,7 +4,6 @@ import shutil
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 
-# Configuration de l'apparence de l'interface
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
@@ -22,18 +21,17 @@ class GameDeletionApp:
         self.create_widgets()
 
     def create_widgets(self):
-        # Frame principale pour organiser les champs de sélection
         self.frame_selection = ctk.CTkFrame(self.root)
         self.frame_selection.pack(pady=10, fill="x", padx=20)
 
-        # Sélection du dossier de base
+
         self.label_base_dir = ctk.CTkLabel(self.frame_selection, text="Sélectionnez le dossier de base :", font=("Arial", 14))
         self.label_base_dir.grid(row=0, column=0, padx=10, pady=5, sticky="w")
 
         self.button_base_dir = ctk.CTkButton(self.frame_selection, text="Parcourir", command=self.select_base_dir, width=100)
         self.button_base_dir.grid(row=0, column=1, padx=10, pady=5, sticky="w")
 
-        # Sélection dans Main
+
         self.label_main = ctk.CTkLabel(self.frame_selection, text="Sélectionnez un fichier dans Main :", font=("Arial", 14))
         self.label_main.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
@@ -43,7 +41,7 @@ class GameDeletionApp:
         self.button_confirm_main = ctk.CTkButton(self.frame_selection, text="→", width=30, command=self.confirm_main)
         self.button_confirm_main.grid(row=1, column=2, padx=10, pady=5, sticky="w")
 
-        # Sélection du système
+
         self.label_system = ctk.CTkLabel(self.frame_selection, text="Sélectionnez un système :", font=("Arial", 14))
         self.label_system.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
@@ -53,7 +51,7 @@ class GameDeletionApp:
         self.button_confirm_system = ctk.CTkButton(self.frame_selection, text="→", width=30, command=self.confirm_system)
         self.button_confirm_system.grid(row=2, column=2, padx=10, pady=5, sticky="w")
 
-        # Frame pour la sélection des jeux
+
         self.frame_games = ctk.CTkFrame(self.root)
         self.frame_games.pack(pady=10, fill="both", expand=True, padx=20)
 
@@ -76,7 +74,6 @@ class GameDeletionApp:
         self.button_delete = ctk.CTkButton(self.root, text="Supprimer les jeux sélectionnés", command=self.delete_games, width=200)
         self.button_delete.pack(pady=20)
 
-        # Verrouillage des étapes
         self.lock_steps()
 
     def lock_steps(self):

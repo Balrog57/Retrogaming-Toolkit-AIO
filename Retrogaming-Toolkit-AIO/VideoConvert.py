@@ -1,14 +1,13 @@
 import os
 import subprocess
 import requests
-# import zipfile
+
 import tempfile
 import shutil
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, Listbox, Checkbutton, BooleanVar
 import sys
 
-# Import utils
 try:
     import utils
 except ImportError:
@@ -146,8 +145,6 @@ def start_conversion():
             messagebox.showerror("Erreur", "Veuillez entrer les heures de début et de fin.")
             return
 
-        if not start_time or not end_time:
-            messagebox.showerror("Erreur", "Veuillez entrer les heures de début et de fin.")
             return
 
         # Prepare FFmpeg once
@@ -208,9 +205,8 @@ def handle_drop(event):
     except Exception as e:
         messagebox.showerror("Erreur", f"Erreur lors du glisser-déposer : {e}")
 
-# Configuration de l'apparence de l'interface
-ctk.set_appearance_mode("dark")  # Mode sombre
-ctk.set_default_color_theme("blue")  # Thème de couleur bleu
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
 # Création de la fenêtre principale
 root = ctk.CTk()
@@ -219,9 +215,8 @@ root.title("Trim et Convertisseur Vidéo par Lot")
 def main():
     global root, listbox_files, entry_start_time, entry_end_time, entry_video_bitrate, entry_audio_bitrate, entry_fps, entry_resolution, selected_output_option, capture_without_rotation_var, capture_with_rotation_var
 
-    # Configuration de l'apparence de l'interface
-    ctk.set_appearance_mode("dark")  # Mode sombre
-    ctk.set_default_color_theme("blue")  # Thème de couleur bleu
+    ctk.set_appearance_mode("dark")
+    ctk.set_default_color_theme("blue")
 
     # Création de la fenêtre principale
     root = ctk.CTk()

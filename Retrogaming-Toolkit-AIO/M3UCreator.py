@@ -2,9 +2,8 @@ import os
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 
-# Configuration de l'apparence de l'interface
-ctk.set_appearance_mode("dark")  # Mode sombre
-ctk.set_default_color_theme("blue")  # Thème de couleur bleu
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
 class MultiDiscM3UCreator(ctk.CTk):
     def __init__(self):
@@ -12,15 +11,12 @@ class MultiDiscM3UCreator(ctk.CTk):
         self.title("M3U Creator")
         self.geometry("800x600")
 
-        # Création des onglets avec customtkinter
         self.tab_control = ctk.CTkTabview(self)
         self.tab_control.pack(expand=True, fill="both", padx=10, pady=10)
 
-        # Onglet 1 : Multi-Disc M3U Creator
         self.tab1 = self.tab_control.add("Multi-Disc M3U Creator")
         self.setup_tab1()
 
-        # Onglet 2 : Vita3k M3U Creator
         self.tab2 = self.tab_control.add("Vita3k M3U Creator")
         self.setup_tab2()
 

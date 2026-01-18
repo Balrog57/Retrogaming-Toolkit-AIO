@@ -1,11 +1,10 @@
 import os
-# import zipfile
+
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
 
-# Configuration de l'apparence et du thème
-ctk.set_appearance_mode("dark")  # Mode sombre
-ctk.set_default_color_theme("blue")  # Thème de couleur bleu
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
 def compress_and_delete_roms(source_dir):
     """
@@ -100,7 +99,7 @@ def main():
     compress_button = ctk.CTkButton(root, text="ZIP", command=start_compression, width=200)
     compress_button.pack(pady=20)
 
-    # Lancement de l'interface
+
     root.mainloop()
 
 if __name__ == "__main__":
