@@ -6,6 +6,7 @@ import subprocess
 import requests
 import tempfile
 import shutil
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import logging
 
@@ -69,6 +70,33 @@ def check_and_download_ffmpeg(root=None):
         messagebox.showerror("Erreur", "Impossible de télécharger FFmpeg (utils manquant).")
         return None
 
+def process_single_image(ffmpeg_exe, filename, input_dir, output_dir, input_extensions, output_format, delete_originals):
+    try:
+        if any(filename.lower().endswith(f".{ext}") for ext in input_extensions):
+            input_path = os.path.join(input_dir, filename)
+            output_filename = os.path.splitext(filename)[0] + f".{output_format.lower()}"
+            output_path = os.path.join(output_dir, output_filename)
+
+            logging.info(f"Conversion de : {input_path} vers {output_path}")
+
+            # Utilisation de FFmpeg pour la conversion
+            # Use resolved ffmpeg path
+            ffmpeg_cmd = [
+                ffmpeg_exe,
+                "-i", input_path,
+                "-frames:v", "1",  # Ajout de l'argument -frames:v 1
+                "-update", "1",     # Ajout de l'argument -update 1
+                output_path
+            ]
+            subprocess.run(ffmpeg_cmd, check=True)
+
+            if delete_originals:
+                os.remove(input_path)
+                logging.info(f"Fichier original supprimé : {input_path}")
+    except Exception as e:
+        logging.error(f"Failed to process {filename}: {e}")
+        raise e
+
 # Fonction pour convertir les images
 def convert_images(root, input_dir, output_dir, input_format, output_format, delete_originals):
     try:
@@ -89,30 +117,27 @@ def convert_images(root, input_dir, output_dir, input_format, output_format, del
         if not ffmpeg_exe:
             return
 
-        for filename in os.listdir(input_dir):
-            if any(filename.lower().endswith(f".{ext}") for ext in input_extensions):
-                input_path = os.path.join(input_dir, filename)
-                output_filename = os.path.splitext(filename)[0] + f".{output_format.lower()}"
-                output_path = os.path.join(output_dir, output_filename)
+        files_to_process = os.listdir(input_dir)
 
-                logging.info(f"Conversion de : {input_path} vers {output_path}")
+        # Parallel processing
+        # Use a reasonable number of workers.
+        # ffmpeg itself can be CPU intensive, but for image conversion startup cost is high.
+        # We can use os.cpu_count() + 4 for I/O bound tasks, but let's stick to os.cpu_count() to be safe.
+        max_workers = os.cpu_count() or 4
 
-                # Utilisation de FFmpeg pour la conversion
-                # Use resolved ffmpeg path
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [
+                executor.submit(process_single_image, ffmpeg_exe, filename, input_dir, output_dir, input_extensions, output_format, delete_originals)
+                for filename in files_to_process
+            ]
 
-                
-                ffmpeg_cmd = [
-                    ffmpeg_exe,
-                    "-i", input_path,
-                    "-frames:v", "1",  # Ajout de l'argument -frames:v 1
-                    "-update", "1",     # Ajout de l'argument -update 1
-                    output_path
-                ]
-                subprocess.run(ffmpeg_cmd, check=True)
-
-                if delete_originals:
-                    os.remove(input_path)
-                    logging.info(f"Fichier original supprimé : {input_path}")
+            # Wait for all to complete and check for exceptions
+            for future in as_completed(futures):
+                try:
+                    future.result()
+                except Exception as e:
+                    # Logged in helper already, but we can aggregate errors here if needed
+                    pass
 
         messagebox.showinfo("Succès", "Conversion terminée.")
         logging.info("Conversion terminée avec succès.")
