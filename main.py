@@ -40,7 +40,7 @@ except ImportError:
     logger.error("Impossible d'importer utils.py")
     utils = None
 
-VERSION = "2.0.31"
+VERSION = "2.0.32"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')

@@ -51,6 +51,15 @@ def build():
     for d in tmp_ret[0]: # datas
          args.append(f'--add-data={d[0]}{os.pathsep}{d[1]}')
 
+    # Collect tkinterdnd2 data
+    tmp_ret = collect_all('tkinterdnd2')
+    for d in tmp_ret[0]: # datas
+         args.append(f'--add-data={d[0]}{os.pathsep}{d[1]}')
+    for b in tmp_ret[1]: # binaries
+         args.append(f'--add-binary={b[0]}{os.pathsep}{b[1]}')
+    for h in tmp_ret[2]: # hiddenimports
+        args.append(f'--hidden-import={h}')
+
     # Add data files
     # Format: src;dest
     # We copy the ENTIRE Retrogaming-Toolkit-AIO folder to ensure all scripts and resources are available

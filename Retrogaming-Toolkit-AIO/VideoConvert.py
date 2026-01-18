@@ -7,6 +7,7 @@ import shutil
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, Listbox, Checkbutton, BooleanVar
 import sys
+from tkinterdnd2 import TkinterDnD, DND_FILES
 
 try:
     import utils
@@ -42,16 +43,6 @@ def check_and_download_ffmpeg(root=None):
                  url=ffmpeg_url,
                  target_exe_name=target_name,
                  archive_type="zip",
-                 # utils.DependencyManager logic might need enhancement if we want to extract from subfolder
-                 # The current generic extract logic in utils might fail if ffmpeg.exe is in a subfolder 
-                 # BUT, I already updated convert_images which uses the same install_dependency call 
-                 # and I didn't see an explicit "scan subfolders" update in utils.
-                 # Wait, looking at utils.py code earlier...
-                 # It does:
-                 # for root, dirs, files in os.walk(extract_dir):
-                 #    if target_exe_name in files:
-                 #        found_file = os.path.join(root, target_exe_name)
-                 # So yes, it finds it recursively!
                  extract_file_in_archive=None
              )
              return result
@@ -132,6 +123,12 @@ def browse_files():
 def clear_files():
     listbox_files.delete(0, "end")
 
+def delete_selected_files(event):
+    """Supprime les éléments sélectionnés de la liste lors de l'appui sur Suppr."""
+    selection = listbox_files.curselection()
+    for index in reversed(selection):
+        listbox_files.delete(index)
+
 def start_conversion():
     try:
         start_time = entry_start_time.get()
@@ -143,8 +140,6 @@ def start_conversion():
 
         if not start_time or not end_time:
             messagebox.showerror("Erreur", "Veuillez entrer les heures de début et de fin.")
-            return
-
             return
 
         # Prepare FFmpeg once
@@ -189,12 +184,6 @@ def start_conversion():
                 # If extension changed, we must rename the target file
                 if ext != os.path.splitext(input_file)[1]:
                      new_input_path = os.path.splitext(input_file)[0] + ext
-                     # If target exists (e.g. video.mp4 exists and we convert video.avi to video.mp4), what to do?
-                     # Replace mode usually implies replacing the *source content*. 
-                     # If we change extension, we should probably delete the old file and save new one.
-                     # But strictly speaking 'replace' might mean 'overwrite in place'.
-                     # Let's assume user wants to replace the old file with the new converted file.
-                     
                      shutil.move(temp_file, new_input_path)
                      try:
                         os.remove(input_file) # Remove the old extension file
@@ -224,18 +213,17 @@ def start_conversion():
 
 def handle_drop(event):
     try:
-        files = event.data.strip().split()
+        files = root.tk.splitlist(event.data)
         for file in files:
             listbox_files.insert("end", file)
     except Exception as e:
         messagebox.showerror("Erreur", f"Erreur lors du glisser-déposer : {e}")
 
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
-
-# Création de la fenêtre principale
-root = ctk.CTk()
-root.title("Trim et Convertisseur Vidéo par Lot")
+# Wrapper pour supporter Drag & Drop avec CustomTkinter
+class Tk(ctk.CTk, TkinterDnD.DnDWrapper):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.TkdndVersion = TkinterDnD._require(self)
 
 def main():
     global root, listbox_files, entry_start_time, entry_end_time, entry_video_bitrate, entry_audio_bitrate, entry_fps, entry_resolution, selected_output_option, capture_without_rotation_var, capture_with_rotation_var, selected_format
@@ -243,84 +231,92 @@ def main():
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
 
-    # Création de la fenêtre principale
-    root = ctk.CTk()
+    # Initialisation avec support DnD
+    root = Tk()
     root.title("Trim et Convertisseur Vidéo par Lot")
+    root.geometry("800x600")
 
     # Input file selection
     frame_input = ctk.CTkFrame(root)
     frame_input.pack(padx=10, pady=5, fill="x")
 
-    label_input_files = ctk.CTkLabel(frame_input, text="Fichiers vidéo d'entrée :", font=("Arial", 16))
+    label_input_files = ctk.CTkLabel(frame_input, text="Fichiers vidéo d'entrée (Glisser-Déposer accepté) :", font=("Arial", 16))
     label_input_files.pack(side="left")
 
-    button_browse = ctk.CTkButton(frame_input, text="Ajouter des fichiers", command=browse_files, width=200)
+    button_browse = ctk.CTkButton(frame_input, text="Ajouter des fichiers", command=browse_files, width=150)
     button_browse.pack(side="left", padx=5)
 
-    button_clear = ctk.CTkButton(frame_input, text="Effacer la liste", command=clear_files, width=200)
+    button_clear = ctk.CTkButton(frame_input, text="Effacer la liste", command=clear_files, width=150)
     button_clear.pack(side="left", padx=5)
 
     # Listbox to show selected files
-    listbox_files = Listbox(root, selectmode="multiple", height=10, width=80)
-    listbox_files.pack(padx=10, pady=5)
+    listbox_files = Listbox(root, selectmode="multiple", height=8, width=80)
+    listbox_files.pack(padx=10, pady=5, fill="both", expand=True)
 
-    # Start and end time inputs
+    # Enable Drag & Drop
+    listbox_files.drop_target_register(DND_FILES)
+    listbox_files.dnd_bind('<<Drop>>', handle_drop)
+    
+    # Enable Delete key
+    listbox_files.bind("<Delete>", delete_selected_files)
+
+    # Start/End time & Format (Compact Row)
     frame_times = ctk.CTkFrame(root)
     frame_times.pack(padx=10, pady=5, fill="x")
 
-    label_start_time = ctk.CTkLabel(frame_times, text="Heure de début (HH:MM:SS) :", font=("Arial", 14))
-    label_start_time.pack(side="left")
+    label_start_time = ctk.CTkLabel(frame_times, text="Début (HH:MM:SS) :", font=("Arial", 13))
+    label_start_time.pack(side="left", padx=5)
 
-    entry_start_time = ctk.CTkEntry(frame_times, width=100)
+    entry_start_time = ctk.CTkEntry(frame_times, width=80)
     entry_start_time.insert(0, "00:00:00")
     entry_start_time.pack(side="left", padx=5)
 
-    label_end_time = ctk.CTkLabel(frame_times, text="Heure de fin (HH:MM:SS) :", font=("Arial", 14))
-    label_end_time.pack(side="left")
+    label_end_time = ctk.CTkLabel(frame_times, text="Fin (HH:MM:SS) :", font=("Arial", 13))
+    label_end_time.pack(side="left", padx=5)
 
-    entry_end_time = ctk.CTkEntry(frame_times, width=100)
+    entry_end_time = ctk.CTkEntry(frame_times, width=80)
     entry_end_time.insert(0, "00:01:30")
     entry_end_time.pack(side="left", padx=5)
 
-    # Video settings inputs
+    # Output Format Selection (Moved here)
+    label_format = ctk.CTkLabel(frame_times, text="Format :", font=("Arial", 13))
+    label_format.pack(side="left", padx=(15, 5))
+    
+    selected_format = ctk.StringVar(value="Source")
+    combo_format = ctk.CTkComboBox(frame_times, variable=selected_format, values=["Source", "MP4", "MKV"], width=80, state="readonly")
+    combo_format.pack(side="left", padx=5)
+
+    # Video settings inputs (Compact Row)
     frame_settings = ctk.CTkFrame(root)
     frame_settings.pack(padx=10, pady=5, fill="x")
 
-    label_video_bitrate = ctk.CTkLabel(frame_settings, text="Débit vidéo (kbps) :", font=("Arial", 14))
-    label_video_bitrate.pack(side="left")
+    label_video_bitrate = ctk.CTkLabel(frame_settings, text="Vidéo (kbps) :", font=("Arial", 13))
+    label_video_bitrate.pack(side="left", padx=5)
 
-    entry_video_bitrate = ctk.CTkEntry(frame_settings, width=100)
+    entry_video_bitrate = ctk.CTkEntry(frame_settings, width=80)
     entry_video_bitrate.insert(0, "8000k")
     entry_video_bitrate.pack(side="left", padx=5)
 
-    label_audio_bitrate = ctk.CTkLabel(frame_settings, text="Débit audio (kbps) :", font=("Arial", 14))
-    label_audio_bitrate.pack(side="left")
+    label_audio_bitrate = ctk.CTkLabel(frame_settings, text="Audio (kbps) :", font=("Arial", 13))
+    label_audio_bitrate.pack(side="left", padx=5)
 
-    entry_audio_bitrate = ctk.CTkEntry(frame_settings, width=100)
+    entry_audio_bitrate = ctk.CTkEntry(frame_settings, width=80)
     entry_audio_bitrate.insert(0, "128k")
     entry_audio_bitrate.pack(side="left", padx=5)
 
-    label_fps = ctk.CTkLabel(frame_settings, text="FPS :", font=("Arial", 14))
-    label_fps.pack(side="left")
+    label_fps = ctk.CTkLabel(frame_settings, text="FPS :", font=("Arial", 13))
+    label_fps.pack(side="left", padx=5)
 
-    entry_fps = ctk.CTkEntry(frame_settings, width=100)
+    entry_fps = ctk.CTkEntry(frame_settings, width=60)
     entry_fps.insert(0, "30")
     entry_fps.pack(side="left", padx=5)
 
-    label_resolution = ctk.CTkLabel(frame_settings, text="Résolution (LxH) :", font=("Arial", 14))
-    label_resolution.pack(side="left")
+    label_resolution = ctk.CTkLabel(frame_settings, text="Résolution :", font=("Arial", 13))
+    label_resolution.pack(side="left", padx=5)
 
     entry_resolution = ctk.CTkEntry(frame_settings, width=100)
     entry_resolution.insert(0, "1920x1080")
     entry_resolution.pack(side="left", padx=5)
-
-    # Output Format Selection
-    label_format = ctk.CTkLabel(frame_settings, text="Format :", font=("Arial", 14))
-    label_format.pack(side="left", padx=(10, 0))
-    
-    selected_format = ctk.StringVar(value="Source")
-    combo_format = ctk.CTkComboBox(frame_settings, variable=selected_format, values=["Source", "MP4", "MKV"], width=80)
-    combo_format.pack(side="left", padx=5)
 
     # Output options
     frame_output_options = ctk.CTkFrame(root)
@@ -329,10 +325,10 @@ def main():
     selected_output_option = ctk.StringVar(value="folder")
 
     radio_folder = ctk.CTkRadioButton(frame_output_options, text="Exporter dans un sous-dossier 'vidéos_converties'", variable=selected_output_option, value="folder")
-    radio_folder.pack(anchor="w")
+    radio_folder.pack(anchor="w", padx=10, pady=2)
 
     radio_replace = ctk.CTkRadioButton(frame_output_options, text="Remplacer les fichiers originaux", variable=selected_output_option, value="replace")
-    radio_replace.pack(anchor="w")
+    radio_replace.pack(anchor="w", padx=10, pady=2)
 
     # Capture options
     frame_capture_options = ctk.CTkFrame(root)
@@ -342,13 +338,13 @@ def main():
     capture_with_rotation_var = BooleanVar()
 
     check_capture_without_rotation = ctk.CTkCheckBox(frame_capture_options, text="Capture d'une cover sans rotation", variable=capture_without_rotation_var)
-    check_capture_without_rotation.pack(anchor="w")
+    check_capture_without_rotation.pack(side="left", padx=10, pady=5)
 
     check_capture_with_rotation = ctk.CTkCheckBox(frame_capture_options, text="Capture d'une cover avec rotation", variable=capture_with_rotation_var)
-    check_capture_with_rotation.pack(anchor="w")
+    check_capture_with_rotation.pack(side="left", padx=10, pady=5)
 
     # Convert button
-    button_convert = ctk.CTkButton(root, text="Convertir", command=start_conversion, width=200)
+    button_convert = ctk.CTkButton(root, text="Convertir", command=start_conversion, width=200, height=40, font=("Arial", 14, "bold"))
     button_convert.pack(pady=10)
 
     # Check dependencies at startup
