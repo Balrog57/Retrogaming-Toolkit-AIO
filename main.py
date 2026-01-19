@@ -13,6 +13,7 @@ from PIL import Image
 from customtkinter import CTkImage
 import requests
 import webbrowser
+import threading
 
 # Fix sys.path for bundled modules and data directory
 if getattr(sys, 'frozen', False):
@@ -40,7 +41,7 @@ except ImportError:
     logger.error("Impossible d'importer utils.py")
     utils = None
 
-VERSION = "2.0.32"
+VERSION = "2.0.33"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')
@@ -271,6 +272,11 @@ class Application(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Lanceur de Modules - Retrogaming-Toolkit-AIO")
+        try:
+            icon_path = get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "Retrogaming-Toolkit-AIO.ico"))
+            self.iconbitmap(icon_path)
+        except Exception as e:
+            logger.error(f"Erreur lors de la définition de l'icône de l'application : {e}")
         self.geometry("800x400")  # Taille initiale
 
         self.scripts = scripts
@@ -291,6 +297,10 @@ class Application(ctk.CTk):
         self.search_var.trace("w", self.filter_scripts)
         self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_var, width=300, placeholder_text="Nom ou description...")
         self.search_entry.pack(side="left", padx=10, pady=10, fill="x", expand=True)
+
+        self.clear_button = ctk.CTkButton(self.search_frame, text="✕", width=25, height=25, 
+                                          command=self.clear_search, 
+                                          fg_color="transparent", hover_color=("gray70", "gray30"), text_color="gray")
 
         # Conteneur principal
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
@@ -326,20 +336,42 @@ class Application(ctk.CTk):
 
         # Afficher les scripts de la première page (APRÈS l'initialisation de tous les frames)
         self.update_page()
+        
+        # Auto-focus search bar
+        self.after(100, lambda: self.search_entry.focus_set())
 
     def check_updates(self):
-        """Vérifie les mises à jour et met à jour l'interface."""
-        update_available, latest_version = check_for_updates()
+        """Vérifie les mises à jour de manière asynchrone (non-bloquant)."""
+        self.update_label.configure(text="Vérification des mises à jour...", text_color="gray")
+        
+        def update_worker():
+             update_available, latest_version = check_for_updates()
+             # Schedule UI update on main thread
+             self.after(0, lambda: self.update_update_ui(update_available, latest_version))
+        
+        thread = threading.Thread(target=update_worker, daemon=True)
+        thread.start()
+
+    def update_update_ui(self, update_available, latest_version):
+        """Met à jour l'UI avec le résultat de la vérification de mise à jour."""
         if update_available:
             self.update_label.configure(text=f"Mise à jour disponible : {latest_version}", text_color="green")
-            self.update_button = ctk.CTkButton(self.bottom_frame, text="Mettre à jour", command=launch_update, fg_color="green")
-            self.update_button.pack(side="right", padx=10)
+            if not hasattr(self, 'update_button'):
+                self.update_button = ctk.CTkButton(self.bottom_frame, text="Mettre à jour", command=launch_update, fg_color="green")
+                self.update_button.pack(side="right", padx=10)
         else:
-            self.update_label.configure(text="Aucune mise à jour disponible", text_color="gray")
+            self.update_label.configure(text=f"Version à jour ({VERSION})", text_color="gray")
 
     def filter_scripts(self, *args):
         """Filtre la liste des scripts en fonction de la recherche."""
         query = self.search_var.get().lower()
+
+        # Toggle clear button visibility
+        if query:
+            self.clear_button.pack(side="right", padx=(0, 10))
+        else:
+            self.clear_button.pack_forget()
+
         if not query:
             self.filtered_scripts = list(self.scripts)
         else:
@@ -350,6 +382,11 @@ class Application(ctk.CTk):
         
         self.page = 0 # Réinitialiser à la première page
         self.update_page()
+
+    def clear_search(self):
+        """Efface la recherche."""
+        self.search_var.set("")
+        self.search_entry.focus_set()
 
     def update_page(self):
         """Met à jour l'affichage des scripts pour la page courante."""

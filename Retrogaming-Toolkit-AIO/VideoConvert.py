@@ -1,5 +1,6 @@
 import os
 import subprocess
+import re
 import requests
 
 import tempfile
@@ -141,6 +142,36 @@ def start_conversion():
         if not start_time or not end_time:
             messagebox.showerror("Erreur", "Veuillez entrer les heures de début et de fin.")
             return
+
+        # VULNERABILITY FIX: Validate inputs with regex to prevent argument injection
+        time_pattern = r"^\d{2}:\d{2}:\d{2}$"
+        if not re.match(time_pattern, start_time):
+             messagebox.showerror("Erreur", "Format de l'heure de début invalide (HH:MM:SS).")
+             return
+        if not re.match(time_pattern, end_time):
+             messagebox.showerror("Erreur", "Format de l'heure de fin invalide (HH:MM:SS).")
+             return
+
+        # Bitrate validation (digits optionally followed by k/M/G)
+        bitrate_pattern = r"^\d+[kKmMgG]?$"
+        if not re.match(bitrate_pattern, video_bitrate):
+             messagebox.showerror("Erreur", "Bitrate vidéo invalide (ex: 8000k).")
+             return
+        if not re.match(bitrate_pattern, audio_bitrate):
+             messagebox.showerror("Erreur", "Bitrate audio invalide (ex: 128k).")
+             return
+
+        # FPS validation (integer or float)
+        fps_pattern = r"^\d+(\.\d+)?$"
+        if not re.match(fps_pattern, fps):
+             messagebox.showerror("Erreur", "FPS invalide (ex: 30 ou 29.97).")
+             return
+
+        # Resolution validation (WxH)
+        resolution_pattern = r"^\d+x\d+$"
+        if not re.match(resolution_pattern, resolution):
+             messagebox.showerror("Erreur", "Résolution invalide (ex: 1920x1080).")
+             return
 
         # Prepare FFmpeg once
         check_and_download_ffmpeg(root)
