@@ -5,6 +5,7 @@ import sys
 import logging
 import subprocess
 import multiprocessing
+import threading
 import importlib
 import tempfile
 import zipfile
@@ -292,6 +293,9 @@ class Application(ctk.CTk):
         self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_var, width=300, placeholder_text="Nom ou description...")
         self.search_entry.pack(side="left", padx=10, pady=10, fill="x", expand=True)
 
+        self.clear_button = ctk.CTkButton(self.search_frame, text="❌", width=30, command=self.clear_search, fg_color="transparent", hover_color=("gray75", "gray25"), text_color=("gray10", "gray90"), state="disabled")
+        self.clear_button.pack(side="left", padx=(0, 10))
+
         # Conteneur principal
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
         self.main_frame.pack(expand=True, fill="both", padx=10, pady=10)
@@ -327,9 +331,30 @@ class Application(ctk.CTk):
         # Afficher les scripts de la première page (APRÈS l'initialisation de tous les frames)
         self.update_page()
 
+        # Focus sur la barre de recherche au démarrage
+        self.search_entry.focus_set()
+
+    def clear_search(self):
+        """Efface le contenu de la barre de recherche."""
+        self.search_var.set("")
+        self.search_entry.focus_set()
+
     def check_updates(self):
-        """Vérifie les mises à jour et met à jour l'interface."""
-        update_available, latest_version = check_for_updates()
+        """Lance la vérification des mises à jour en arrière-plan."""
+        # Use threading to avoid blocking main thread
+        threading.Thread(target=self._run_update_check, daemon=True).start()
+
+    def _run_update_check(self):
+        """Exécute la vérification réseau et planifie la mise à jour de l'UI."""
+        try:
+            update_available, latest_version = check_for_updates()
+            self.after(0, lambda: self._process_update_result(update_available, latest_version))
+        except Exception as e:
+            logger.error(f"Erreur thread update: {e}")
+            self.after(0, lambda: self.update_label.configure(text="Erreur vérification maj", text_color="red"))
+
+    def _process_update_result(self, update_available, latest_version):
+        """Met à jour l'interface avec le résultat."""
         if update_available:
             self.update_label.configure(text=f"Mise à jour disponible : {latest_version}", text_color="green")
             self.update_button = ctk.CTkButton(self.bottom_frame, text="Mettre à jour", command=launch_update, fg_color="green")
@@ -340,6 +365,10 @@ class Application(ctk.CTk):
     def filter_scripts(self, *args):
         """Filtre la liste des scripts en fonction de la recherche."""
         query = self.search_var.get().lower()
+
+        if hasattr(self, 'clear_button'):
+             self.clear_button.configure(state="normal" if query else "disabled")
+
         if not query:
             self.filtered_scripts = list(self.scripts)
         else:
