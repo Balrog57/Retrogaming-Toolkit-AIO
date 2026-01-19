@@ -1,6 +1,7 @@
 import os
 import subprocess
 import requests
+import re
 
 import tempfile
 import shutil
@@ -13,6 +14,34 @@ try:
     import utils
 except ImportError:
     pass
+
+def validate_inputs(start_time, end_time, video_bitrate, audio_bitrate, fps, resolution):
+    # Time format: HH:MM:SS
+    time_pattern = re.compile(r'^\d{2}:\d{2}:\d{2}$')
+    if not time_pattern.match(start_time):
+        raise ValueError("Start time must be in HH:MM:SS format.")
+    if not time_pattern.match(end_time):
+        raise ValueError("End time must be in HH:MM:SS format.")
+
+    # Bitrate: digits followed by optional k/K/m/M
+    bitrate_pattern = re.compile(r'^\d+[kKmM]?$')
+    if not bitrate_pattern.match(video_bitrate):
+        raise ValueError("Invalid video bitrate format. Use e.g. '8000k'.")
+    if not bitrate_pattern.match(audio_bitrate):
+        raise ValueError("Invalid audio bitrate format. Use e.g. '128k'.")
+
+    # FPS: integer or float
+    try:
+        float(fps)
+    except ValueError:
+         raise ValueError("FPS must be a number.")
+
+    # Resolution: WxH
+    resolution_pattern = re.compile(r'^\d+x\d+$')
+    if not resolution_pattern.match(resolution):
+         raise ValueError("Resolution must be in WxH format (e.g. 1920x1080).")
+
+    return True
 
 def check_and_download_ffmpeg(root=None):
     target_name = "ffmpeg.exe"
@@ -142,6 +171,8 @@ def start_conversion():
             messagebox.showerror("Erreur", "Veuillez entrer les heures de début et de fin.")
             return
 
+        validate_inputs(start_time, end_time, video_bitrate, audio_bitrate, fps, resolution)
+
         # Prepare FFmpeg once
         check_and_download_ffmpeg(root)
         if 'utils' in sys.modules:
@@ -208,6 +239,8 @@ def start_conversion():
                     capture_first_frame(input_file, output_image, rotate=True, root=root, ffmpeg_path=ffmpeg_path)
 
         messagebox.showinfo("Succès", "Traitement terminé pour toutes les vidéos.")
+    except ValueError as ve:
+        messagebox.showerror("Erreur de saisie", str(ve))
     except Exception as e:
         messagebox.showerror("Erreur", f"Une erreur s'est produite : {e}")
 

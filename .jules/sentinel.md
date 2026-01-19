@@ -1,0 +1,4 @@
+## 2025-02-17 - [Command Argument Injection in VideoConvert]
+**Vulnerability:** User inputs (bitrate, fps, resolution) were passed directly to `ffmpeg` via `subprocess` arguments without validation. While `subprocess` protects against shell injection, it does not prevent argument injection where malicious flags (e.g., `-vf`) could be injected via these fields.
+**Learning:** Even when using `subprocess` with a list of arguments (avoiding shell injection), the target application (in this case `ffmpeg`) parses the arguments. If a parameter value starts with `-`, it might be interpreted as a new flag, potentially altering the command's behavior.
+**Prevention:** Always validate user input against a strict allowlist (e.g., regex for bitrates, numbers for FPS) before passing it to external commands.
