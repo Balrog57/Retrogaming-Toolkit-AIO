@@ -41,8 +41,11 @@ def extract_first_image(file_path, output_dir):
              
         cmd = [manager.seven_za_path, 'e', file_path, f'-o{temp_dir}', '*.jpg', '*.jpeg', '*.png', '-r', '-y']
         
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        if os.name == 'nt':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        else:
+            startupinfo = None
         subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
         
         # Find first image in temp_dir

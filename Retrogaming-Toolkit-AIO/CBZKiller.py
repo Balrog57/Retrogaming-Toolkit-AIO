@@ -172,8 +172,12 @@ class PDFCBRtoCBZConverter(ctk.CTk):
             # cmd: 7za a -tzip "archive.cbz" "./temp_extract/*"
             cmd = [seven_za, 'a', '-tzip', cbz_path, f'.{os.sep}{temp_dir}{os.sep}*']
             
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            if os.name == 'nt':
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            else:
+                startupinfo = None
+
             subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
 
             shutil.rmtree(temp_dir)

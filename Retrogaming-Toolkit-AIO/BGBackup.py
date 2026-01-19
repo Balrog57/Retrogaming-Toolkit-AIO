@@ -162,8 +162,11 @@ class BGBackupApp:
                 # Run 7za
                 cmd = [manager.seven_za_path, 'a', '-tzip', zip_filename, f'@{list_path}']
                 
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                if os.name == 'nt':
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                else:
+                    startupinfo = None
                 
                 self.current_status = f"Compression en cours de {count} fichiers..."
                 # Run properly

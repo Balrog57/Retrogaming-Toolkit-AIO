@@ -40,8 +40,11 @@ def compress_and_delete_roms(source_dir):
 
                     cmd = [manager.seven_za_path, 'a', '-tzip', zip_path, file_path]
                     
-                    startupinfo = subprocess.STARTUPINFO()
-                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    if os.name == 'nt':
+                        startupinfo = subprocess.STARTUPINFO()
+                        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    else:
+                        startupinfo = None
                     
                     subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
                     print(f"Fichier compressé : {zip_filename}")

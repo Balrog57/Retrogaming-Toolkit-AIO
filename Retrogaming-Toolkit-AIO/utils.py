@@ -287,8 +287,11 @@ class DependencyManager:
              if extract_file_in_archive:
                  cmd.append(extract_file_in_archive)
                  
-             startupinfo = subprocess.STARTUPINFO()
-             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+             if os.name == 'nt':
+                 startupinfo = subprocess.STARTUPINFO()
+                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+             else:
+                 startupinfo = None
              
              subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
              
@@ -334,8 +337,11 @@ def extract_with_7za(archive_path, output_dir, file_to_extract=None, root=None):
     if file_to_extract:
          cmd.append(file_to_extract)
          
-    startupinfo = subprocess.STARTUPINFO()
-    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    if os.name == 'nt':
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    else:
+        startupinfo = None
     
     subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
 
