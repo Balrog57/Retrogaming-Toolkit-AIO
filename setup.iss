@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Retrogaming Toolkit AIO"
-#define MyAppVersion "2.0.32"
+#define MyAppVersion "2.0.33"
 #define MyAppPublisher "Balrog57"
 #define MyAppURL "https://github.com/Balrog57/Retrogaming-Toolkit-AIO"
 #define MyAppExeName "RetrogamingToolkit.exe"
@@ -25,7 +25,7 @@ DisableDirPage=no
 ;PrivilegesRequired=lowest
 OutputDir=.
 OutputBaseFilename=RetrogamingToolkit_Setup
-SetupIconFile=Retrogaming-Toolkit-AIO\icons\GameBatch.ico
+SetupIconFile=Retrogaming-Toolkit-AIO\icons\Retrogaming-Toolkit-AIO.ico
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
