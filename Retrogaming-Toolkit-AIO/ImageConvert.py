@@ -1,3 +1,4 @@
+import sys
 import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import customtkinter as ctk
@@ -196,6 +197,20 @@ def create_gui():
     entry_output_dir.grid(row=1, column=1, padx=5, pady=5)
     button_output_dir = ctk.CTkButton(frame_options, text="Parcourir", command=lambda: entry_output_dir.insert(0, filedialog.askdirectory()), width=100)
     button_output_dir.grid(row=1, column=2, padx=5, pady=5)
+
+    def open_output_folder():
+        path = entry_output_dir.get()
+        if os.path.exists(path):
+            if os.name == 'nt':
+                os.startfile(path)
+            else:
+                opener = 'open' if sys.platform == 'darwin' else 'xdg-open'
+                subprocess.call([opener, path])
+        else:
+            messagebox.showwarning("Attention", "Le dossier de sortie n'existe pas encore.")
+
+    button_open_output = ctk.CTkButton(frame_options, text="📂", width=40, command=open_output_folder)
+    button_open_output.grid(row=1, column=3, padx=5, pady=5)
 
     # Sélection du format d'entrée
     label_input_format = ctk.CTkLabel(frame_options, text="Format d'entrée:", font=font_titre)
