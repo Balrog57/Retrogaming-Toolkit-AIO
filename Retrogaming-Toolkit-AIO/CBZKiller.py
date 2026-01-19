@@ -1,15 +1,70 @@
 import os
-# import zipfile # Removed for 7za
-# import rarfile # Removed for 7za
-# from patoolib import extract_archive # Removed for 7za
+import zipfile
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, scrolledtext
 import threading
 import fitz  # PyMuPDF
+import concurrent.futures
+import tempfile
+import subprocess
+import shutil
 
 # Configuration de l'apparence de l'interface
 ctk.set_appearance_mode("dark")  # Mode sombre
 ctk.set_default_color_theme("blue")  # Thème bleu
+
+def process_pdf_to_cbz(pdf_path, cbz_path):
+    """
+    Worker function for PDF to CBZ conversion.
+    Returns (success, message)
+    """
+    try:
+        pdf_document = fitz.open(pdf_path)
+        with zipfile.ZipFile(cbz_path, 'w') as cbz:
+            # Use a temporary directory for extracting images to avoid collisions
+            with tempfile.TemporaryDirectory() as temp_dir:
+                for i in range(len(pdf_document)):
+                    try:
+                        page = pdf_document.load_page(i)
+                        pix = page.get_pixmap()
+                        image_path = os.path.join(temp_dir, f"page_{i+1}.jpg")
+                        pix.save(image_path)
+                        cbz.write(image_path, arcname=f"page_{i+1}.jpg")
+                    except Exception as e:
+                        # Return partial failure or log?
+                        # We will just raise to capture in the caller
+                        raise Exception(f"Page {i+1} failed: {e}")
+        pdf_document.close()
+        return True, f"PDF converti : {os.path.basename(pdf_path)}"
+    except Exception as e:
+        return False, f"Erreur PDF {os.path.basename(pdf_path)}: {str(e)}"
+
+def process_cbr_to_cbz(cbr_path, cbz_path, seven_za_path):
+    """
+    Worker function for CBR to CBZ conversion.
+    Returns (success, message)
+    """
+    try:
+        # Unique temp dir handled by context manager for auto-cleanup
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Extraction
+            cmd_extract = [seven_za_path, 'x', cbr_path, f'-o{temp_dir}', '-y']
+
+            startupinfo = None
+            if os.name == 'nt':
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+            subprocess.run(cmd_extract, check=True, startupinfo=startupinfo, capture_output=True)
+
+            # Zip (Create CBZ)
+            # Use wildcard to add all files from temp_dir
+            cmd_zip = [seven_za_path, 'a', '-tzip', cbz_path, f'{temp_dir}{os.sep}*']
+            subprocess.run(cmd_zip, check=True, startupinfo=startupinfo, capture_output=True)
+
+        return True, f"CBR converti : {os.path.basename(cbr_path)}"
+    except Exception as e:
+        return False, f"Erreur CBR {os.path.basename(cbr_path)}: {str(e)}"
 
 class PDFCBRtoCBZConverter(ctk.CTk):
     def __init__(self):
@@ -90,104 +145,94 @@ class PDFCBRtoCBZConverter(ctk.CTk):
                 self.log("Aucun fichier PDF ou CBR trouvé.")
                 return
 
+            # Bootstrap 7za once
+            seven_za_path = None
+            try:
+                import utils
+                manager = utils.DependencyManager(self)
+                if manager.bootstrap_7za():
+                     seven_za_path = manager.seven_za_path
+            except ImportError:
+                 self.log("Module utils manquant, impossible d'utiliser 7za.")
+            except Exception as e:
+                 self.log(f"Erreur lors de l'initialisation de 7za: {e}")
+
+            if not seven_za_path:
+                 self.log("Attention: 7za non trouvé. La conversion CBR échouera.")
+
+
             # Initialiser la barre de progression
             self.progress_bar.set(0)
             total_files = len(files_to_convert)
 
-            # Convertir chaque fichier
-            for i, file_path in enumerate(files_to_convert):
-                try:
-                    self.log(f"Conversion de {file_path}...")
+            # Use CPU count for workers, default to 4
+            max_workers = os.cpu_count() or 4
+            self.log(f"Démarrage de la conversion avec {max_workers} threads...")
+
+            processed_count = 0
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = {}
+                for file_path in files_to_convert:
+                    cbz_path = os.path.splitext(file_path)[0] + '.cbz'
+
                     if file_path.endswith('.pdf'):
-                        cbz_path = os.path.splitext(file_path)[0] + '.cbz'
-                        self.convert_pdf_to_cbz(file_path, cbz_path)
+                        future = executor.submit(process_pdf_to_cbz, file_path, cbz_path)
+                        futures[future] = file_path
                     elif file_path.endswith('.cbr'):
-                        cbz_path = os.path.splitext(file_path)[0] + '.cbz'
-                        self.convert_cbr_to_cbz(file_path, cbz_path)
+                        if seven_za_path:
+                            future = executor.submit(process_cbr_to_cbz, file_path, cbz_path, seven_za_path)
+                            futures[future] = file_path
+                        else:
+                            self.log(f"Ignoré (7za manquant): {file_path}")
+                            processed_count += 1 # Count as processed (skipped)
+                            continue
 
-                    # Supprimer le fichier d'origine si la case est cochée
-                    if self.delete_originals_var.get():
-                        os.remove(file_path)
-                        self.log(f"Fichier d'origine supprimé : {file_path}")
+                for future in concurrent.futures.as_completed(futures):
+                    file_path = futures[future]
+                    try:
+                        success, message = future.result()
+                        if success:
+                            self.log(message)
+                            if self.delete_originals_var.get():
+                                try:
+                                    os.remove(file_path)
+                                    self.log(f"Supprimé: {os.path.basename(file_path)}")
+                                except Exception as del_err:
+                                    self.log(f"Erreur suppression {os.path.basename(file_path)}: {del_err}")
+                        else:
+                            self.log(f"ECHEC: {message}")
+                    except Exception as e:
+                        self.log(f"Exception critique sur {os.path.basename(file_path)}: {e}")
 
-                    # Mettre à jour la barre de progression
-                    self.progress_bar.set((i + 1) / total_files)
-                    self.update()
-
-                except Exception as e:
-                    self.log(f"Erreur lors de la conversion de {file_path} : {type(e).__name__} - {str(e)}")
+                    processed_count += 1
+                    self.after(0, self.update_progress, processed_count / total_files)
 
             self.log("Conversion terminée avec succès.")
         except Exception as e:
             self.log(f"Erreur générale lors de la conversion : {type(e).__name__} - {str(e)}")
         finally:
-            # Réactiver les boutons
-            self.button_select_folder.configure(state="normal")
-            self.button_convert.configure(state="normal")
+            # Réactiver les boutons via after pour être thread-safe
+            self.after(0, self.toggle_controls, "normal")
             self.conversion_in_progress = False
 
-    def convert_pdf_to_cbz(self, pdf_path, cbz_path):
-        """Convertit un fichier PDF en CBZ en utilisant PyMuPDF pour une conversion sans perte."""
-        try:
-            pdf_document = fitz.open(pdf_path)
-            with zipfile.ZipFile(cbz_path, 'w') as cbz:
-                for i in range(len(pdf_document)):
-                    try:
-                        page = pdf_document.load_page(i)
-                        pix = page.get_pixmap()  # Utilise la résolution d'origine
-                        image_path = f"temp_page_{i+1}.jpg"
-                        pix.save(image_path)
-                        cbz.write(image_path)
-                        os.remove(image_path)
-                    except Exception as e:
-                        self.log(f"Erreur lors de la conversion de la page {i+1} du fichier {pdf_path} : {type(e).__name__} - {str(e)}")
-            pdf_document.close()
-        except Exception as e:
-            self.log(f"Erreur lors de l'ouverture du PDF {pdf_path} : {type(e).__name__} - {str(e)}")
-            raise
+    def toggle_controls(self, state):
+        self.button_select_folder.configure(state=state)
+        self.button_convert.configure(state=state)
 
-    def convert_cbr_to_cbz(self, cbr_path, cbz_path):
-        """Convertit un fichier CBR en CBZ using 7za."""
-        import shutil
-        import subprocess
-        try:
-            # Extraction
-            temp_dir = "temp_extract"
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-            
-            # Use utils for 7za extraction
-            try:
-                import utils
-                utils.extract_with_7za(cbr_path, temp_dir, root=self)
-            except ImportError:
-                 self.log("Module utils manquant, impossible d'utiliser 7za.")
-                 return
-
-            # Création du CBZ (ZIP) avec 7za également pour respecter la demande
-            # Si utils a le path de 7za, on l'utilise
-            manager = utils.DependencyManager(self)
-            seven_za = manager.seven_za_path
-            
-            # cmd: 7za a -tzip "archive.cbz" "./temp_extract/*"
-            cmd = [seven_za, 'a', '-tzip', cbz_path, f'.{os.sep}{temp_dir}{os.sep}*']
-            
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-            subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
-
-            shutil.rmtree(temp_dir)
-        except Exception as e:
-            self.log(f"Erreur lors de la conversion du CBR {cbr_path} : {type(e).__name__} - {str(e)}")
-            raise
+    def update_progress(self, value):
+        self.progress_bar.set(value)
 
     def log(self, message):
         """Ajoute un message au log."""
+        # Using after to schedule GUI update on main thread
+        self.after(0, self._log_impl, message)
+
+    def _log_impl(self, message):
         self.log_text.configure(state="normal")
         self.log_text.insert("end", message + "\n")
         self.log_text.configure(state="disabled")
         self.log_text.see("end")
-        self.update()
 
 def main():
     app = PDFCBRtoCBZConverter()
