@@ -259,8 +259,16 @@ def launch_update():
             update_script = os.path.join(current_dir, "update.bat")
             if os.path.exists(update_script):
                 logger.info(f"Fichier update.bat trouvé : {update_script}")
-                subprocess.Popen(["start", "cmd.exe", "/c", update_script], shell=True)
-                logger.info("update.bat lancé dans une nouvelle fenêtre")
+                if hasattr(os, 'startfile'):
+                    try:
+                        os.startfile(update_script)
+                        logger.info("update.bat lancé via os.startfile")
+                    except Exception as e:
+                        logger.error(f"Erreur lors du lancement de update.bat : {e}")
+                        messagebox.showerror("Erreur", f"Impossible de lancer la mise à jour : {e}")
+                else:
+                    logger.warning("Lancement de update.bat non supporté sur ce système (non-Windows).")
+                    messagebox.showwarning("Incompatible", "La mise à jour automatique via .bat n'est disponible que sur Windows.")
             else:
                 logger.error("Le fichier update.bat n'existe pas.")
                 messagebox.showerror("Erreur", "Le fichier update.bat n'existe pas.")
