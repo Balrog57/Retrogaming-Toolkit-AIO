@@ -9,6 +9,7 @@ import importlib
 import tempfile
 import zipfile
 import traceback
+import json
 from PIL import Image
 from customtkinter import CTkImage
 import requests
@@ -286,6 +287,10 @@ class Application(ctk.CTk):
         self.min_window_height = 400
         self.preferred_width = 800
 
+        # Load favorites
+        self.favorites = []
+        self.load_favorites()
+
         # Barre de recherche
         self.search_frame = ctk.CTkFrame(self, corner_radius=10)
         self.search_frame.pack(fill="x", padx=10, pady=(10, 0))
@@ -362,6 +367,37 @@ class Application(ctk.CTk):
         else:
             self.update_label.configure(text=f"Version à jour ({VERSION})", text_color="gray")
 
+    def load_favorites(self):
+        """Charge les favoris depuis le fichier JSON."""
+        fav_file = os.path.join(app_data_dir, "favorites.json")
+        if os.path.exists(fav_file):
+            try:
+                with open(fav_file, "r") as f:
+                    self.favorites = json.load(f)
+            except Exception as e:
+                logger.error(f"Erreur lors du chargement des favoris: {e}")
+                self.favorites = []
+
+    def save_favorites(self):
+        """Sauvegarde les favoris dans le fichier JSON."""
+        fav_file = os.path.join(app_data_dir, "favorites.json")
+        try:
+            with open(fav_file, "w") as f:
+                json.dump(self.favorites, f)
+        except Exception as e:
+            logger.error(f"Erreur lors de la sauvegarde des favoris: {e}")
+
+    def toggle_favorite(self, tool_name):
+        """Ajoute ou retire un outil des favoris."""
+        if tool_name in self.favorites:
+            self.favorites.remove(tool_name)
+        else:
+            self.favorites.append(tool_name)
+        self.save_favorites()
+
+        # Refresh filters to update sort order
+        self.filter_scripts()
+
     def filter_scripts(self, *args):
         """Filtre la liste des scripts en fonction de la recherche."""
         query = self.search_var.get().lower()
@@ -380,6 +416,9 @@ class Application(ctk.CTk):
                 if query in s["name"].lower() or query in s["description"].lower()
             ]
         
+        # Sort: Favorites first, then alphabetical by name
+        self.filtered_scripts.sort(key=lambda x: (x["name"] not in self.favorites, x["name"]))
+
         self.page = 0 # Réinitialiser à la première page
         self.update_page()
 
@@ -422,6 +461,24 @@ class Application(ctk.CTk):
             icon_label = ctk.CTkLabel(frame, image=icon, text="")
             icon_label.image = icon
             icon_label.pack(side="left", padx=10)
+
+            # Bouton Favoris
+            is_fav = script["name"] in self.favorites
+            fav_text = "★" if is_fav else "☆"
+            fav_color = "#FFD700" if is_fav else "gray" # Gold for favorite
+
+            fav_btn = ctk.CTkButton(
+                frame,
+                text=fav_text,
+                width=30,
+                height=30,
+                fg_color="transparent",
+                text_color=fav_color,
+                font=("Arial", 20),
+                hover_color=("gray70", "gray30"),
+                command=lambda n=script["name"]: self.toggle_favorite(n)
+            )
+            fav_btn.pack(side="left", padx=(0, 5))
 
             # Bouton pour lancer le module
             button = ctk.CTkButton(
