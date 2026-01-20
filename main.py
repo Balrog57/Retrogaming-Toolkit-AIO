@@ -340,6 +340,17 @@ class Application(ctk.CTk):
         # Auto-focus search bar
         self.after(100, lambda: self.search_entry.focus_set())
 
+        # Keyboard shortcuts
+        self.bind("<Control-f>", lambda event: self.search_entry.focus_set())
+        self.bind("<Escape>", self.clear_search_or_focus)
+
+    def clear_search_or_focus(self, event=None):
+        """Efface la recherche ou enlève le focus."""
+        if self.search_var.get():
+            self.clear_search()
+        else:
+            self.focus_set()
+
     def check_updates(self):
         """Vérifie les mises à jour de manière asynchrone (non-bloquant)."""
         self.update_label.configure(text="Vérification des mises à jour...", text_color="gray")
