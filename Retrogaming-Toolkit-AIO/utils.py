@@ -22,7 +22,12 @@ def get_binary_path(binary_name):
     possible_paths = []
     
     # 1. Check AppData (User downloaded updates)
-    app_data_path = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit', binary_name)
+    local_app_data = os.getenv('LOCALAPPDATA')
+    if not local_app_data:
+        # Fallback for non-Windows or if var is missing
+        local_app_data = os.path.join(os.path.expanduser("~"), ".local", "share")
+
+    app_data_path = os.path.join(local_app_data, 'RetrogamingToolkit', binary_name)
     possible_paths.append(app_data_path)
 
     if getattr(sys, 'frozen', False):
@@ -87,7 +92,11 @@ import logging
 
 class DependencyManager:
     def __init__(self, root=None):
-        self.app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
+        local_app_data = os.getenv('LOCALAPPDATA')
+        if not local_app_data:
+            local_app_data = os.path.join(os.path.expanduser("~"), ".local", "share")
+
+        self.app_data_dir = os.path.join(local_app_data, 'RetrogamingToolkit')
         if not os.path.exists(self.app_data_dir):
             os.makedirs(self.app_data_dir)
         self.seven_za_path = os.path.join(self.app_data_dir, "7za.exe")
@@ -287,8 +296,10 @@ class DependencyManager:
              if extract_file_in_archive:
                  cmd.append(extract_file_in_archive)
                  
-             startupinfo = subprocess.STARTUPINFO()
-             startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+             startupinfo = None
+             if os.name == 'nt':
+                 startupinfo = subprocess.STARTUPINFO()
+                 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
              
              subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
              
@@ -334,8 +345,10 @@ def extract_with_7za(archive_path, output_dir, file_to_extract=None, root=None):
     if file_to_extract:
          cmd.append(file_to_extract)
          
-    startupinfo = subprocess.STARTUPINFO()
-    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    startupinfo = None
+    if os.name == 'nt':
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     
     subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
 
