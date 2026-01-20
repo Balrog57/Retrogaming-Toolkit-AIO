@@ -2,6 +2,7 @@ import os
 import subprocess
 import re
 import requests
+import concurrent.futures
 
 import tempfile
 import shutil
@@ -57,60 +58,110 @@ def check_and_download_ffmpeg(root=None):
 
 def convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution, root=None, ffmpeg_path=None):
     if not ffmpeg_path:
-        check_and_download_ffmpeg(root)  # Vérifiez et téléchargez FFmpeg si nécessaire
+        # NOTE: This call might touch UI (download dialog), so it should ideally be done before threading
+        check_and_download_ffmpeg(root)
         if 'utils' in sys.modules:
             ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
         else:
             ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
-    try:
-        command = [
-            ffmpeg_path,
-            "-i", input_file,
-            "-ss", start_time,
-            "-to", end_time,
-            "-c:v", "libx264",
-            "-preset", "fast",
-            f"-b:v", video_bitrate,
-            f"-r", fps,
-            f"-vf", f"scale={resolution}",
-            "-c:a", "aac",
-            f"-b:a", audio_bitrate,
-            "-y",  # Overwrite output file if it exists
-            output_file
-        ]
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
-        if result.returncode != 0:
-            raise subprocess.CalledProcessError(result.returncode, command, output=result.stdout, stderr=result.stderr)
-    except subprocess.CalledProcessError as e:
-        messagebox.showerror("Erreur", f"Erreur lors de l'exportation de la vidéo.\n{e.stderr}")
-    except Exception as e:
-        messagebox.showerror("Erreur", f"Une erreur inattendue s'est produite : {e}")
+
+    command = [
+        ffmpeg_path,
+        "-i", input_file,
+        "-ss", start_time,
+        "-to", end_time,
+        "-c:v", "libx264",
+        "-preset", "fast",
+        f"-b:v", video_bitrate,
+        f"-r", fps,
+        f"-vf", f"scale={resolution}",
+        "-c:a", "aac",
+        f"-b:a", audio_bitrate,
+        "-y",  # Overwrite output file if it exists
+        output_file
+    ]
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
+    if result.returncode != 0:
+        raise subprocess.CalledProcessError(result.returncode, command, output=result.stdout, stderr=result.stderr)
 
 def capture_first_frame(input_file, output_file, rotate=False, root=None, ffmpeg_path=None):
     if not ffmpeg_path:
-        check_and_download_ffmpeg(root)  # Vérifiez et téléchargez FFmpeg si nécessaire
+        check_and_download_ffmpeg(root)
         if 'utils' in sys.modules:
             ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
         else:
             ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
+
+    command = [
+        ffmpeg_path,
+        "-i", input_file,
+        "-ss", "00:00:01",  # Capture à la première seconde
+        "-vframes", "1",    # Capture une seule frame
+    ]
+    if rotate:
+        command.extend(["-vf", "transpose=1"])  # Rotation à droite
+    command.append(output_file)
+
+    result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
+    if result.returncode != 0:
+        raise subprocess.CalledProcessError(result.returncode, command, output=result.stdout, stderr=result.stderr)
+
+def process_file_task(input_file, start_time, end_time, video_bitrate, audio_bitrate, fps, resolution, ffmpeg_path, format_choice, output_option, capture_without_rotation, capture_with_rotation):
+    """
+    Function executed in a thread to process a single file.
+    Returns (success, message)
+    """
     try:
-        command = [
-            ffmpeg_path,
-            "-i", input_file,
-            "-ss", "00:00:01",  # Capture à la première seconde
-            "-vframes", "1",    # Capture une seule frame
-        ]
-        if rotate:
-            command.extend(["-vf", "transpose=1"])  # Rotation à droite
-        command.append(output_file)
+        # Determine output extension
+        if format_choice == "MP4":
+            ext = ".mp4"
+        elif format_choice == "MKV":
+            ext = ".mkv"
+        else: # Source
+                ext = os.path.splitext(input_file)[1]
+
+        if output_option == "folder":
+            # Create output dir relative to input file
+            input_dir = os.path.dirname(input_file)
+            output_dir = os.path.join(input_dir, "vidéos_converties")
+            os.makedirs(output_dir, exist_ok=True)
+
+            base_name = os.path.splitext(os.path.basename(input_file))[0]
+            output_file = os.path.join(output_dir, base_name + ext)
+
+            convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution, ffmpeg_path=ffmpeg_path)
+        else:
+            # Replace mode
+            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext).name
+            convert_video(input_file, start_time, end_time, temp_file, video_bitrate, audio_bitrate, fps, resolution, ffmpeg_path=ffmpeg_path)
+
+            # If extension changed, we must rename the target file
+            if ext != os.path.splitext(input_file)[1]:
+                    new_input_path = os.path.splitext(input_file)[0] + ext
+                    shutil.move(temp_file, new_input_path)
+                    try:
+                        os.remove(input_file) # Remove the old extension file
+                    except:
+                        pass
+            else:
+                shutil.move(temp_file, input_file)
+
+        # Capture d'image si les options sont cochées
+        if capture_without_rotation or capture_with_rotation:
+            capture_dir = os.path.join(os.getcwd(), "captures")
+            os.makedirs(capture_dir, exist_ok=True)
+            file_name = os.path.basename(input_file)
+            output_image = os.path.join(capture_dir, f"screenshot-{os.path.splitext(file_name)[0]}.png")
+
+            if capture_without_rotation:
+                capture_first_frame(input_file, output_image, rotate=False, ffmpeg_path=ffmpeg_path)
+            if capture_with_rotation:
+                capture_first_frame(input_file, output_image, rotate=True, ffmpeg_path=ffmpeg_path)
         
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
-        if result.returncode != 0:
-            raise subprocess.CalledProcessError(result.returncode, command, output=result.stdout, stderr=result.stderr)
-    except subprocess.CalledProcessError as e:
-        messagebox.showerror("Erreur", f"Erreur lors de la capture de l'image.\n{e.stderr}")
+        return True, f"Succès: {os.path.basename(input_file)}"
+
     except Exception as e:
-        messagebox.showerror("Erreur", f"Une erreur inattendue s'est produite : {e}")
+        return False, f"Erreur {os.path.basename(input_file)}: {str(e)}"
 
 def browse_files():
     try:
@@ -184,63 +235,78 @@ def start_conversion():
              messagebox.showerror("Erreur", "FFmpeg introuvable.")
              return
 
+        files = []
         for index in range(listbox_files.size()):
             input_file = listbox_files.get(index)
             if not os.path.isfile(input_file):
-                messagebox.showerror("Erreur", f"Fichier non valide : {input_file}")
+                # messagebox.showerror("Erreur", f"Fichier non valide : {input_file}")
+                # Log invalid files instead of blocking? Or just skip.
+                print(f"Skipping invalid file: {input_file}")
                 continue
-            
-            # Determine output extension
-            format_choice = selected_format.get()
-            if format_choice == "MP4":
-                ext = ".mp4"
-            elif format_choice == "MKV":
-                ext = ".mkv"
-            else: # Source
-                 ext = os.path.splitext(input_file)[1]
+            files.append(input_file)
 
-            if selected_output_option.get() == "folder":
-                # Create output dir relative to input file
-                input_dir = os.path.dirname(input_file)
-                output_dir = os.path.join(input_dir, "vidéos_converties")
-                os.makedirs(output_dir, exist_ok=True)
-                
-                base_name = os.path.splitext(os.path.basename(input_file))[0]
-                output_file = os.path.join(output_dir, base_name + ext)
-            else:
-                # Replace mode
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext).name
-                convert_video(input_file, start_time, end_time, temp_file, video_bitrate, audio_bitrate, fps, resolution, root, ffmpeg_path=ffmpeg_path)
-                
-                # If extension changed, we must rename the target file
-                if ext != os.path.splitext(input_file)[1]:
-                     new_input_path = os.path.splitext(input_file)[0] + ext
-                     shutil.move(temp_file, new_input_path)
-                     try:
-                        os.remove(input_file) # Remove the old extension file
-                     except:
-                        pass
-                else:
-                    shutil.move(temp_file, input_file)
-                continue
+        if not files:
+            messagebox.showwarning("Info", "Aucun fichier à traiter.")
+            return
 
-            convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution, root, ffmpeg_path=ffmpeg_path)
+        # Disable button
+        button_convert.configure(state="disabled", text="Conversion en cours...")
 
-            # Capture d'image si les options sont cochées
-            if capture_without_rotation_var.get() or capture_with_rotation_var.get():
-                capture_dir = os.path.join(os.getcwd(), "captures")
-                os.makedirs(capture_dir, exist_ok=True)
-                file_name = os.path.basename(input_file)
-                output_image = os.path.join(capture_dir, f"screenshot-{os.path.splitext(file_name)[0]}.png")
+        # Gather options to pass to thread
+        options = {
+            "start_time": start_time,
+            "end_time": end_time,
+            "video_bitrate": video_bitrate,
+            "audio_bitrate": audio_bitrate,
+            "fps": fps,
+            "resolution": resolution,
+            "ffmpeg_path": ffmpeg_path,
+            "format_choice": selected_format.get(),
+            "output_option": selected_output_option.get(),
+            "capture_without_rotation": capture_without_rotation_var.get(),
+            "capture_with_rotation": capture_with_rotation_var.get()
+        }
 
-                if capture_without_rotation_var.get():
-                    capture_first_frame(input_file, output_image, rotate=False, root=root, ffmpeg_path=ffmpeg_path)
-                if capture_with_rotation_var.get():
-                    capture_first_frame(input_file, output_image, rotate=True, root=root, ffmpeg_path=ffmpeg_path)
+        # Start background thread
+        import threading
+        t = threading.Thread(target=run_batch_processing, args=(files, options))
+        t.start()
 
-        messagebox.showinfo("Succès", "Traitement terminé pour toutes les vidéos.")
     except Exception as e:
         messagebox.showerror("Erreur", f"Une erreur s'est produite : {e}")
+
+def run_batch_processing(files, options):
+    errors = []
+
+    # Use ThreadPoolExecutor to limit concurrency and manage workers
+    # Video conversion is heavy, so we limit max_workers.
+    # If CPU has 8 cores, maybe 2-4 concurrent ffmpeg instances is enough.
+    max_workers = min(4, os.cpu_count() or 1)
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_file = {
+            executor.submit(process_file_task, f, **options): f
+            for f in files
+        }
+
+        for future in concurrent.futures.as_completed(future_to_file):
+            success, msg = future.result()
+            if not success:
+                errors.append(msg)
+
+    # Schedule UI update on main thread
+    root.after(0, lambda: processing_complete(errors))
+
+def processing_complete(errors):
+    button_convert.configure(state="normal", text="Convertir")
+
+    if errors:
+        error_text = "\n".join(errors[:10])
+        if len(errors) > 10:
+            error_text += f"\n... et {len(errors) - 10} autres erreurs."
+        messagebox.showerror("Terminé avec erreurs", f"Traitement terminé avec {len(errors)} erreurs:\n{error_text}")
+    else:
+        messagebox.showinfo("Succès", "Traitement terminé pour toutes les vidéos.")
 
 def handle_drop(event):
     try:
@@ -257,7 +323,7 @@ class Tk(ctk.CTk, TkinterDnD.DnDWrapper):
         self.TkdndVersion = TkinterDnD._require(self)
 
 def main():
-    global root, listbox_files, entry_start_time, entry_end_time, entry_video_bitrate, entry_audio_bitrate, entry_fps, entry_resolution, selected_output_option, capture_without_rotation_var, capture_with_rotation_var, selected_format
+    global root, listbox_files, entry_start_time, entry_end_time, entry_video_bitrate, entry_audio_bitrate, entry_fps, entry_resolution, selected_output_option, capture_without_rotation_var, capture_with_rotation_var, selected_format, button_convert
 
     ctk.set_appearance_mode("dark")
     ctk.set_default_color_theme("blue")
