@@ -295,7 +295,7 @@ class Application(ctk.CTk):
 
         self.search_var = ctk.StringVar()
         self.search_var.trace("w", self.filter_scripts)
-        self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_var, width=300, placeholder_text="Nom ou description...")
+        self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_var, width=300, placeholder_text="Nom ou description... (Ctrl+F)")
         self.search_entry.pack(side="left", padx=10, pady=10, fill="x", expand=True)
 
         self.clear_button = ctk.CTkButton(self.search_frame, text="✕", width=25, height=25, 
@@ -339,6 +339,10 @@ class Application(ctk.CTk):
         
         # Auto-focus search bar
         self.after(100, lambda: self.search_entry.focus_set())
+
+        # Keyboard Shortcuts
+        self.bind("<Control-f>", self.focus_search)
+        self.bind("<Escape>", self.on_escape)
 
     def check_updates(self):
         """Vérifie les mises à jour de manière asynchrone (non-bloquant)."""
@@ -481,6 +485,26 @@ class Application(ctk.CTk):
         if self.page > 0:
             self.page -= 1
             self.update_page()
+
+    def focus_search(self, event=None):
+        """Focus on search bar (Ctrl+F)."""
+        self.search_entry.focus_set()
+        return "break"
+
+    def on_escape(self, event=None):
+        """Handle Escape key: Clear search or blur."""
+        is_focused = (self.focus_get() == self.search_entry)
+        has_text = bool(self.search_var.get())
+
+        if is_focused:
+            if has_text:
+                self.search_var.set("") # Clear text, keep focus
+            else:
+                self.focus() # Blur (focus main window)
+        else:
+            if has_text:
+                self.search_var.set("") # Clear text
+                # Don't focus entry
 
 def main():
     """Point d'entrée principal de l'application"""
