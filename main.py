@@ -286,6 +286,8 @@ class Application(ctk.CTk):
         self.min_window_height = 400
         self.preferred_width = 800
 
+        self.icon_cache = {}
+
         # Barre de recherche
         self.search_frame = ctk.CTkFrame(self, corner_radius=10)
         self.search_frame.pack(fill="x", padx=10, pady=(10, 0))
@@ -409,16 +411,23 @@ class Application(ctk.CTk):
             frame.pack(fill="x", pady=5, padx=10)
 
             # Charger l'icône
-            try:
-                if os.path.exists(script["icon"]):
-                    img = Image.open(script["icon"])
-                    img = img.resize((32, 32), Image.LANCZOS)
-                    icon = CTkImage(img)
-                else:
-                    raise FileNotFoundError("Icon file not found")
-            except Exception as e:
-                logger.error(f"Erreur lors du chargement de l'icône {script['icon']}: {e}")
-                icon = CTkImage(Image.new('RGBA', (32, 32), (0, 0, 0, 0)))
+            icon_path = script["icon"]
+            if icon_path in self.icon_cache:
+                icon = self.icon_cache[icon_path]
+            else:
+                try:
+                    if os.path.exists(icon_path):
+                        img = Image.open(icon_path)
+                        img = img.resize((32, 32), Image.LANCZOS)
+                        icon = CTkImage(img)
+                        self.icon_cache[icon_path] = icon
+                    else:
+                        raise FileNotFoundError("Icon file not found")
+                except Exception as e:
+                    logger.error(f"Erreur lors du chargement de l'icône {icon_path}: {e}")
+                    icon = CTkImage(Image.new('RGBA', (32, 32), (0, 0, 0, 0)))
+                    self.icon_cache[icon_path] = icon
+
             icon_label = ctk.CTkLabel(frame, image=icon, text="")
             icon_label.image = icon
             icon_label.pack(side="left", padx=10)
