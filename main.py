@@ -14,6 +14,7 @@ from customtkinter import CTkImage
 import requests
 import webbrowser
 import threading
+import json
 
 # Fix sys.path for bundled modules and data directory
 if getattr(sys, 'frozen', False):
@@ -280,7 +281,12 @@ class Application(ctk.CTk):
         self.geometry("800x400")  # Taille initiale
 
         self.scripts = scripts
+
+        # Charger les favoris
+        self.favorites = self.load_favorites()
+
         self.filtered_scripts = list(self.scripts)  # Initialiser avec tous les scripts
+        self.filtered_scripts.sort(key=lambda s: (s["name"] not in self.favorites, s["name"]))
         self.page = 0
         self.scripts_per_page = 10
         self.min_window_height = 400
@@ -340,6 +346,35 @@ class Application(ctk.CTk):
         # Auto-focus search bar
         self.after(100, lambda: self.search_entry.focus_set())
 
+    def load_favorites(self):
+        """Charge les favoris depuis le fichier JSON."""
+        fav_file = os.path.join(app_data_dir, 'favorites.json')
+        if os.path.exists(fav_file):
+            try:
+                with open(fav_file, 'r', encoding='utf-8') as f:
+                    return set(json.load(f))
+            except Exception as e:
+                logger.error(f"Erreur lors du chargement des favoris: {e}")
+        return set()
+
+    def save_favorites(self):
+        """Sauvegarde les favoris dans le fichier JSON."""
+        fav_file = os.path.join(app_data_dir, 'favorites.json')
+        try:
+            with open(fav_file, 'w', encoding='utf-8') as f:
+                json.dump(list(self.favorites), f)
+        except Exception as e:
+            logger.error(f"Erreur lors de la sauvegarde des favoris: {e}")
+
+    def toggle_favorite(self, script_name):
+        """Bascule l'état favori d'un script."""
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.add(script_name)
+        self.save_favorites()
+        self.filter_scripts() # Re-trier et rafraîchir
+
     def check_updates(self):
         """Vérifie les mises à jour de manière asynchrone (non-bloquant)."""
         self.update_label.configure(text="Vérification des mises à jour...", text_color="gray")
@@ -380,6 +415,9 @@ class Application(ctk.CTk):
                 if query in s["name"].lower() or query in s["description"].lower()
             ]
         
+        # Sort favorites to top
+        self.filtered_scripts.sort(key=lambda s: (s["name"] not in self.favorites, s["name"]))
+
         self.page = 0 # Réinitialiser à la première page
         self.update_page()
 
@@ -419,6 +457,15 @@ class Application(ctk.CTk):
             except Exception as e:
                 logger.error(f"Erreur lors du chargement de l'icône {script['icon']}: {e}")
                 icon = CTkImage(Image.new('RGBA', (32, 32), (0, 0, 0, 0)))
+            # Bouton Favori
+            is_fav = script["name"] in self.favorites
+            fav_text = "★" if is_fav else "☆"
+            fav_color = "orange" if is_fav else "gray"
+            fav_btn = ctk.CTkButton(frame, text=fav_text, width=30,
+                                    command=lambda n=script["name"]: self.toggle_favorite(n),
+                                    fg_color="transparent", text_color=fav_color, hover_color=("gray85", "gray25"))
+            fav_btn.pack(side="left", padx=(10, 0))
+
             icon_label = ctk.CTkLabel(frame, image=icon, text="")
             icon_label.image = icon
             icon_label.pack(side="left", padx=10)
