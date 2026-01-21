@@ -457,7 +457,9 @@ class GameListApp:
                         raise ValueError("Aucun bloc <game> valide trouvé dans la réponse de l'IA.")
                         
                     valid_xml_data = "".join(game_blocks)
-                    enriched_root = etree.fromstring(f"<root>{valid_xml_data}</root>")
+                    # SECURITY: Use a parser that disables entity resolution to prevent XXE
+                    safe_parser = etree.XMLParser(resolve_entities=False)
+                    enriched_root = etree.fromstring(f"<root>{valid_xml_data}</root>", parser=safe_parser)
                     
                     # Validation du contenu retourné
                     valid_games_found = 0
@@ -532,7 +534,8 @@ class GameListApp:
         """Charge un fichier XML et retourne l'élément racine."""
         try:
             # recover=True tente de parser même si le XML est légèrement malformé
-            parser = etree.XMLParser(recover=True, encoding='utf-8')
+            # SECURITY: resolve_entities=False prevents XXE attacks
+            parser = etree.XMLParser(recover=True, encoding='utf-8', resolve_entities=False)
             tree = etree.parse(file_path, parser)
             return tree.getroot()
         except etree.XMLSyntaxError as e:
