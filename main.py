@@ -2,6 +2,7 @@ import customtkinter as ctk
 from tkinter import messagebox
 import os
 import sys
+import json
 import logging
 import subprocess
 import multiprocessing
@@ -334,6 +335,9 @@ class Application(ctk.CTk):
         # Vérifier les mises à jour
         self.check_updates()
 
+        # Charger les favoris
+        self.favorites = self.load_favorites()
+
         # Afficher les scripts de la première page (APRÈS l'initialisation de tous les frames)
         self.update_page()
         
@@ -380,6 +384,9 @@ class Application(ctk.CTk):
                 if query in s["name"].lower() or query in s["description"].lower()
             ]
         
+        # Sort: Favorites first (False < True for 'not in favorites'), then Name
+        self.filtered_scripts.sort(key=lambda s: (s["name"] not in self.favorites, s["name"]))
+
         self.page = 0 # Réinitialiser à la première page
         self.update_page()
 
@@ -387,6 +394,37 @@ class Application(ctk.CTk):
         """Efface la recherche."""
         self.search_var.set("")
         self.search_entry.focus_set()
+
+    def load_favorites(self):
+        """Charge les favoris depuis le fichier JSON."""
+        favorites_file = os.path.join(app_data_dir, 'favorites.json')
+        if os.path.exists(favorites_file):
+            try:
+                with open(favorites_file, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.error(f"Erreur lors du chargement des favoris : {e}")
+                return []
+        return []
+
+    def save_favorites(self):
+        """Sauvegarde les favoris dans le fichier JSON."""
+        favorites_file = os.path.join(app_data_dir, 'favorites.json')
+        try:
+            with open(favorites_file, 'w', encoding='utf-8') as f:
+                json.dump(self.favorites, f)
+        except Exception as e:
+            logger.error(f"Erreur lors de la sauvegarde des favoris : {e}")
+
+    def toggle_favorite(self, script_name):
+        """Ajoute ou retire un script des favoris."""
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.append(script_name)
+
+        self.save_favorites()
+        self.filter_scripts() # Re-trier et mettre à jour l'affichage
 
     def update_page(self):
         """Met à jour l'affichage des scripts pour la page courante."""
@@ -422,6 +460,23 @@ class Application(ctk.CTk):
             icon_label = ctk.CTkLabel(frame, image=icon, text="")
             icon_label.image = icon
             icon_label.pack(side="left", padx=10)
+
+            # Bouton Favori
+            is_fav = script["name"] in self.favorites
+            fav_text = "★" if is_fav else "☆"
+            fav_color = "#FFD700" if is_fav else "gray" # Gold color
+
+            fav_btn = ctk.CTkButton(
+                frame,
+                text=fav_text,
+                width=30,
+                fg_color="transparent",
+                text_color=fav_color,
+                font=("Arial", 20),
+                hover_color=("gray70", "gray30"),
+                command=lambda name=script["name"]: self.toggle_favorite(name)
+            )
+            fav_btn.pack(side="left", padx=(0, 10))
 
             # Bouton pour lancer le module
             button = ctk.CTkButton(
