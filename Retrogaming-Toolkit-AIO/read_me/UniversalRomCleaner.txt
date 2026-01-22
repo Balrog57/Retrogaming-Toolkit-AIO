@@ -6,6 +6,7 @@ Cet outil permet de trier, nettoyer et organiser vos collections de ROMs.
 Fonctionnalités :
 - Tri 1G1R (One Game One ROM) basé sur des priorités (Tags).
 - Interface Drag & Drop pour définir l'ordre de priorité (ex: France > Europe > USA).
+- Mode Dossier : Permet de traiter les ROMs individuellement (sans regroupement 1G1R) tout en conservant les fonctions de suppression et de tri par région.
 - Filtrage : Supprimez les ROMs contenant certains tags (ex: Beta, Demo).
 - Ignorer : Certains tags peuvent être ignorés pour le regroupement.
 - Tri par Région : Déplace automatiquement les fichiers validés dans des sous-dossiers (Europe, USA, etc.) basés sur le PREMIER tag trouvé.
@@ -13,6 +14,7 @@ Fonctionnalités :
 
 Utilisation :
 1. Sélectionnez le dossier contenant vos ROMs.
-2. Glissez-déposez les tags détectés dans les listes "Priorité", "Supprimer" ou "Ignorer".
-3. Configurez les options en bas (Déplacer/Copier, Tri Région).
-4. Cliquez sur "Simulation" pour vérifier ou "Nettoyer / Exécuter" pour lancer.
+2. Choisissez le mode de fonctionnement via le bouton en bas à gauche (icône 1G1R ou Dossier).
+3. Glissez-déposez les tags détectés dans les listes "Priorité", "Supprimer" ou "Ignorer".
+4. Configurez les options en bas (Déplacer/Copier, Tri Région).
+5. Cliquez sur "Simulation" pour vérifier ou "Nettoyer / Exécuter" pour lancer.

@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 from pathlib import Path
+from PIL import Image
 
 # Set appearance to match "Balrog Toolkit"
 ctk.set_appearance_mode("dark")
@@ -188,8 +189,24 @@ class UniversalRomCleanerApp(ctk.CTk):
         self.rom_directory = ""
         self.all_files = [] 
         self.all_attributes = set()
+        
+        # Icons
+        self.icon_1g1r = None
+        self.icon_folder = None
+        self._load_icons()
 
         self._setup_ui()
+
+    def _load_icons(self):
+        icon_path_1g1r = os.path.join(os.path.dirname(__file__), "icons", "icon_1g1r.png")
+        icon_path_folder = os.path.join(os.path.dirname(__file__), "icons", "icon_folder.png")
+        
+        if os.path.exists(icon_path_1g1r):
+            self.icon_1g1r = ctk.CTkImage(light_image=Image.open(icon_path_1g1r), 
+                                          dark_image=Image.open(icon_path_1g1r), size=(32, 32))
+        if os.path.exists(icon_path_folder):
+            self.icon_folder = ctk.CTkImage(light_image=Image.open(icon_path_folder), 
+                                            dark_image=Image.open(icon_path_folder), size=(32, 32))
 
     def _setup_ui(self):
         # Configure layout
@@ -264,12 +281,27 @@ class UniversalRomCleanerApp(ctk.CTk):
         footer_frame = ctk.CTkFrame(self, fg_color="transparent", height=40)
         footer_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=10)
         
+        # Mode Selector (Bottom Left - Icon Button)
+        self.mode_var = ctk.StringVar(value="Mode 1G1R")
+        
+        self.mode_btn = ctk.CTkButton(
+            footer_frame, 
+            text="", 
+            image=self.icon_1g1r, 
+            width=50, 
+            height=40,
+            command=self.toggle_mode,
+            fg_color="transparent",
+            hover_color="#333333"
+        )
+        self.mode_btn.pack(side="left", padx=(0, 20))
+
         # Options
         self.move_var = ctk.BooleanVar(value=False)
-        ctk.CTkSwitch(footer_frame, text="Déplacer les fichiers (au lieu de copier)", variable=self.move_var).pack(side="left", padx=(10, 20))
+        ctk.CTkSwitch(footer_frame, text="Déplacer les fichiers", variable=self.move_var).pack(side="left", padx=(0, 20))
         
         self.region_sort_var = ctk.BooleanVar(value=False)
-        ctk.CTkSwitch(footer_frame, text="Trier par Région (Dossiers)", variable=self.region_sort_var).pack(side="left", padx=20)
+        ctk.CTkSwitch(footer_frame, text="Trier par Région", variable=self.region_sort_var).pack(side="left", padx=(0, 20))
         
         # Actions
         ctk.CTkButton(footer_frame, text="Nettoyer / Exécuter", fg_color="green", hover_color="darkgreen", 
@@ -278,6 +310,17 @@ class UniversalRomCleanerApp(ctk.CTk):
         # Reset button visible (Red/Orange)
         ctk.CTkButton(footer_frame, text="Reset", fg_color="#d63031", hover_color="#b71c1c",
                       command=self.scan_files, width=80).pack(side="right", padx=10)
+
+    def toggle_mode(self):
+        current = self.mode_var.get()
+        if current == "Mode 1G1R":
+            self.mode_var.set("Mode Dossier")
+            if self.icon_folder:
+                self.mode_btn.configure(image=self.icon_folder)
+        else:
+            self.mode_var.set("Mode 1G1R")
+            if self.icon_1g1r:
+                self.mode_btn.configure(image=self.icon_1g1r)
 
     def load_directory(self):
         path = filedialog.askdirectory(title="Sélectionner le dossier de ROMs")
@@ -371,20 +414,27 @@ class UniversalRomCleanerApp(ctk.CTk):
         priority_attrs = self.get_list_content(self.priority_list)
         suppress_attrs = self.get_list_content(self.suppress_list)
         ignore_attrs = self.get_list_content(self.ignore_list)
+        current_mode = self.mode_var.get()
 
         game_groups = {}
         
         # Classification
         for f in self.all_files:
-            # Check ignore
-            is_ignored = False
-            for ig in ignore_attrs:
-                if f"({ig})" in f or f"[{ig}]" in f:
-                    is_ignored = True
-                    break
-            if is_ignored: continue
+            # Check ignore (Only applies in 1G1R mode)
+            if "1G1R" in current_mode:
+                is_ignored = False
+                for ig in ignore_attrs:
+                    if f"({ig})" in f or f"[{ig}]" in f:
+                        is_ignored = True
+                        break
+                if is_ignored: continue
 
-            game_name = self.get_game_name(f)
+            # Grouping
+            if "1G1R" in current_mode:
+                game_name = self.get_game_name(f)
+            else: # Mode Dossier
+                game_name = f # Each file is its own group
+
             if game_name not in game_groups:
                 game_groups[game_name] = []
             game_groups[game_name].append(f)
@@ -396,7 +446,7 @@ class UniversalRomCleanerApp(ctk.CTk):
         for game, files in game_groups.items():
             if not files: continue
 
-            # Filter suppressed
+            # Filter suppressed (Applies in both modes)
             candidates = []
             for f in files:
                 is_suppressed = False
@@ -413,7 +463,9 @@ class UniversalRomCleanerApp(ctk.CTk):
 
             # Determine winner
             winner = None
-            if not priority_attrs:
+            if len(candidates) == 1:
+                winner = candidates[0]
+            elif not priority_attrs:
                 winner = candidates[0]
             else:
                 best_score = 9999
@@ -435,7 +487,11 @@ class UniversalRomCleanerApp(ctk.CTk):
                     dest_subfolder = self.get_region_from_filename(winner)
                 
                 full_dest_dir = os.path.join(output_dir, dest_subfolder)
-                actions_log.append(f"[OK] {game} -> {winner} ({dest_subfolder})")
+                
+                if "1G1R" in current_mode:
+                    actions_log.append(f"[OK] {game} -> {winner} ({dest_subfolder})")
+                else:
+                    actions_log.append(f"[OK] {winner} ({dest_subfolder})")
                 
                 if not simulate:
                     try:
