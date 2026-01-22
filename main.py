@@ -340,6 +340,40 @@ class Application(ctk.CTk):
         # Auto-focus search bar
         self.after(100, lambda: self.search_entry.focus_set())
 
+        # KEYBOARD SHORTCUTS
+        self.bind("<Control-f>", self.focus_search)
+        self.bind("<Escape>", self.clear_or_blur_search)
+        self.bind("<Left>", lambda e: self.handle_arrow_key(e, 'left'))
+        self.bind("<Right>", lambda e: self.handle_arrow_key(e, 'right'))
+
+    def focus_search(self, event=None):
+        """Focus on the search bar (Ctrl+F)."""
+        self.search_entry.focus_set()
+
+    def clear_or_blur_search(self, event=None):
+        """Clear search or remove focus (Escape)."""
+        if self.search_var.get():
+            self.clear_search()
+        else:
+            self.focus()
+
+    def handle_arrow_key(self, event, direction):
+        """Navigate pages with arrow keys, unless in an Entry."""
+        try:
+            # Check if the event came from an input widget
+            if hasattr(event.widget, "winfo_class"):
+                cls = event.widget.winfo_class()
+                # Don't navigate if typing
+                if cls in ("Entry", "Text", "TEntry"):
+                    return
+        except Exception:
+            pass
+
+        if direction == 'left':
+            self.previous_page()
+        elif direction == 'right':
+            self.next_page()
+
     def check_updates(self):
         """Vérifie les mises à jour de manière asynchrone (non-bloquant)."""
         self.update_label.configure(text="Vérification des mises à jour...", text_color="gray")
