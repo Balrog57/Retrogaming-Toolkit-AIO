@@ -42,7 +42,7 @@ except ImportError:
     logger.error("Impossible d'importer utils.py")
     utils = None
 
-VERSION = "2.0.35"
+VERSION = "2.0.36"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')
@@ -107,6 +107,7 @@ scripts = [
     {"name": "YTDownloader", "description": "Télécharge des vidéos/audio Youtube (yt-dlp).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "YTDownloader.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "YTDownloader.txt"))},
     {"name": "ImageConvert", "description": "Convertit des images par lot.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "ImageConvert.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "ImageConvert.txt"))},
     {"name": "SystemsExtractor", "description": "Extrait les systèmes uniques (EmulationStation).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "SystemsExtractor.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "SystemsExtractor.txt"))},
+    {"name": "UniversalRomCleaner", "description": "Nettoie et trie vos ROMs (1G1R, Régions).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "UniversalRomCleaner.png")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "UniversalRomCleaner.txt"))},
 ]
 
 def run_module_process(module_name):

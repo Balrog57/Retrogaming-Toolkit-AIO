@@ -1,0 +1,18 @@
+Universal ROM Cleaner Fork
+---------------------
+
+Cet outil permet de trier, nettoyer et organiser vos collections de ROMs.
+
+Fonctionnalités :
+- Tri 1G1R (One Game One ROM) basé sur des priorités (Tags).
+- Interface Drag & Drop pour définir l'ordre de priorité (ex: France > Europe > USA).
+- Filtrage : Supprimez les ROMs contenant certains tags (ex: Beta, Demo).
+- Ignorer : Certains tags peuvent être ignorés pour le regroupement.
+- Tri par Région : Déplace automatiquement les fichiers validés dans des sous-dossiers (Europe, USA, etc.) basés sur le PREMIER tag trouvé.
+- Simulation : Testez le tri sans rien modifier (Logs détaillés).
+
+Utilisation :
+1. Sélectionnez le dossier contenant vos ROMs.
+2. Glissez-déposez les tags détectés dans les listes "Priorité", "Supprimer" ou "Ignorer".
+3. Configurez les options en bas (Déplacer/Copier, Tri Région).
+4. Cliquez sur "Simulation" pour vérifier ou "Nettoyer / Exécuter" pour lancer.

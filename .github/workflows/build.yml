@@ -3,8 +3,8 @@ name: Build and Release Installer
 on:
   push:
     branches: ["main"]
-  release:
-    types: [created]
+    tags:
+      - "v*" # Trigger on version tags
   workflow_dispatch:
     inputs:
       build_type:
@@ -48,14 +48,16 @@ jobs:
           path: setup.iss
 
       - name: Rename Installer
-        if: github.event_name == 'release'
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: pwsh
         run: |
+          $TAG_NAME = $env:GITHUB_REF -replace "refs/tags/", ""
           if (Test-Path RetrogamingToolkit_Setup.exe) {
-              Move-Item RetrogamingToolkit_Setup.exe RetrogamingToolkit_Setup_${{ github.event.release.tag_name }}.exe
+              Move-Item RetrogamingToolkit_Setup.exe RetrogamingToolkit_Setup_${TAG_NAME}.exe
           }
 
       - name: Upload Release Asset
-        if: github.event_name == 'release'
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           files: |
@@ -63,8 +65,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Artifact (for workflow_dispatch)
-        if: github.event_name != 'release'
+      - name: Upload Artifact (for workflow_dispatch or branch push)
+        if: (!startsWith(github.ref, 'refs/tags/'))
         uses: actions/upload-artifact@v4
         with:
           name: Installer
