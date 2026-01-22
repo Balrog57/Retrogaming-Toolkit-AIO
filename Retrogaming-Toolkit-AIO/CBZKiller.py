@@ -6,10 +6,38 @@ import customtkinter as ctk
 from tkinter import filedialog, messagebox, scrolledtext
 import threading
 import fitz  # PyMuPDF
+import concurrent.futures
+import tempfile
+import subprocess
+import shutil
 
 # Configuration de l'apparence de l'interface
 ctk.set_appearance_mode("dark")  # Mode sombre
 ctk.set_default_color_theme("blue")  # Thème bleu
+
+def process_pdf_to_cbz(pdf_path, cbz_path):
+    """
+    Worker function for PDF to CBZ conversion.
+    Returns (success, message)
+    """
+    try:
+        pdf_document = fitz.open(pdf_path)
+        with zipfile.ZipFile(cbz_path, 'w') as cbz:
+            for i in range(len(pdf_document)):
+                try:
+                    page = pdf_document.load_page(i)
+                    pix = page.get_pixmap()
+                    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp_img:
+                        image_path = tmp_img.name
+                    pix.save(image_path)
+                    cbz.write(image_path, arcname=f"page_{i+1:03d}.jpg")
+                    os.remove(image_path)
+                except Exception as e:
+                    return False, f"Erreur page {i+1} de {pdf_path}: {e}"
+        pdf_document.close()
+        return True, f"Succès: {pdf_path}"
+    except Exception as e:
+        return False, f"Erreur PDF {pdf_path}: {e}"
 
 class PDFCBRtoCBZConverter(ctk.CTk):
     def __init__(self):
@@ -93,58 +121,71 @@ class PDFCBRtoCBZConverter(ctk.CTk):
             # Initialiser la barre de progression
             self.progress_bar.set(0)
             total_files = len(files_to_convert)
-
-            # Convertir chaque fichier
-            for i, file_path in enumerate(files_to_convert):
-                try:
-                    self.log(f"Conversion de {file_path}...")
+            
+            # Utilisation de ThreadPoolExecutor pour la parallélisation
+            completed_count = 0
+            
+            with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+                future_to_file = {}
+                for file_path in files_to_convert:
+                    cbz_path = os.path.splitext(file_path)[0] + '.cbz'
                     if file_path.endswith('.pdf'):
-                        cbz_path = os.path.splitext(file_path)[0] + '.cbz'
-                        self.convert_pdf_to_cbz(file_path, cbz_path)
+                        future = executor.submit(process_pdf_to_cbz, file_path, cbz_path)
+                        future_to_file[future] = file_path
                     elif file_path.endswith('.cbr'):
-                        cbz_path = os.path.splitext(file_path)[0] + '.cbz'
-                        self.convert_cbr_to_cbz(file_path, cbz_path)
+                        # CBR conversion kept in main class method for now as it might use self.log or utils
+                        # actually we can wrap it or call it inside a lambda, 
+                        # but threading tkinter methods directly is risky if they touch GUI.
+                        # convert_cbr_to_cbz uses utils and subprocess, safe for threads if logging is safe.
+                        future = executor.submit(self.convert_cbr_to_cbz, file_path, cbz_path)
+                        future_to_file[future] = file_path
 
-                    # Supprimer le fichier d'origine si la case est cochée
-                    if self.delete_originals_var.get():
-                        os.remove(file_path)
-                        self.log(f"Fichier d'origine supprimé : {file_path}")
+                for future in concurrent.futures.as_completed(future_to_file):
+                    file_path = future_to_file[future]
+                    try:
+                        # Handle return from process_pdf_to_cbz or convert_cbr_to_cbz
+                        # convert_cbr_to_cbz raises exception on error, returns nothing on success
+                        # process_pdf_to_cbz returns (success, msg)
+                        
+                        if file_path.endswith('.pdf'):
+                            success, msg = future.result()
+                            if not success:
+                                self.log(msg)
+                            else:
+                                self.log(f"Converti: {file_path}")
+                        else:
+                            future.result() # Will raise if exception occurred
+                            self.log(f"Converti: {file_path}")
 
-                    # Mettre à jour la barre de progression
-                    self.progress_bar.set((i + 1) / total_files)
-                    self.update()
+                        # Supprimer le fichier d'origine si la case est cochée
+                        if self.delete_originals_var.get():
+                            try:
+                                os.remove(file_path)
+                                self.log(f"Originaux supprimés: {file_path}")
+                            except OSError as e:
+                                self.log(f"Impossible de supprimer {file_path}: {e}")
 
-                except Exception as e:
-                    self.log(f"Erreur lors de la conversion de {file_path} : {type(e).__name__} - {str(e)}")
+                    except Exception as e:
+                        self.log(f"Erreur avec {file_path}: {e}")
+                    
+                    completed_count += 1
+                    self.update_progress(completed_count / total_files)
 
             self.log("Conversion terminée avec succès.")
+            
         except Exception as e:
             self.log(f"Erreur générale lors de la conversion : {type(e).__name__} - {str(e)}")
         finally:
-            # Réactiver les boutons
-            self.button_select_folder.configure(state="normal")
-            self.button_convert.configure(state="normal")
+            # Réactiver les boutons (sur le thread principal via after si besoin, mais ici on est dans le thread worker)
+            # Tkinter est parfois capricieux appelant configure depuis un thread
+            self.after(0, lambda: self.button_select_folder.configure(state="normal"))
+            self.after(0, lambda: self.button_convert.configure(state="normal"))
             self.conversion_in_progress = False
 
-    def convert_pdf_to_cbz(self, pdf_path, cbz_path):
-        """Convertit un fichier PDF en CBZ en utilisant PyMuPDF pour une conversion sans perte."""
-        try:
-            pdf_document = fitz.open(pdf_path)
-            with zipfile.ZipFile(cbz_path, 'w') as cbz:
-                for i in range(len(pdf_document)):
-                    try:
-                        page = pdf_document.load_page(i)
-                        pix = page.get_pixmap()  # Utilise la résolution d'origine
-                        image_path = f"temp_page_{i+1}.jpg"
-                        pix.save(image_path)
-                        cbz.write(image_path)
-                        os.remove(image_path)
-                    except Exception as e:
-                        self.log(f"Erreur lors de la conversion de la page {i+1} du fichier {pdf_path} : {type(e).__name__} - {str(e)}")
-            pdf_document.close()
-        except Exception as e:
-            self.log(f"Erreur lors de l'ouverture du PDF {pdf_path} : {type(e).__name__} - {str(e)}")
-            raise
+    def update_progress(self, val):
+        self.after(0, self.progress_bar.set, val)
+
+    # convert_pdf_to_cbz method removed as it is replaced by process_pdf_to_cbz global function for pickling/threading support
 
     def convert_cbr_to_cbz(self, cbr_path, cbz_path):
         """Convertit un fichier CBR en CBZ using 7za."""
@@ -172,8 +213,14 @@ class PDFCBRtoCBZConverter(ctk.CTk):
             # cmd: 7za a -tzip "archive.cbz" "./temp_extract/*"
             cmd = [seven_za, 'a', '-tzip', cbz_path, f'.{os.sep}{temp_dir}{os.sep}*']
             
-            startupinfo = subprocess.STARTUPINFO()
-            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            # cmd: 7za a -tzip "archive.cbz" "./temp_extract/*"
+            cmd = [seven_za, 'a', '-tzip', cbz_path, f'.{os.sep}{temp_dir}{os.sep}*']
+            
+            startupinfo = None
+            if os.name == 'nt':
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                
             subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
 
             shutil.rmtree(temp_dir)
@@ -182,12 +229,14 @@ class PDFCBRtoCBZConverter(ctk.CTk):
             raise
 
     def log(self, message):
-        """Ajoute un message au log."""
+        """Ajoute un message au log (Thread-safe)."""
+        self.after(0, self._log_impl, message)
+
+    def _log_impl(self, message):
         self.log_text.configure(state="normal")
         self.log_text.insert("end", message + "\n")
         self.log_text.configure(state="disabled")
         self.log_text.see("end")
-        self.update()
 
 def main():
     app = PDFCBRtoCBZConverter()

@@ -14,6 +14,7 @@ from customtkinter import CTkImage
 import requests
 import webbrowser
 import threading
+import json
 
 # Fix sys.path for bundled modules and data directory
 if getattr(sys, 'frozen', False):
@@ -41,7 +42,7 @@ except ImportError:
     logger.error("Impossible d'importer utils.py")
     utils = None
 
-VERSION = "2.0.33"
+VERSION = "2.0.34"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')
@@ -286,6 +287,9 @@ class Application(ctk.CTk):
         self.min_window_height = 400
         self.preferred_width = 800
 
+        self.icon_cache = {}
+        self.favorites = self.load_favorites()
+
         # Barre de recherche
         self.search_frame = ctk.CTkFrame(self, corner_radius=10)
         self.search_frame.pack(fill="x", padx=10, pady=(10, 0))
@@ -295,7 +299,7 @@ class Application(ctk.CTk):
 
         self.search_var = ctk.StringVar()
         self.search_var.trace("w", self.filter_scripts)
-        self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_var, width=300, placeholder_text="Nom ou description...")
+        self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_var, width=300, placeholder_text="Nom ou description... (Ctrl+F)")
         self.search_entry.pack(side="left", padx=10, pady=10, fill="x", expand=True)
 
         self.clear_button = ctk.CTkButton(self.search_frame, text="✕", width=25, height=25, 
@@ -340,6 +344,19 @@ class Application(ctk.CTk):
         # Auto-focus search bar
         self.after(100, lambda: self.search_entry.focus_set())
 
+        # Keyboard shortcuts
+        self.bind("<Control-f>", lambda event: self.search_entry.focus_set())
+        self.bind("<Escape>", self.clear_search_or_focus)
+        self.bind("<Left>", lambda e: self.previous_page())
+        self.bind("<Right>", lambda e: self.next_page())
+
+    def clear_search_or_focus(self, event=None):
+        """Efface la recherche ou enlève le focus."""
+        if self.search_var.get():
+            self.clear_search()
+        else:
+            self.focus_set()
+
     def check_updates(self):
         """Vérifie les mises à jour de manière asynchrone (non-bloquant)."""
         self.update_label.configure(text="Vérification des mises à jour...", text_color="gray")
@@ -351,6 +368,35 @@ class Application(ctk.CTk):
         
         thread = threading.Thread(target=update_worker, daemon=True)
         thread.start()
+
+    def load_favorites(self):
+        """Charge les favoris depuis le fichier JSON."""
+        fav_file = os.path.join(app_data_dir, 'favorites.json')
+        if os.path.exists(fav_file):
+            try:
+                with open(fav_file, 'r', encoding='utf-8') as f:
+                    return set(json.load(f))
+            except Exception as e:
+                logger.error(f"Erreur lors du chargement des favoris: {e}")
+        return set()
+
+    def save_favorites(self):
+        """Sauvegarde les favoris dans le fichier JSON."""
+        fav_file = os.path.join(app_data_dir, 'favorites.json')
+        try:
+            with open(fav_file, 'w', encoding='utf-8') as f:
+                json.dump(list(self.favorites), f)
+        except Exception as e:
+            logger.error(f"Erreur lors du sauvegarde des favoris: {e}")
+
+    def toggle_favorite(self, script_name):
+        """Bascule l'état favori d'un script."""
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.add(script_name)
+        self.save_favorites()
+        self.filter_scripts() # Refresh list
 
     def update_update_ui(self, update_available, latest_version):
         """Met à jour l'UI avec le résultat de la vérification de mise à jour."""
@@ -380,6 +426,9 @@ class Application(ctk.CTk):
                 if query in s["name"].lower() or query in s["description"].lower()
             ]
         
+        # Sort by favorites
+        self.filtered_scripts.sort(key=lambda s: (s["name"] not in self.favorites, s["name"]))
+
         self.page = 0 # Réinitialiser à la première page
         self.update_page()
 
@@ -408,28 +457,40 @@ class Application(ctk.CTk):
             frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
             frame.pack(fill="x", pady=5, padx=10)
 
-            # Charger l'icône
-            try:
-                if os.path.exists(script["icon"]):
-                    img = Image.open(script["icon"])
-                    img = img.resize((32, 32), Image.LANCZOS)
-                    icon = CTkImage(img)
-                else:
-                    raise FileNotFoundError("Icon file not found")
-            except Exception as e:
-                logger.error(f"Erreur lors du chargement de l'icône {script['icon']}: {e}")
-                icon = CTkImage(Image.new('RGBA', (32, 32), (0, 0, 0, 0)))
+            # Charger l'icône (avec Cache)
+            if script["icon"] in self.icon_cache:
+                icon = self.icon_cache[script["icon"]]
+            else:
+                try:
+                    if os.path.exists(script["icon"]):
+                        img = Image.open(script["icon"])
+                        img = img.resize((32, 32), Image.LANCZOS)
+                        icon = CTkImage(img)
+                        self.icon_cache[script["icon"]] = icon
+                    else:
+                        raise FileNotFoundError("Icon file not found")
+                except Exception as e:
+                    logger.error(f"Erreur lors du chargement de l'icône {script['icon']}: {e}")
+                    icon = CTkImage(Image.new('RGBA', (32, 32), (0, 0, 0, 0)))
+                    self.icon_cache[script["icon"]] = icon
+
             icon_label = ctk.CTkLabel(frame, image=icon, text="")
             icon_label.image = icon
             icon_label.pack(side="left", padx=10)
 
             # Bouton pour lancer le module
+            btn_text = "★ " + script["name"] if script["name"] in self.favorites else script["name"]
+            btn_color = "#D4AF37" if script["name"] in self.favorites else None # Gold for favorite
+            
             button = ctk.CTkButton(
                 frame, 
-                text=script["name"], 
+                text=btn_text,
+                fg_color=btn_color if btn_color else ["#3B8ED0", "#1F6AA5"], # Default colors
                 command=lambda name=script["name"]: self.execute_module(name), 
                 width=200
             )
+            # Right click to separate favorite toggle
+            button.bind("<Button-3>", lambda event, s=script["name"]: self.toggle_favorite(s))
             button.pack(side="left", padx=10)
 
             # Description du script

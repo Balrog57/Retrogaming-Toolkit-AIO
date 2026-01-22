@@ -40,15 +40,33 @@ def compress_and_delete_roms(source_dir):
 
                     cmd = [manager.seven_za_path, 'a', '-tzip', zip_path, file_path]
                     
-                    startupinfo = subprocess.STARTUPINFO()
-                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                    startupinfo = None
+                    if os.name == 'nt':
+                        startupinfo = subprocess.STARTUPINFO()
+                        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+                    process = subprocess.Popen(
+                        cmd, 
+                        stdout=subprocess.PIPE, 
+                        stderr=subprocess.PIPE,
+                        stdin=subprocess.PIPE, # Important pour éviter que 7z attende une entrée
+                        text=True,
+                        startupinfo=startupinfo)
                     
-                    subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
-                    print(f"Fichier compressé : {zip_filename}")
-    
-                    # Supprime le fichier d'origine
-                    os.remove(file_path)
-                    print(f"Fichier supprimé : {filename}")
+                    stdout, stderr = process.communicate()
+                    result = process.wait() # Wait for the process to finish and get the return code
+
+                    if result == 0:
+                        print(f"Fichier compressé : {zip_filename}")
+        
+                        # Supprime le fichier d'origine
+                        os.remove(file_path)
+                        print(f"Fichier supprimé : {filename}")
+                    else:
+                        print(f"Erreur de compression pour {filename}. Code de retour: {result}")
+                        print(f"Sortie standard: {stdout}")
+                        print(f"Erreur standard: {stderr}")
+
                 except Exception as e:
                      print(f"Erreur compression {filename}: {e}")
 

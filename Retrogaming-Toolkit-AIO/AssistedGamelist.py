@@ -153,6 +153,14 @@ class GameListApp:
             self.instructions_path.set(file_path)
             self.log_message(f"Fichier d'instructions sélectionné : {file_path}")
 
+    @staticmethod
+    def get_safe_parser():
+        """Retourne un parser XML sécurisé contre les attaques XXE."""
+        # recover=True : tolérance aux erreurs XML mineures
+        # resolve_entities=False : DÉSACTIVE la résolution d'entités externes (Protection XXE)
+        # no_network=True : Empêche tout accès réseau lors du parsing (Défense en profondeur)
+        return etree.XMLParser(recover=True, encoding='utf-8', resolve_entities=False, no_network=True)
+
     def open_api_key_url(self):
         """Ouvre le lien de création de clé API Google dans le navigateur."""
         self.log_message("Ouverture du site de création de clé API Google...")
@@ -168,7 +176,8 @@ class GameListApp:
                 self.updated_gamelist_path.set(os.path.join(base_dir, "updated_gamelist.xml"))
                 self.missing_games_path.set(os.path.join(base_dir, "failed_games.txt"))
                 
-                tree = etree.parse(file_path)
+                parser = self.get_safe_parser()
+                tree = etree.parse(file_path, parser)
                 root = tree.getroot()
                 if (root.tag == "gameList"):
                     self.start_button.configure(state="normal")
@@ -457,7 +466,8 @@ class GameListApp:
                         raise ValueError("Aucun bloc <game> valide trouvé dans la réponse de l'IA.")
                         
                     valid_xml_data = "".join(game_blocks)
-                    enriched_root = etree.fromstring(f"<root>{valid_xml_data}</root>")
+                    parser = self.get_safe_parser()
+                    enriched_root = etree.fromstring(f"<root>{valid_xml_data}</root>", parser=parser)
                     
                     # Validation du contenu retourné
                     valid_games_found = 0
@@ -532,7 +542,7 @@ class GameListApp:
         """Charge un fichier XML et retourne l'élément racine."""
         try:
             # recover=True tente de parser même si le XML est légèrement malformé
-            parser = etree.XMLParser(recover=True, encoding='utf-8')
+            parser = self.get_safe_parser()
             tree = etree.parse(file_path, parser)
             return tree.getroot()
         except etree.XMLSyntaxError as e:
