@@ -81,10 +81,13 @@ def convert_video(input_file, start_time, end_time, output_file, video_bitrate, 
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
         if result.returncode != 0:
             raise subprocess.CalledProcessError(result.returncode, command, output=result.stdout, stderr=result.stderr)
+        return True
     except subprocess.CalledProcessError as e:
         messagebox.showerror("Erreur", f"Erreur lors de l'exportation de la vidéo.\n{e.stderr}")
+        return False
     except Exception as e:
         messagebox.showerror("Erreur", f"Une erreur inattendue s'est produite : {e}")
+        return False
 
 def capture_first_frame(input_file, output_file, rotate=False, root=None, ffmpeg_path=None):
     if not ffmpeg_path:
@@ -210,8 +213,17 @@ def start_conversion():
             else:
                 # Replace mode
                 temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext).name
-                convert_video(input_file, start_time, end_time, temp_file, video_bitrate, audio_bitrate, fps, resolution, root, ffmpeg_path=ffmpeg_path)
+                success = convert_video(input_file, start_time, end_time, temp_file, video_bitrate, audio_bitrate, fps, resolution, root, ffmpeg_path=ffmpeg_path)
                 
+                if not success:
+                    # Conversion failed, do not overwrite original file
+                    if os.path.exists(temp_file):
+                        try:
+                            os.remove(temp_file)
+                        except OSError:
+                            pass  # Ignore cleanup errors if file is locked or missing
+                    continue
+
                 # If extension changed, we must rename the target file
                 if ext != os.path.splitext(input_file)[1]:
                      new_input_path = os.path.splitext(input_file)[0] + ext
