@@ -4,6 +4,7 @@ from tkinter import filedialog, messagebox
 import os
 import re
 import shutil
+import sys
 from pathlib import Path
 from PIL import Image
 
@@ -198,12 +199,59 @@ class UniversalRomCleanerApp(ctk.CTk):
         self._setup_ui()
 
     def _load_icons(self):
-        icon_path_1g1r = os.path.join(os.path.dirname(__file__), "icons", "icon_1g1r.png")
-        icon_path_folder = os.path.join(os.path.dirname(__file__), "icons", "icon_folder.png")
+        def resource_path(relative_path):
+            """ Get absolute path to resource, works for dev and for PyInstaller """
+            try:
+                # PyInstaller creates a temp folder and stores path in _MEIPASS
+                base_path = sys._MEIPASS
+            except Exception:
+                base_path = os.path.dirname(os.path.abspath(__file__))
+
+            return os.path.join(base_path, relative_path)
+
+        # In dev: base is current file dir. In frozen (bundled dir), we need to check structure.
+        # build.py does: --add-data "Retrogaming-Toolkit-AIO;Retrogaming-Toolkit-AIO"
+        # So inside _MEIPASS we have Retrogaming-Toolkit-AIO folder.
+        
+        # Determine base directory
+        if getattr(sys, 'frozen', False):
+            # If frozen, we are likely in sys._MEIPASS
+            # The structure is sys._MEIPASS/Retrogaming-Toolkit-AIO/icons/...
+            # But this file (UniversalRomCleaner.py) might be running from unpacked location?
+            # Actually build.py treats them as data. 
+            # If launch via main.py -> subprocess UniversalRomCleaner.py, it's just a script.
+            
+            # Let's try locating relative to the executable IF it's --onedir (which build.py uses)
+            # In --onedir, sys.executable is in the root. 
+            # Retrogaming-Toolkit-AIO is a folder next to it? 
+            # No, build.py uses --add-data, so it's INTERNAL to the internal bundle dir.
+            
+            # Safe bet: use __file__ but resolve fully if possible, or fallback to sys._MEIPASS
+            try:
+                base_path = sys._MEIPASS
+            except Exception:
+                base_path = os.path.dirname(os.path.abspath(__file__))
+            
+            icon_path_1g1r = os.path.join(base_path, "Retrogaming-Toolkit-AIO", "icons", "icon_1g1r.png")
+            icon_path_folder = os.path.join(base_path, "Retrogaming-Toolkit-AIO", "icons", "icon_folder.png")
+            
+            # Fallback if structure is different (e.g. if __file__ is already inside Retrogaming-Toolkit-AIO)
+            if not os.path.exists(icon_path_1g1r):
+                 # Try relative to this file
+                 icon_path_1g1r = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "icon_1g1r.png")
+                 icon_path_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "icon_folder.png")
+
+        else:
+            # Dev mode
+            icon_path_1g1r = os.path.join(os.path.dirname(__file__), "icons", "icon_1g1r.png")
+            icon_path_folder = os.path.join(os.path.dirname(__file__), "icons", "icon_folder.png")
         
         if os.path.exists(icon_path_1g1r):
             self.icon_1g1r = ctk.CTkImage(light_image=Image.open(icon_path_1g1r), 
                                           dark_image=Image.open(icon_path_1g1r), size=(32, 32))
+        else:
+            print(f"Icon not found: {icon_path_1g1r}")
+
         if os.path.exists(icon_path_folder):
             self.icon_folder = ctk.CTkImage(light_image=Image.open(icon_path_folder), 
                                             dark_image=Image.open(icon_path_folder), size=(32, 32))
