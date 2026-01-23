@@ -1,5 +1,5 @@
 import os
-# import zipfile # Removed for 7za
+import zipfile
 # import rarfile # Removed for 7za
 # from patoolib import extract_archive # Removed for 7za
 import customtkinter as ctk
@@ -27,11 +27,9 @@ def process_pdf_to_cbz(pdf_path, cbz_path):
                 try:
                     page = pdf_document.load_page(i)
                     pix = page.get_pixmap()
-                    with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp_img:
-                        image_path = tmp_img.name
-                    pix.save(image_path)
-                    cbz.write(image_path, arcname=f"page_{i+1:03d}.jpg")
-                    os.remove(image_path)
+                    # Optimisation: Écriture directe en mémoire (évite les fichiers temporaires)
+                    img_data = pix.tobytes("jpg")
+                    cbz.writestr(f"page_{i+1:03d}.jpg", img_data)
                 except Exception as e:
                     return False, f"Erreur page {i+1} de {pdf_path}: {e}"
         pdf_document.close()
@@ -189,41 +187,36 @@ class PDFCBRtoCBZConverter(ctk.CTk):
 
     def convert_cbr_to_cbz(self, cbr_path, cbz_path):
         """Convertit un fichier CBR en CBZ using 7za."""
-        import shutil
-        import subprocess
         try:
             # Extraction
-            temp_dir = "temp_extract"
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-            
-            # Use utils for 7za extraction
-            try:
-                import utils
-                utils.extract_with_7za(cbr_path, temp_dir, root=self)
-            except ImportError:
-                 self.log("Module utils manquant, impossible d'utiliser 7za.")
-                 return
+            # Utilisation de TemporaryDirectory pour éviter les conflits entre threads
+            with tempfile.TemporaryDirectory() as temp_dir:
 
-            # Création du CBZ (ZIP) avec 7za également pour respecter la demande
-            # Si utils a le path de 7za, on l'utilise
-            manager = utils.DependencyManager(self)
-            seven_za = manager.seven_za_path
-            
-            # cmd: 7za a -tzip "archive.cbz" "./temp_extract/*"
-            cmd = [seven_za, 'a', '-tzip', cbz_path, f'.{os.sep}{temp_dir}{os.sep}*']
-            
-            # cmd: 7za a -tzip "archive.cbz" "./temp_extract/*"
-            cmd = [seven_za, 'a', '-tzip', cbz_path, f'.{os.sep}{temp_dir}{os.sep}*']
-            
-            startupinfo = None
-            if os.name == 'nt':
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                # Use utils for 7za extraction
+                try:
+                    import utils
+                    utils.extract_with_7za(cbr_path, temp_dir, root=self)
+                except ImportError:
+                     self.log("Module utils manquant, impossible d'utiliser 7za.")
+                     return
+
+                # Création du CBZ (ZIP) avec 7za également pour respecter la demande
+                # Si utils a le path de 7za, on l'utilise
+                manager = utils.DependencyManager(self)
+                seven_za = manager.seven_za_path
                 
-            subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
+                # cmd: 7za a -tzip "archive.cbz" "*"
+                # We use cwd=temp_dir so we need absolute path for destination
+                cbz_path_abs = os.path.abspath(cbz_path)
+                cmd = [seven_za, 'a', '-tzip', cbz_path_abs, "*"]
 
-            shutil.rmtree(temp_dir)
+                startupinfo = None
+                if os.name == 'nt':
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+                subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True, cwd=temp_dir)
+
         except Exception as e:
             self.log(f"Erreur lors de la conversion du CBR {cbr_path} : {type(e).__name__} - {str(e)}")
             raise
