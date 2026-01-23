@@ -348,8 +348,23 @@ class Application(ctk.CTk):
         # Keyboard shortcuts
         self.bind("<Control-f>", lambda event: self.search_entry.focus_set())
         self.bind("<Escape>", self.clear_search_or_focus)
-        self.bind("<Left>", lambda e: self.previous_page())
-        self.bind("<Right>", lambda e: self.next_page())
+        self.bind("<Left>", lambda e: self.handle_arrow_key(e, "left"))
+        self.bind("<Right>", lambda e: self.handle_arrow_key(e, "right"))
+
+    def handle_arrow_key(self, event, direction):
+        """Gère la navigation au clavier en évitant les interférences avec la saisie."""
+        try:
+            # Vérifier si le widget qui a le focus ou qui a reçu l'événement est une entrée texte
+            widget_class = event.widget.winfo_class()
+            if widget_class == "Entry":
+                return
+        except Exception:
+            pass
+
+        if direction == "left":
+            self.previous_page()
+        elif direction == "right":
+            self.next_page()
 
     def clear_search_or_focus(self, event=None):
         """Efface la recherche ou enlève le focus."""
@@ -505,7 +520,7 @@ class Application(ctk.CTk):
         # Mettre à jour l'indicateur de page
         total_pages = (len(self.filtered_scripts) - 1) // self.scripts_per_page + 1
         page_display = self.page + 1 if total_pages > 0 else 0
-        self.page_label.configure(text=f"Page {page_display} sur {max(1, total_pages)}")
+        self.page_label.configure(text=f"Page {page_display} sur {max(1, total_pages)} (←/→)")
 
         # Activer/Désactiver les boutons de navigation
         self.previous_button.configure(state="normal" if self.page > 0 else "disabled")
