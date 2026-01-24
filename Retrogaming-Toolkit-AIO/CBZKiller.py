@@ -189,41 +189,37 @@ class PDFCBRtoCBZConverter(ctk.CTk):
 
     def convert_cbr_to_cbz(self, cbr_path, cbz_path):
         """Convertit un fichier CBR en CBZ using 7za."""
-        import shutil
         import subprocess
         try:
             # Extraction
-            temp_dir = "temp_extract"
-            if os.path.exists(temp_dir):
-                shutil.rmtree(temp_dir)
-            
-            # Use utils for 7za extraction
-            try:
-                import utils
-                utils.extract_with_7za(cbr_path, temp_dir, root=self)
-            except ImportError:
-                 self.log("Module utils manquant, impossible d'utiliser 7za.")
-                 return
+            # Use tempfile to avoid race conditions
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # Use utils for 7za extraction
+                try:
+                    import utils
+                    utils.extract_with_7za(cbr_path, temp_dir, root=self)
+                except ImportError:
+                     self.log("Module utils manquant, impossible d'utiliser 7za.")
+                     return
 
-            # Création du CBZ (ZIP) avec 7za également pour respecter la demande
-            # Si utils a le path de 7za, on l'utilise
-            manager = utils.DependencyManager(self)
-            seven_za = manager.seven_za_path
-            
-            # cmd: 7za a -tzip "archive.cbz" "./temp_extract/*"
-            cmd = [seven_za, 'a', '-tzip', cbz_path, f'.{os.sep}{temp_dir}{os.sep}*']
-            
-            # cmd: 7za a -tzip "archive.cbz" "./temp_extract/*"
-            cmd = [seven_za, 'a', '-tzip', cbz_path, f'.{os.sep}{temp_dir}{os.sep}*']
-            
-            startupinfo = None
-            if os.name == 'nt':
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                # Création du CBZ (ZIP) avec 7za également pour respecter la demande
+                # Si utils a le path de 7za, on l'utilise
+                manager = utils.DependencyManager(self)
+                seven_za = manager.seven_za_path
+
+                # Ensure output path is absolute because we change cwd
+                cbz_path_abs = os.path.abspath(cbz_path)
+
+                # cmd: 7za a -tzip "archive.cbz" "*" (run from inside temp_dir)
+                cmd = [seven_za, 'a', '-tzip', cbz_path_abs, '*']
+
+                startupinfo = None
+                if os.name == 'nt':
+                    startupinfo = subprocess.STARTUPINFO()
+                    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
                 
-            subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
+                subprocess.run(cmd, check=True, cwd=temp_dir, startupinfo=startupinfo, capture_output=True)
 
-            shutil.rmtree(temp_dir)
         except Exception as e:
             self.log(f"Erreur lors de la conversion du CBR {cbr_path} : {type(e).__name__} - {str(e)}")
             raise
