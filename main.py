@@ -315,13 +315,13 @@ class Application(ctk.CTk):
         self.nav_frame = ctk.CTkFrame(self)
         self.nav_frame.pack(fill="x", pady=10)
 
-        self.previous_button = ctk.CTkButton(self.nav_frame, text="◀ Précédent", command=self.previous_page, width=100)
+        self.previous_button = ctk.CTkButton(self.nav_frame, text="◀ Précédent (←)", command=self.previous_page, width=100)
         self.previous_button.pack(side="left", padx=10)
 
         self.page_label = ctk.CTkLabel(self.nav_frame, text="Page 1", font=("Arial", 16))
         self.page_label.pack(side="left", expand=True)
 
-        self.next_button = ctk.CTkButton(self.nav_frame, text="Suivant ▶", command=self.next_page, width=100)
+        self.next_button = ctk.CTkButton(self.nav_frame, text="Suivant ▶ (→)", command=self.next_page, width=100)
         self.next_button.pack(side="right", padx=10)
 
 
@@ -348,8 +348,8 @@ class Application(ctk.CTk):
         # Keyboard shortcuts
         self.bind("<Control-f>", lambda event: self.search_entry.focus_set())
         self.bind("<Escape>", self.clear_search_or_focus)
-        self.bind("<Left>", lambda e: self.previous_page())
-        self.bind("<Right>", lambda e: self.next_page())
+        self.bind("<Left>", self.previous_page)
+        self.bind("<Right>", self.next_page)
 
     def clear_search_or_focus(self, event=None):
         """Efface la recherche ou enlève le focus."""
@@ -532,14 +532,18 @@ class Application(ctk.CTk):
         logger.info(f"Lancement du module depuis l'interface: {module_name}")
         lancer_module(module_name)
 
-    def next_page(self):
+    def next_page(self, event=None):
         """Passe à la page suivante."""
+        if event and hasattr(event.widget, 'winfo_class') and event.widget.winfo_class() == 'Entry':
+            return
         if (self.page + 1) * self.scripts_per_page < len(self.filtered_scripts):
             self.page += 1
             self.update_page()
 
-    def previous_page(self):
+    def previous_page(self, event=None):
         """Revient à la page précédente."""
+        if event and hasattr(event.widget, 'winfo_class') and event.widget.winfo_class() == 'Entry':
+            return
         if self.page > 0:
             self.page -= 1
             self.update_page()
