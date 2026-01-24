@@ -1,122 +1,66 @@
 import os
-
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
+import subprocess
+
+try: import theme
+except: theme=None
 
 ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
 
 def compress_and_delete_roms(source_dir):
-    """
-    Compresse tous les fichiers d'un dossier individuellement en ZIP et supprime les originaux.
-    
-    :param source_dir: Dossier contenant les fichiers à compresser.
-    """
     try:
-        # Vérifie si le dossier source existe
-        if not os.path.exists(source_dir):
-            messagebox.showerror("Erreur", f"Le dossier source '{source_dir}' n'existe pas.")
-            return
-
-        # Parcourt tous les fichiers dans le dossier source
-        for filename in os.listdir(source_dir):
-            file_path = os.path.join(source_dir, filename)
-
-            # Ignore les dossiers (ne traite que les fichiers)
-            if os.path.isfile(file_path):
-                # Crée le chemin de l'archive ZIP
-                zip_filename = os.path.splitext(filename)[0] + ".zip"
-                zip_path = os.path.join(source_dir, zip_filename)
-
-                # Compresse le fichier avec 7za
-                try:
-                    import utils
-                    import subprocess
-                    
-                    manager = utils.DependencyManager()
-                    if not manager.bootstrap_7za():
-                         print("7za non trouvé")
-                         continue
-
-                    cmd = [manager.seven_za_path, 'a', '-tzip', zip_path, file_path]
-                    
-                    startupinfo = None
-                    if os.name == 'nt':
-                        startupinfo = subprocess.STARTUPINFO()
-                        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-
-                    process = subprocess.Popen(
-                        cmd, 
-                        stdout=subprocess.PIPE, 
-                        stderr=subprocess.PIPE,
-                        stdin=subprocess.PIPE, # Important pour éviter que 7z attende une entrée
-                        text=True,
-                        startupinfo=startupinfo)
-                    
-                    stdout, stderr = process.communicate()
-                    result = process.wait() # Wait for the process to finish and get the return code
-
-                    if result == 0:
-                        print(f"Fichier compressé : {zip_filename}")
+        if not os.path.exists(source_dir): return messagebox.showerror("Err", "Dossier source invalide")
         
-                        # Supprime le fichier d'origine
-                        os.remove(file_path)
-                        print(f"Fichier supprimé : {filename}")
-                    else:
-                        print(f"Erreur de compression pour {filename}. Code de retour: {result}")
-                        print(f"Sortie standard: {stdout}")
-                        print(f"Erreur standard: {stderr}")
+        try: import utils
+        except ImportError: return messagebox.showerror("Err", "Utils manquant")
+        
+        manager = utils.DependencyManager()
+        if not manager.bootstrap_7za(): return messagebox.showerror("Err", "7za manquant")
 
-                except Exception as e:
-                     print(f"Erreur compression {filename}: {e}")
+        count = 0
+        for filename in os.listdir(source_dir):
+            fp = os.path.join(source_dir, filename)
+            if os.path.isfile(fp) and not filename.endswith('.zip'):
+                zip_path = os.path.join(source_dir, os.path.splitext(filename)[0] + ".zip")
+                
+                cmd = [manager.seven_za_path, 'a', '-tzip', zip_path, fp]
+                si = subprocess.STARTUPINFO(); si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                
+                res = subprocess.run(cmd, startupinfo=si, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                if res.returncode == 0:
+                    os.remove(fp)
+                    print(f"Compressed & Deleted: {filename}")
+                    count += 1
+                else:
+                    print(f"Err {filename}: {res.stderr}")
 
-        messagebox.showinfo("Succès", "Compression et suppression terminées.")
+        messagebox.showinfo("Succès", f"{count} fichiers compressés.")
     except Exception as e:
-        messagebox.showerror("Erreur", f"Une erreur s'est produite : {e}")
-
-def select_source_dir():
-    """Ouvre une boîte de dialogue pour sélectionner le dossier source."""
-    folder = filedialog.askdirectory()
-    if folder:
-        source_dir.set(folder)
-
-def start_compression():
-    """Lance la compression des fichiers."""
-    if not source_dir.get():
-        messagebox.showwarning("Attention", "Veuillez sélectionner un dossier source.")
-        return
-    compress_and_delete_roms(source_dir.get())
+        messagebox.showerror("Err", str(e))
 
 def main():
-    global source_dir, root
-    # Crée une instance de CTk (fenêtre principale)
     root = ctk.CTk()
-    root.title("Dossier rom vers ZIP")  # Titre modifié
-    root.geometry("500x300")  # Taille de la fenêtre
+    if theme:
+        theme.apply_theme(root, "Dossier ROM vers ZIP")
+        acc = theme.COLOR_ACCENT_PRIMARY
+    else:
+        root.title("Dossier ROM vers ZIP")
+        root.geometry("500x300")
+        acc = "#1f6aa5"
 
-    # Variable pour le dossier source
     source_dir = ctk.StringVar()
+    
+    fr = ctk.CTkFrame(root, fg_color="transparent")
+    fr.pack(padx=20, pady=20, fill="both", expand=True)
 
-    # Titre
-    title_label = ctk.CTkLabel(root, text="Dossier rom vers ZIP", font=("Arial", 16, "bold"))
-    title_label.pack(pady=20)
-
-    # Sélection du dossier source
-    source_label = ctk.CTkLabel(root, text="Dossier source (Fichiers nes/bin/cue/gdi/iso/chd...) :", font=("Arial", 12))
-    source_label.pack(pady=5)
-
-    # Champ de saisie customtkinter pour afficher le chemin
-    entry = ctk.CTkEntry(root, textvariable=source_dir, width=400)
-    entry.pack(pady=5)
-
-    # Bouton pour parcourir les dossiers
-    browse_button = ctk.CTkButton(root, text="Parcourir...", command=select_source_dir, width=200)
-    browse_button.pack(pady=10)
-
-    # Bouton pour lancer la compression
-    compress_button = ctk.CTkButton(root, text="ZIP", command=start_compression, width=200)
-    compress_button.pack(pady=20)
-
+    ctk.CTkLabel(fr, text="Compresser fichiers en ZIP (individuel)", font=theme.get_font_title(16) if theme else ("Arial", 16, "bold")).pack(pady=10)
+    
+    ctk.CTkEntry(fr, textvariable=source_dir, width=350).pack(pady=10)
+    ctk.CTkButton(fr, text="Parcourir", command=lambda: source_dir.set(filedialog.askdirectory()), fg_color=acc).pack(pady=5)
+    
+    ctk.CTkButton(fr, text="COMPRESSER & SUPPRIMER ORIGINAUX", command=lambda: compress_and_delete_roms(source_dir.get()), 
+                  width=300, fg_color=theme.COLOR_ERROR if theme else "red").pack(pady=20)
 
     root.mainloop()
 

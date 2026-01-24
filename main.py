@@ -9,12 +9,14 @@ import importlib
 import tempfile
 import zipfile
 import traceback
-from PIL import Image
+from PIL import Image, ImageTk
 from customtkinter import CTkImage
 import requests
 import webbrowser
 import threading
 import json
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
+import pygame
 
 # Fix sys.path for bundled modules and data directory
 if getattr(sys, 'frozen', False):
@@ -34,15 +36,17 @@ else:
 
 try:
     import utils
+    import theme
 except ImportError:
     # Si utils n'est pas trouvé (devrait pas arriver si sys.path est correct)
     # logger might not be defined yet
     logger = logging.getLogger(__name__) # Safe to call
     logging.basicConfig() # Ensure basic logging
-    logger.error("Impossible d'importer utils.py")
+    logger.error("Impossible d'importer utils.py ou theme.py")
     utils = None
+    theme = None
 
-VERSION = "2.0.38"
+VERSION = "3.0.0"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')
@@ -78,39 +82,39 @@ def get_path(p):
 
 # Liste des scripts avec descriptions, chemins des icônes et fichiers "Lisez-moi"
 scripts = [
-    {"name": "AssistedGamelist", "description": "(Retrobat) Gère et enrichit les listes de jeux XML.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "AssistedGamelist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "AssistedGamelist.txt"))},
-    {"name": "BGBackup", "description": "(Retrobat) Sauvegarde les fichiers gamelist.xml.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "BGBackup.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "BGBackup.txt"))},
-    {"name": "CHDManager", "description": "Convertit et vérifie les fichiers CHD (MAME).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "CHDManager.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CHDManager.txt"))},
-    {"name": "CollectionBuilder", "description": "(Core) Crée des collections de jeux par mots-clés.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "CollectionBuilder.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CollectionBuilder.txt"))},
-    {"name": "CollectionExtractor", "description": "(Core) Extrait des collections de jeux spécifiques.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "CollectionExtractor.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CollectionExtractor.txt"))},
-    {"name": "LongPaths", "description": "Active les chemins longs sur Windows (Registry).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "LongPaths.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "LongPaths.txt"))},
-    {"name": "FolderToTxt", "description": "Crée des fichiers TXT à partir des noms de dossiers.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "FolderToTxt.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "FolderToTxt.txt"))},
-    {"name": "FolderToZip", "description": "Compresse des fichiers de jeux en ZIP.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "FolderToZip.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "FolderToZip.txt"))},
-    {"name": "GameBatch", "description": "Génère des fichiers batch pour lancer des jeux PC.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "GameBatch.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "GameBatch.txt"))},
-    {"name": "EmptyGen", "description": "Génère des fichiers vides dans des sous-dossiers.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "EmptyGen.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "EmptyGen.txt"))},
-    {"name": "GameRemoval", "description": "(Core) Supprime des jeux et leurs médias associés.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "GameRemoval.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "GameRemoval.txt"))},
-    {"name": "GamelistHyperlist", "description": "(Core) Convertit gamelist.xml en hyperlist.xml.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "GamelistHyperlist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "GamelistHyperlist.txt"))},
-    {"name": "HyperlistGamelist", "description": "(Retrobat) Convertit hyperlist.xml en gamelist.xml.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "HyperlistGamelist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "HyperlistGamelist.txt"))},
-    {"name": "InstallDeps", "description": "Installe les dépendances système (DirectX, VC++).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "InstallDeps.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "InstallDeps.txt"))},
-    {"name": "ListFilesSimple", "description": "Liste les fichiers d'un répertoire (Simple).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "ListFilesSimple.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "ListFilesSimple.txt"))},
-    {"name": "ListFilesWin", "description": "Liste fichiers et dossiers (Détails Windows).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "ListFilesWin.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "ListFilesWin.txt"))},
-    {"name": "MaxCSO", "description": "Compresse des fichiers ISO en CSO (MaxCSO).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "MaxCSO.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "MaxCSO.txt"))},
-    {"name": "MediaOrphans", "description": "(Core) Détecte et déplace les médias orphelins.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "MediaOrphans.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "MediaOrphans.txt"))},
-    {"name": "FolderCleaner", "description": "Supprime les dossiers vides récursivement.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "FolderCleaner.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "FolderCleaner.txt"))},
-    {"name": "StoryHyperlist", "description": "(Core) Intègre des story dans des hyperlist.xml.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "StoryHyperlist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "StoryHyperlist.txt"))},
-    {"name": "DolphinConvert", "description": "Convertit entre formats RVZ et ISO (Dolphin).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "DolphinConvert.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "DolphinConvert.txt"))},
-    {"name": "StoryCleaner", "description": "Nettoie les fichiers texte non ASCII.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "StoryCleaner.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "StoryCleaner.txt"))},
-    {"name": "M3UCreator", "description": "Crée des playlists M3U pour le multi-disque.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "M3UCreator.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "M3UCreator.txt"))},
-    {"name": "CoverExtractor", "description": "Extrait la première image des CBZ, CBR, PDF.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "CoverExtractor.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CoverExtractor.txt"))},
-    {"name": "CBZKiller", "description": "Convertisseur PDF/CBR vers CBZ.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "CBZKiller.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CBZKiller.txt"))},
-    {"name": "VideoConvert", "description": "Convertit/Rogne des vidéos par lot (FFmpeg).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "VideoConvert.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "VideoConvert.txt"))},
-    {"name": "YTDownloader", "description": "Télécharge des vidéos/audio Youtube (yt-dlp).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "YTDownloader.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "YTDownloader.txt"))},
-    {"name": "ImageConvert", "description": "Convertit des images par lot.", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "ImageConvert.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "ImageConvert.txt"))},
-    {"name": "SystemsExtractor", "description": "Extrait les systèmes uniques (EmulationStation).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "SystemsExtractor.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "SystemsExtractor.txt"))},
-    {"name": "UniversalRomCleaner", "description": "Nettoie et trie vos ROMs (1G1R, Régions).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "UniversalRomCleaner.png")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "UniversalRomCleaner.txt"))},
+    {"name": "AssistedGamelist", "description": "(Retrobat) Gère et enrichit les listes de jeux XML.", "icon": get_path(os.path.join("assets", "AssistedGamelist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "AssistedGamelist.txt"))},
+    {"name": "BGBackup", "description": "(Retrobat) Sauvegarde les fichiers gamelist.xml.", "icon": get_path(os.path.join("assets", "BGBackup.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "BGBackup.txt"))},
+    {"name": "CHDManager", "description": "Convertit et vérifie les fichiers CHD (MAME).", "icon": get_path(os.path.join("assets", "CHDManager.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CHDManager.txt"))},
+    {"name": "CollectionBuilder", "description": "(Core) Crée des collections de jeux par mots-clés.", "icon": get_path(os.path.join("assets", "CollectionBuilder.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CollectionBuilder.txt"))},
+    {"name": "CollectionExtractor", "description": "(Core) Extrait des collections de jeux spécifiques.", "icon": get_path(os.path.join("assets", "CollectionExtractor.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CollectionExtractor.txt"))},
+    {"name": "LongPaths", "description": "Active les chemins longs sur Windows (Registry).", "icon": get_path(os.path.join("assets", "LongPaths.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "LongPaths.txt"))},
+    {"name": "FolderToTxt", "description": "Crée des fichiers TXT à partir des noms de dossiers.", "icon": get_path(os.path.join("assets", "FolderToTxt.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "FolderToTxt.txt"))},
+    {"name": "FolderToZip", "description": "Compresse des fichiers de jeux en ZIP.", "icon": get_path(os.path.join("assets", "FolderToZip.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "FolderToZip.txt"))},
+    {"name": "GameBatch", "description": "Génère des fichiers batch pour lancer des jeux PC.", "icon": get_path(os.path.join("assets", "GameBatch.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "GameBatch.txt"))},
+    {"name": "EmptyGen", "description": "Génère des fichiers vides dans des sous-dossiers.", "icon": get_path(os.path.join("assets", "EmptyGen.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "EmptyGen.txt"))},
+    {"name": "GameRemoval", "description": "(Core) Supprime des jeux et leurs médias associés.", "icon": get_path(os.path.join("assets", "GameRemoval.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "GameRemoval.txt"))},
+    {"name": "GamelistHyperlist", "description": "(Core) Convertit gamelist.xml en hyperlist.xml.", "icon": get_path(os.path.join("assets", "GamelistHyperlist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "GamelistHyperlist.txt"))},
+    {"name": "HyperlistGamelist", "description": "(Retrobat) Convertit hyperlist.xml en gamelist.xml.", "icon": get_path(os.path.join("assets", "HyperlistGamelist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "HyperlistGamelist.txt"))},
+    {"name": "InstallDeps", "description": "Installe les dépendances système (DirectX, VC++).", "icon": get_path(os.path.join("assets", "InstallDeps.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "InstallDeps.txt"))},
+    {"name": "ListFilesSimple", "description": "Liste les fichiers d'un répertoire (Simple).", "icon": get_path(os.path.join("assets", "ListFilesSimple.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "ListFilesSimple.txt"))},
+    {"name": "ListFilesWin", "description": "Liste fichiers et dossiers (Détails Windows).", "icon": get_path(os.path.join("assets", "ListFilesWin.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "ListFilesWin.txt"))},
+    {"name": "MaxCSO", "description": "Compresse des fichiers ISO en CSO (MaxCSO).", "icon": get_path(os.path.join("assets", "MaxCSO.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "MaxCSO.txt"))},
+    {"name": "MediaOrphans", "description": "(Core) Détecte et déplace les médias orphelins.", "icon": get_path(os.path.join("assets", "MediaOrphans.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "MediaOrphans.txt"))},
+    {"name": "FolderCleaner", "description": "Supprime les dossiers vides récursivement.", "icon": get_path(os.path.join("assets", "FolderCleaner.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "FolderCleaner.txt"))},
+    {"name": "StoryHyperlist", "description": "(Core) Intègre des story dans des hyperlist.xml.", "icon": get_path(os.path.join("assets", "StoryHyperlist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "StoryHyperlist.txt"))},
+    {"name": "DolphinConvert", "description": "Convertit entre formats RVZ et ISO (Dolphin).", "icon": get_path(os.path.join("assets", "DolphinConvert.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "DolphinConvert.txt"))},
+    {"name": "StoryCleaner", "description": "Nettoie les fichiers texte non ASCII.", "icon": get_path(os.path.join("assets", "StoryCleaner.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "StoryCleaner.txt"))},
+    {"name": "M3UCreator", "description": "Crée des playlists M3U pour le multi-disque.", "icon": get_path(os.path.join("assets", "M3UCreator.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "M3UCreator.txt"))},
+    {"name": "CoverExtractor", "description": "Extrait la première image des CBZ, CBR, PDF.", "icon": get_path(os.path.join("assets", "CoverExtractor.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CoverExtractor.txt"))},
+    {"name": "CBZKiller", "description": "Convertisseur PDF/CBR vers CBZ.", "icon": get_path(os.path.join("assets", "CBZKiller.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CBZKiller.txt"))},
+    {"name": "VideoConvert", "description": "Convertit/Rogne des vidéos par lot (FFmpeg).", "icon": get_path(os.path.join("assets", "VideoConvert.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "VideoConvert.txt"))},
+    {"name": "YTDownloader", "description": "Télécharge des vidéos/audio Youtube (yt-dlp).", "icon": get_path(os.path.join("assets", "YTDownloader.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "YTDownloader.txt"))},
+    {"name": "ImageConvert", "description": "Convertit des images par lot.", "icon": get_path(os.path.join("assets", "ImageConvert.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "ImageConvert.txt"))},
+    {"name": "SystemsExtractor", "description": "Extrait les systèmes uniques (EmulationStation).", "icon": get_path(os.path.join("assets", "SystemsExtractor.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "SystemsExtractor.txt"))},
+    {"name": "UniversalRomCleaner", "description": "Nettoie et trie vos ROMs (1G1R, Régions).", "icon": get_path(os.path.join("assets", "UniversalRomCleaner.png")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "UniversalRomCleaner.txt"))},
 ]
 
-def run_module_process(module_name):
+def run_module_process(module_name, icon_path):
     """Fonction exécutée dans le processus enfant pour lancer le module."""
     app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
     if not os.path.exists(app_data_dir):
@@ -137,6 +141,35 @@ def run_module_process(module_name):
 
     try:
         logger.info(f"Child process started for module: {module_name}")
+        
+        # --- Monkeypatch CTk to inject Icon ---
+        # --- Monkeypatch CTk to inject Icon ---
+        if icon_path:
+            icon_path = os.path.abspath(icon_path) # Force absolute
+            
+        if icon_path and os.path.exists(icon_path):
+            OriginalCTk = ctk.CTk
+            class IconizedCTk(OriginalCTk):
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, **kwargs)
+                    self.after(10, self.set_icon_safe)
+
+                def set_icon_safe(self):
+                    try:
+                        # Apply icon
+                        if icon_path.lower().endswith(".ico"):
+                            self.wm_iconbitmap(icon_path)
+                        else:
+                            # Try PNG/Image
+                            icon_img = Image.open(icon_path)
+                            self.iconphoto(False, ImageTk.PhotoImage(icon_img))
+                        logger.info(f"Icon applied from {icon_path}")
+                    except Exception as e:
+                        logger.error(f"Failed to set icon in child process: {e}")
+            
+            # Apply the patch
+            ctk.CTk = IconizedCTk
+        
         # Import dynamique du module
         module = importlib.import_module(module_name)
         # Exécution de la fonction main() du module
@@ -153,9 +186,20 @@ def lancer_module(module_name):
     try:
         logger.info(f"Lancement du module: {module_name}")
         
+        # Trouver l'icône correspondante
+        icon_path = None
+        for s in scripts:
+            if s["name"] == module_name:
+                icon_path = s["icon"]
+                break
+        
+        # Fallback icon determination
+        if not icon_path:
+             icon_path = get_path(os.path.join("assets", f"{module_name}.ico"))
+
         # On lance le module dans un nouveau processus
         # Cela permet d'isoler les boucles principales Tkinter
-        p = multiprocessing.Process(target=run_module_process, args=(module_name,))
+        p = multiprocessing.Process(target=run_module_process, args=(module_name, icon_path))
         p.daemon = True # Kill child process if main process exits
         p.start()
         
@@ -169,6 +213,12 @@ def open_readme(readme_file):
         if os.path.exists(readme_file):
             with open(readme_file, "r", encoding="utf-8") as file:
                 content = file.read()
+            # Utiliser messagebox directement si le custom modal n'est pas dispo dans ce scope,
+            # mais ici on est dans main.py, donc on a accès à ReadmeWindow si on le déplace ou le rend global?
+            # En réalité, on appelle Application.open_custom_readme depuis l'instance. 
+            # Cette fonction open_readme est utilisée par legacy ou buttons ? 
+            # Dans Application.create_card, on utilise self.open_custom_readme.
+            # Cette fonction globale reste pour compatibilité ou fallback.
             messagebox.showinfo("Lisez-moi", content)
         else:
             messagebox.showwarning("Lisez-moi", f"Le fichier {readme_file} n'existe pas.")
@@ -275,7 +325,7 @@ class Application(ctk.CTk):
         super().__init__()
         self.title("Lanceur de Modules - Retrogaming-Toolkit-AIO")
         try:
-            icon_path = get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "Retrogaming-Toolkit-AIO.ico"))
+            icon_path = get_path(os.path.join("assets", "Retrogaming-Toolkit-AIO.ico"))
             self.iconbitmap(icon_path)
         except Exception as e:
             logger.error(f"Erreur lors de la définition de l'icône de l'application : {e}")
@@ -307,242 +357,794 @@ class Application(ctk.CTk):
                                           command=self.clear_search, 
                                           fg_color="transparent", hover_color=("gray70", "gray30"), text_color="gray")
 
-        # Conteneur principal
-        self.main_frame = ctk.CTkFrame(self, corner_radius=10)
-        self.main_frame.pack(expand=True, fill="both", padx=10, pady=10)
 
-        # Boutons de navigation
-        self.nav_frame = ctk.CTkFrame(self)
-        self.nav_frame.pack(fill="x", pady=10)
+# Mapping des scripts par catégorie (Nouvelle classification)
+# Mapping des scripts par catégorie (Nouvelle classification complète)
+# Mapping des scripts par catégorie (Refonte Complète)
+SCRIPT_CATEGORIES = {
+    # Gestion des Jeux & ROMs
+    "CHDManager": "Gestion des Jeux & ROMs",
+    "MaxCSO": "Gestion des Jeux & ROMs",
+    "DolphinConvert": "Gestion des Jeux & ROMs",
+    "FolderToZip": "Gestion des Jeux & ROMs",
+    "GameBatch": "Gestion des Jeux & ROMs",
+    "GameRemoval": "Gestion des Jeux & ROMs",
+    "UniversalRomCleaner": "Gestion des Jeux & ROMs",
 
-        self.previous_button = ctk.CTkButton(self.nav_frame, text="◀ Précédent", command=self.previous_page, width=100)
-        self.previous_button.pack(side="left", padx=10)
+    # Métadonnées & Gamelists
+    "AssistedGamelist": "Métadonnées & Gamelists",
+    "GamelistHyperlist": "Métadonnées & Gamelists",
+    "HyperlistGamelist": "Métadonnées & Gamelists",
+    "BGBackup": "Métadonnées & Gamelists",
+    "StoryHyperlist": "Métadonnées & Gamelists",
+    "StoryCleaner": "Métadonnées & Gamelists",
+    "SystemsExtractor": "Métadonnées & Gamelists",
 
-        self.page_label = ctk.CTkLabel(self.nav_frame, text="Page 1", font=("Arial", 16))
-        self.page_label.pack(side="left", expand=True)
+    # Multimédia & Artworks
+    "YTDownloader": "Multimédia & Artworks",
+    "VideoConvert": "Multimédia & Artworks",
+    "ImageConvert": "Multimédia & Artworks",
+    "CoverExtractor": "Multimédia & Artworks",
+    "MediaOrphans": "Multimédia & Artworks",
+    "CBZKiller": "Multimédia & Artworks",
 
-        self.next_button = ctk.CTkButton(self.nav_frame, text="Suivant ▶", command=self.next_page, width=100)
-        self.next_button.pack(side="right", padx=10)
+    # Organisation & Collections
+    "CollectionBuilder": "Organisation & Collections",
+    "CollectionExtractor": "Organisation & Collections",
+    "M3UCreator": "Organisation & Collections",
+    "FolderCleaner": "Organisation & Collections",
+    "FolderToTxt": "Organisation & Collections",
+    "EmptyGen": "Organisation & Collections",
 
+    # Maintenance Système
+    "LongPaths": "Maintenance Système",
+    "InstallDeps": "Maintenance Système",
+    "ListFilesSimple": "Maintenance Système",
+    "ListFilesWin": "Maintenance Système",
+}
 
+class ReadmeWindow(ctk.CTkToplevel):
+    def __init__(self, parent, title, content, fg_color, text_color, accent_color, icon_path=None):
+        super().__init__(parent)
+        self.title(title)
+        self.configure(fg_color=fg_color)
+        
+        # Close Button - Pack FIRST to ensure it reserves space at the bottom
+        close_btn = ctk.CTkButton(self, text="Fermer", fg_color="transparent", 
+                                border_width=1, border_color=accent_color,
+                                text_color=accent_color, hover_color="#333",
+                                command=self.destroy)
+        close_btn.pack(side="bottom", pady=20)
 
-        # Ajouter une zone en bas pour la version et les mises à jour
-        self.bottom_frame = ctk.CTkFrame(self)
-        self.bottom_frame.pack(fill="x", pady=10)
+        # Estimate height based on character count (approximate)
+        # 600px width -> approx 90 chars per line
+        lines = content.count('\n') + (len(content) / 90) 
+        
+        # Height calculation
+        # Base = 150 (padding + button)
+        # Line height = 20
+        calculated_height = int(lines * 20) + 150
+        
+        # Constraints for 1080p screen comfort
+        max_h = 800 
+        min_h = 200
+        
+        height = min(max_h, max(min_h, calculated_height))
+        
+        self.geometry(f"600x{height}")
+        self.minsize(300, 200)
 
-        self.version_label = ctk.CTkLabel(self.bottom_frame, text=f"Version actuelle : {VERSION}", font=("Arial", 12))
-        self.version_label.pack(side="left", padx=10)
+        # Content (Scrollable Text) - Pack SECOND to fill remaining space
+        textbox = ctk.CTkTextbox(self, text_color=text_color, fg_color="transparent", 
+                               wrap="word", font=("Roboto", 13))
+        # Keep button at bottom visible
+        textbox.pack(side="top", fill="both", expand=True, padx=30, pady=(25, 10))
+        textbox.insert("0.0", content)
+        textbox.configure(state="disabled") # Read-only
+        
+        # Set Icon - Use delay to ensure window is created
+        if icon_path and os.path.exists(icon_path):
+            self.after(200, lambda: self._apply_icon(icon_path))
 
-        self.update_label = ctk.CTkLabel(self.bottom_frame, text="Vérification des mises à jour...", font=("Arial", 12))
-        self.update_label.pack(side="left", padx=10)
+        self.focus_set()
+        self.grab_set() # Modal
 
-        # Vérifier les mises à jour
+    def _apply_icon(self, path):
+         try:
+            path = os.path.abspath(path)
+            # Try bitmap first if ico
+            if path.lower().endswith(".ico"):
+                try:
+                    self.wm_iconbitmap(path)
+                except:
+                    # Fallback to photoimage if bitmap fails
+                    img = Image.open(path)
+                    self.icon_ref = ImageTk.PhotoImage(img)
+                    self.wm_iconphoto(False, self.icon_ref)
+            else:
+                img = Image.open(path)
+                self.icon_ref = ImageTk.PhotoImage(img) # Keep reference!
+                self.wm_iconphoto(False, self.icon_ref)
+         except Exception as e:
+             logger.error(f"Failed to apply icon to readme: {e}")
+
+class Application(ctk.CTk):
+    def __init__(self):
+        super().__init__()
+        
+        # --- Theme Application ---
+        if theme:
+            theme.apply_theme(self, "Retrogaming Toolkit - Sakura Night Edition")
+            self.COLOR_ACCENT_PRIMARY = theme.COLOR_ACCENT_PRIMARY
+            self.COLOR_ACCENT_HOVER = theme.COLOR_ACCENT_HOVER
+            self.COLOR_SIDEBAR_BG = theme.COLOR_BG
+            self.COLOR_CONTENT_BG = "transparent"
+            self.COLOR_SIDEBAR_HOVER = theme.COLOR_GHOST_HOVER
+            self.COLOR_CARD_BORDER = theme.COLOR_CARD_BORDER
+            self.COLOR_TEXT_MAIN = theme.COLOR_TEXT_MAIN
+            self.COLOR_TEXT_SUB = theme.COLOR_TEXT_SUB
+            self.app_icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "Retrogaming-Toolkit-AIO.ico")
+        else:
+             # Fallback if theme import fails
+            self.title("Retrogaming Toolkit - Sakura Night Edition")
+            self.COLOR_ACCENT_PRIMARY = "#ff6699"
+            self.COLOR_ACCENT_HOVER = "#ff3385"
+            self.COLOR_SIDEBAR_BG = "#151515"
+            self.COLOR_CONTENT_BG = "transparent"
+            self.COLOR_SIDEBAR_HOVER = "#2a2a2a"
+            self.COLOR_CARD_BORDER = "#444"
+            self.COLOR_TEXT_MAIN = "#ffffff"
+            self.COLOR_TEXT_SUB = "#b0bec5"
+            self.app_icon_path = None
+
+        self.geometry("1100x720")
+        self.resizable(False, False) 
+
+        # --- Données ---
+        self.scripts = scripts
+        # Enrichir les scripts avec leur catégorie
+        for s in self.scripts:
+            # Sécurité
+            s["category"] = SCRIPT_CATEGORIES.get(s["name"], "Organisation & Collections")
+            
+        self.icon_cache = {}
+        self.current_category = "Tout"
+        self.search_query = ""
+
+        # --- Layout Principal ---
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+
+        # --- Arrière-plan (Sakura) Main Window ---
+        self.setup_background()
+
+        # --- Logic ---
+        self.init_music()
+        self.setup_sidebar()
+        self.setup_content_area()
         self.check_updates()
+        self.filter_and_display()
 
-        # Afficher les scripts de la première page (APRÈS l'initialisation de tous les frames)
-        self.update_page()
-        
-        # Auto-focus search bar
-        self.after(100, lambda: self.search_entry.focus_set())
-
-        # Keyboard shortcuts
+        # Shortcuts
         self.bind("<Control-f>", lambda event: self.search_entry.focus_set())
-        self.bind("<Escape>", self.clear_search_or_focus)
-        self.bind("<Left>", lambda e: self.previous_page())
-        self.bind("<Right>", lambda e: self.next_page())
-
-    def clear_search_or_focus(self, event=None):
-        """Efface la recherche ou enlève le focus."""
-        if self.search_var.get():
-            self.clear_search()
-        else:
-            self.focus_set()
-
-    def check_updates(self):
-        """Vérifie les mises à jour de manière asynchrone (non-bloquant)."""
-        self.update_label.configure(text="Vérification des mises à jour...", text_color="gray")
+        self.bind("<Escape>", lambda event: self.clear_search())
         
-        def update_worker():
-             update_available, latest_version = check_for_updates()
-             # Schedule UI update on main thread
-             self.after(0, lambda: self.update_update_ui(update_available, latest_version))
-        
-        thread = threading.Thread(target=update_worker, daemon=True)
-        thread.start()
+        self.last_width = 1100
+        self.last_height = 720
 
-    def load_favorites(self):
-        """Charge les favoris depuis le fichier JSON."""
-        fav_file = os.path.join(app_data_dir, 'favorites.json')
-        if os.path.exists(fav_file):
-            try:
-                with open(fav_file, 'r', encoding='utf-8') as f:
-                    return set(json.load(f))
-            except Exception as e:
-                logger.error(f"Erreur lors du chargement des favoris: {e}")
-        return set()
+    def on_window_resize(self, event):
+        if event.widget == self:
+            # Check for significant change to avoid jitter
+            if abs(event.width - self.last_width) > 5 or abs(event.height - self.last_height) > 5:
+                self.last_width = event.width
+                self.last_height = event.height
+                
+                # Debounce/Delay update
+                if hasattr(self, '_resize_job'):
+                    self.after_cancel(self._resize_job)
+                self._resize_job = self.after(100, self.perform_resize_updates)
 
-    def save_favorites(self):
-        """Sauvegarde les favoris dans le fichier JSON."""
-        fav_file = os.path.join(app_data_dir, 'favorites.json')
+    def perform_resize_updates(self):
+        self.update_background_size()
+        self.filter_and_display()
+
+    def update_background_size(self):
         try:
-            with open(fav_file, 'w', encoding='utf-8') as f:
-                json.dump(list(self.favorites), f)
+            bg_path = get_path(os.path.join("assets", "sakura_bg.png"))
+            if os.path.exists(bg_path):
+                # Utiliser la HAUTEUR actuelle de la fenêtre comme référence
+                target_h = self.last_height
+                
+                # Ouvrir l'image originale
+                original_img = Image.open(bg_path)
+                
+                # Calculer le ratio basé sur la HAUTEUR pour ne pas déborder
+                ratio = target_h / original_img.height
+                
+                target_w = int(original_img.width * ratio)
+                # target_h est déjà self.last_height
+                
+                # Redimensionner en gardant le ratio
+                pil_image = original_img.resize((target_w, target_h), Image.LANCZOS)
+                
+                # Update References
+                self.bg_image_ref = CTkImage(pil_image, size=(target_w, target_h))
+                self.pil_bg_image = pil_image
+                self.canvas_bg_photo = ImageTk.PhotoImage(pil_image)
+
+                # Update Label
+                self.bg_label.configure(image=self.bg_image_ref, anchor="ne")
+                
+                # Update Canvas BG (redraw)
+                self.draw_background_on_canvas()
         except Exception as e:
-            logger.error(f"Erreur lors du sauvegarde des favoris: {e}")
+            logger.error(f"BG Resize Error: {e}")
+        except Exception as e:
+            logger.error(f"BG Resize Error: {e}")
 
-    def toggle_favorite(self, script_name):
-        """Bascule l'état favori d'un script."""
-        if script_name in self.favorites:
-            self.favorites.remove(script_name)
-        else:
-            self.favorites.add(script_name)
-        self.save_favorites()
-        self.filter_scripts() # Refresh list
+    # ... setup_background ...
 
-    def update_update_ui(self, update_available, latest_version):
-        """Met à jour l'UI avec le résultat de la vérification de mise à jour."""
-        if update_available:
-            self.update_label.configure(text=f"Mise à jour disponible : {latest_version}", text_color="green")
-            if not hasattr(self, 'update_button'):
-                self.update_button = ctk.CTkButton(self.bottom_frame, text="Mettre à jour", command=launch_update, fg_color="green")
-                self.update_button.pack(side="right", padx=10)
-        else:
-            self.update_label.configure(text=f"Version à jour ({VERSION})", text_color="gray")
-
-    def filter_scripts(self, *args):
-        """Filtre la liste des scripts en fonction de la recherche."""
-        query = self.search_var.get().lower()
-
-        # Toggle clear button visibility
-        if query:
-            self.clear_button.pack(side="right", padx=(0, 10))
-        else:
-            self.clear_button.pack_forget()
-
-        if not query:
-            self.filtered_scripts = list(self.scripts)
-        else:
-            self.filtered_scripts = [
-                s for s in self.scripts 
-                if query in s["name"].lower() or query in s["description"].lower()
-            ]
+    def filter_and_display(self):
+        self.canvas.delete("content") # Only delete scrollable content
         
-        # Sort by favorites
-        self.filtered_scripts.sort(key=lambda s: (s["name"] not in self.favorites, s["name"]))
+        # Reset Scroll
+        self.scroll_y = 0
+        self.canvas.yview_moveto(0) 
+        
+        filtered = []
+        for s in self.scripts:
+            cat_match = (self.current_category == "Tout") or (s.get("category") == self.current_category)
+            search_match = True
+            if self.search_query:
+                tags = f"{s['name']} {s['description']} {s.get('category','')}".lower()
+                if self.search_query not in tags: search_match = False
+            if cat_match and search_match: filtered.append(s)
+        
+        filtered.sort(key=lambda x: x["name"])
 
-        self.page = 0 # Réinitialiser à la première page
-        self.update_page()
+        # Layout sorting - FLUID 2 COLUMNS
+        # Force 2 columns always
+        col_count = 2
+        
+        # Determine available width
+        pad_x = 20
+        pad_y = 20
+        start_y = 20
+        
+        # Width available for content is Window Width - Sidebar (200)
+        # OR self.canvas.winfo_width()
+        canvas_w = self.canvas.winfo_width()
+        if canvas_w < 100: canvas_w = self.last_width - 200 # Fallback
+        
+        # Adjust calculations
+        # content_width = canvas_w
+        # margins (left/right) = pad_x
+        # gap between cols = pad_x
+        # total_width = 2 * card_width + 1 * pad_x + 2 * pad_x (margins)
+        # card_width = (canvas_w - 3 * pad_x) / 2
+        
+        available_w = canvas_w - (3 * pad_x) # 2 outer margins + 1 inner gap
+        card_width = int(available_w // 2)
+        
+        # Safety min width
+        if card_width < 200: card_width = 200
+        
+        card_height = 140 # Keep height fixed for consistency
+
+        # Centrage / Padding
+        start_x = pad_x # Left margin
+        
+        if not filtered:
+            msg = f"Aucun résultat pour '{self.search_query}'" if self.search_query else "Aucun outil dans cette catégorie."
+            self.canvas.create_text(canvas_w // 2, 100, text=msg, fill="white", font=("Arial", 16), tags="content")
+            return
+
+        for idx, script in enumerate(filtered):
+            row = idx // col_count
+            col = idx % col_count
+            
+            x = start_x + col * (card_width + pad_x)
+            y = start_y + row * (card_height + pad_y)
+            
+            self.draw_card(script, x, y, card_width, card_height)
+
+        # Calculate Total Height
+        total_rows = (len(filtered) + col_count - 1) // col_count
+        content_total_h = start_y + total_rows * (card_height + pad_y) + 50 # padding bottom
+        self.update_content_height(content_total_h)
+
+    def setup_background(self):
+        """Configure l'image de fond Sakura (Globale)."""
+        try:
+            bg_path = get_path(os.path.join("assets", "sakura_bg.png"))
+            if os.path.exists(bg_path):
+                # Init with default size 720 (height logic)
+                target_h = 720
+                
+                original_img = Image.open(bg_path)
+                
+                # Logic "Fit Height"
+                ratio = target_h / original_img.height
+                
+                new_w = int(original_img.width * ratio)
+                new_h = target_h
+
+                pil_image = original_img.resize((new_w, new_h), Image.LANCZOS)
+                
+                self.bg_image_ref = CTkImage(pil_image, size=(new_w, new_h)) 
+                self.pil_bg_image = pil_image 
+                self.canvas_bg_photo = ImageTk.PhotoImage(pil_image) 
+
+                # anchor="ne" : aligné en haut à droite
+                self.bg_label = ctk.CTkLabel(self, text="", image=self.bg_image_ref, anchor="ne")
+                self.bg_label.place(x=0, y=0, relwidth=1, relheight=1)
+                self.bg_label.lower() 
+            else:
+                logger.warning(f"Background image not found at {bg_path}")
+        except Exception as e:
+            logger.error(f"Erreur background setup: {e}")
+
+    def setup_sidebar(self):
+        """Crée la barre latérale avec les catégories."""
+        self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=0, fg_color="transparent")
+        self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
+        self.sidebar_frame.grid_rowconfigure(10, weight=1)
+        
+
+
+        self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="🌸 Retrogaming 🌸\nToolkit", 
+                                     font=("Roboto Medium", 20), text_color=self.COLOR_ACCENT_PRIMARY)
+        self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
+        
+        self.category_buttons = {}
+        # Ordre spécifique demandé
+        categories = [
+            "Tout",
+            "Gestion des Jeux & ROMs",
+            "Métadonnées & Gamelists",
+            "Multimédia & Artworks",
+            "Organisation & Collections",
+            "Maintenance Système"
+        ]
+        
+        for i, cat in enumerate(categories):
+            btn = ctk.CTkButton(self.sidebar_frame, text=cat, anchor="w",
+                                fg_color="transparent", text_color=self.COLOR_TEXT_MAIN,
+                                hover_color=self.COLOR_SIDEBAR_HOVER,
+                                font=("Roboto", 13),
+                                height=35,
+                                command=lambda c=cat: self.change_category(c))
+            btn.grid(row=i+1, column=0, sticky="ew", padx=10, pady=2)
+            self.category_buttons[cat] = btn
+
+        # GIF Animation
+        self.gif_label = ctk.CTkLabel(self.sidebar_frame, text="")
+        self.gif_label.grid(row=10, column=0, padx=20, pady=(10, 0), sticky="s") # Sticky south + tweaked padding
+        self.load_and_play_gif(os.path.join("assets", "dance.gif"))
+            
+        self.bottom_frame = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
+        self.bottom_frame.grid(row=11, column=0, padx=20, pady=(10, 0), sticky="ew")
+
+        self.version_label = ctk.CTkLabel(self.bottom_frame, text=f"v{VERSION}", text_color=self.COLOR_TEXT_SUB)
+        self.version_label.pack(side="left")
+        
+        self.update_status_label = ctk.CTkLabel(self.sidebar_frame, text="...", text_color=self.COLOR_TEXT_SUB, font=("Arial", 10))
+        self.update_status_label.grid(row=12, column=0, padx=20, pady=(0, 20), sticky="w")
+
+        # Music Controls
+        self.setup_music_controls()
+
+
+    def setup_content_area(self):
+        """Crée la zone principale de contenu avec Canvas et Scroll Manuel pour un fond fixe parfait."""
+        self.content_container = ctk.CTkFrame(self, fg_color="transparent") 
+        self.content_container.grid(row=0, column=1, sticky="nsew", padx=0, pady=0)
+        
+        self.content_container.grid_rowconfigure(1, weight=1)
+        self.content_container.grid_columnconfigure(0, weight=1)
+
+        # --- Header : Recherche ---
+        self.header_frame = ctk.CTkFrame(self.content_container, fg_color="transparent", height=50)
+        self.header_frame.grid(row=0, column=0, sticky="ew", pady=(10, 10), padx=20)
+        
+        self.search_var = ctk.StringVar()
+        self.search_var.trace_add("write", self.on_search_change)
+        
+        self.search_entry = ctk.CTkEntry(self.header_frame, textvariable=self.search_var, 
+                                       placeholder_text="Rechercher...",
+                                       border_color=self.COLOR_ACCENT_PRIMARY, border_width=1,
+                                       fg_color="#1a1a1a")
+        self.search_entry.pack(side="left", padx=(0, 10), fill="x", expand=True, ipady=5)
+        
+        self.clear_btn = ctk.CTkButton(self.header_frame, text="✕", width=40, fg_color="#1a1a1a", 
+                                         border_width=1, border_color=self.COLOR_TEXT_SUB,
+                                         hover_color="#333",
+                                         command=self.clear_search)
+        self.clear_btn.pack(side="right")
+
+        # --- Canvas ---
+        # bg="#1e1e1e" for the "Fond Opaque" requested
+        self.canvas = ctk.CTkCanvas(self.content_container, bg="#1e1e1e", highlightthickness=0)
+        self.canvas.grid(row=1, column=0, sticky="nsew")
+        
+        self.scrollbar = ctk.CTkScrollbar(self.content_container, orientation="vertical", command=self.on_scrollbar_drag)
+        self.scrollbar.grid(row=1, column=1, sticky="ns")
+        
+        # Scroll State
+        self.scroll_y = 0.0 # Current pixel offset (0 to -content_height)
+        self.content_height = 0
+        self.visible_height = 0
+        
+        # Bindings
+        self.canvas.bind("<Configure>", self.on_canvas_configure)
+        self.canvas.bind_all("<MouseWheel>", self.on_mousewheel)
+
+    def on_canvas_configure(self, event):
+        self.visible_height = event.height
+        self.draw_background_on_canvas()
+        self.update_scrollbar()
+
+    def update_content_height(self, height):
+        self.content_height = max(height, self.visible_height)
+        self.update_scrollbar()
+
+    def update_scrollbar(self):
+        # Update scrollbar thumb based on self.scroll_y and self.content_height
+        if self.content_height <= self.visible_height:
+            self.scrollbar.set(0, 1)
+        else:
+            # Fraction visible
+            ratio = self.visible_height / self.content_height
+            # Start position (inverted logic because scroll_y is negative)
+            start = -self.scroll_y / self.content_height
+            end = start + ratio
+            self.scrollbar.set(start, end)
+
+    def on_scrollbar_drag(self, *args):
+        # args can be ('moveto', 'float') or ('scroll', 'int', 'units')
+        if not self.content_height: return
+        
+        if args[0] == 'moveto':
+            target_ratio = float(args[1])
+            # Target Y position
+            target_y = -1 * target_ratio * self.content_height
+            self.scroll_absolute(target_y)
+            
+        elif args[0] == 'scroll':
+            amount = int(args[1])
+            # Scroll step
+            step = 30 * -amount # inverted
+            self.scroll_relative(step)
+
+    def on_mousewheel(self, event):
+        # Windows: delta is usually +-120
+        delta = event.delta
+        self.scroll_relative(delta)
+
+    def scroll_relative(self, delta):
+        new_y = self.scroll_y + delta
+        self.scroll_absolute(new_y)
+        
+    def scroll_absolute(self, target_y):
+        # Clamp target_y
+        # Max scroll (negative) is visible_height - content_height
+        min_y = min(0, self.visible_height - self.content_height)
+        max_y = 0
+        
+        target_y = max(min_y, min(target_y, max_y))
+        
+        diff = target_y - self.scroll_y
+        if diff != 0:
+            self.canvas.move("content", 0, diff)
+            self.scroll_y = target_y
+            self.update_scrollbar()
+
+    def draw_background_on_canvas(self):
+        # Dessine le fond sur le Canvas, aligné à DROITE (NE)
+        self.canvas.delete("bg")
+        try:
+            if hasattr(self, 'canvas_bg_photo') and self.canvas_bg_photo:
+                # La fenêtre fait self.last_width de large
+                # Le sidebar fait 200.
+                # Le Canvas commence à x=200.
+                # La largeur du Canvas est donc window_width - 200.
+                # On veut que le bord droit de l'image (anchor=ne) soit au bord droit du Canvas.
+                
+                canvas_width = self.last_width - 200
+                if canvas_width > 0:
+                    self.canvas.create_image(canvas_width, 0, image=self.canvas_bg_photo, anchor="ne", tags="bg")
+                    self.canvas.tag_lower("bg")
+        except Exception as e:
+            logger.error(f"Canvas BG Error: {e}")
+
+    def change_category(self, category):
+        if self.current_category in self.category_buttons:
+             self.category_buttons[self.current_category].configure(text_color=self.COLOR_TEXT_MAIN, fg_color="transparent")
+        self.current_category = category
+        self.category_buttons[category].configure(text_color=self.COLOR_ACCENT_PRIMARY, fg_color="#333333")
+        self.filter_and_display()
+
+    def on_search_change(self, *args):
+        self.search_query = self.search_var.get().lower().strip()
+        self.filter_and_display()
 
     def clear_search(self):
-        """Efface la recherche."""
         self.search_var.set("")
         self.search_entry.focus_set()
 
-    def update_page(self):
-        """Met à jour l'affichage des scripts pour la page courante."""
-        # Efface les widgets existants
-        for widget in self.main_frame.winfo_children():
-            widget.destroy()
+    def open_custom_readme(self, title, readme_path, icon_path=None):
+        try:
+            content = "Fichier non trouvé."
+            if os.path.exists(readme_path):
+                with open(readme_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+            ReadmeWindow(self, title, content, self.COLOR_SIDEBAR_BG, self.COLOR_TEXT_MAIN, self.COLOR_ACCENT_PRIMARY, icon_path=icon_path)
+        except Exception as e:
+            messagebox.showerror("Erreur", str(e))
 
-        # Afficher les scripts de la page courante
-        start_index = self.page * self.scripts_per_page
-        end_index = start_index + self.scripts_per_page
+    def filter_and_display(self):
+        self.canvas.delete("content") # Only delete scrollable content
+        # self.draw_background_on_canvas() # No need to redraw BG every filter
         
-        current_scripts = self.filtered_scripts[start_index:end_index]
+        # Reset Scroll
+        self.scroll_y = 0
+        self.canvas.yview_moveto(0) # Reset native just in case
         
-        if not current_scripts:
-            no_result_label = ctk.CTkLabel(self.main_frame, text="Aucun outil trouvé.", font=("Arial", 14))
-            no_result_label.pack(pady=20)
+        filtered = []
+        for s in self.scripts:
+            cat_match = (self.current_category == "Tout") or (s.get("category") == self.current_category)
+            search_match = True
+            if self.search_query:
+                tags = f"{s['name']} {s['description']} {s.get('category','')}".lower()
+                if self.search_query not in tags: search_match = False
+            if cat_match and search_match: filtered.append(s)
         
-        for script in current_scripts:
-            frame = ctk.CTkFrame(self.main_frame, corner_radius=10)
-            frame.pack(fill="x", pady=5, padx=10)
+        filtered.sort(key=lambda x: x["name"])
 
-            # Charger l'icône (avec Cache)
-            if script["icon"] in self.icon_cache:
-                icon = self.icon_cache[script["icon"]]
-            else:
-                try:
-                    if os.path.exists(script["icon"]):
-                        img = Image.open(script["icon"])
-                        img = img.resize((32, 32), Image.LANCZOS)
-                        icon = CTkImage(img)
-                        self.icon_cache[script["icon"]] = icon
-                    else:
-                        raise FileNotFoundError("Icon file not found")
-                except Exception as e:
-                    logger.error(f"Erreur lors du chargement de l'icône {script['icon']}: {e}")
-                    icon = CTkImage(Image.new('RGBA', (32, 32), (0, 0, 0, 0)))
-                    self.icon_cache[script["icon"]] = icon
+        # Layout sorting
+        col_count = 2
+        card_width = 400
+        card_height = 140
+        pad_x = 20
+        pad_y = 20
+        
+        # Obtenir la largeur visible dynamique du Canvas
+        # Fallback à 900 (taille min fenêtre - sidebar) si canvas pas encore affiché
+        canvas_w = self.canvas.winfo_width()
+        if canvas_w < 100: canvas_w = 900 
+        
+        total_content_width = (col_count * card_width) + ((col_count - 1) * pad_x)
+        
+        # Centrage horizontal
+        start_x = (canvas_w - total_content_width) // 2
+        if start_x < 20: start_x = 20 # Minimum padding left
+        
+        start_y = 20
+        
+        if not filtered:
+            msg = f"Aucun résultat pour '{self.search_query}'" if self.search_query else "Aucun outil dans cette catégorie."
+            self.canvas.create_text(400, 100, text=msg, fill="white", font=("Arial", 16), tags="content")
+            return
 
-            icon_label = ctk.CTkLabel(frame, image=icon, text="")
-            icon_label.image = icon
-            icon_label.pack(side="left", padx=10)
+        for idx, script in enumerate(filtered):
+            row = idx // col_count
+            col = idx % col_count
+            x = start_x + col * (card_width + pad_x)
+            y = start_y + row * (card_height + pad_y)
+            self.draw_card(script, x, y, card_width, card_height)
 
-            # Bouton pour lancer le module
-            btn_text = "★ " + script["name"] if script["name"] in self.favorites else script["name"]
-            btn_color = "#D4AF37" if script["name"] in self.favorites else None # Gold for favorite
+        # Calculate Total Height
+        total_rows = (len(filtered) + col_count - 1) // col_count
+        content_total_h = start_y + total_rows * (card_height + pad_y) + 50 # padding bottom
+        self.update_content_height(content_total_h)
+
+    def draw_card(self, script, x, y, w, h):
+        # Add tags="content" to EVERYTHING that should scroll
+        
+        # Semi-transparent background for readability
+        # Create a semi-transparent image on the fly (cached)
+        if not hasattr(self, 'card_bg_img_cache') or (w, h) not in self.card_bg_img_cache:
+            if not hasattr(self, 'card_bg_img_cache'):
+                self.card_bg_img_cache = {}
+            # Black with 70% opacity (approx 180/255)
+            pil_bg = Image.new('RGBA', (w, h), (30, 30, 30, 200)) 
+            self.card_bg_img_cache[(w, h)] = ImageTk.PhotoImage(pil_bg)
             
-            button = ctk.CTkButton(
-                frame, 
-                text=btn_text,
-                fg_color=btn_color if btn_color else ["#3B8ED0", "#1F6AA5"], # Default colors
-                command=lambda name=script["name"]: self.execute_module(name), 
-                width=200
-            )
-            # Right click to separate favorite toggle
-            button.bind("<Button-3>", lambda event, s=script["name"]: self.toggle_favorite(s))
-            button.pack(side="left", padx=10)
+        self.canvas.create_image(x, y, image=self.card_bg_img_cache[(w, h)], anchor="nw", tags="content")
 
-            # Description du script
-            label = ctk.CTkLabel(frame, text=script["description"], anchor="w", justify="left", font=("Arial", 12))
-            label.pack(side="left", expand=True, fill="x")
-
-            # Bouton "Lisez-moi"
-            readme_button = ctk.CTkButton(frame, text="Lisez-moi", command=lambda r=script["readme"]: open_readme(r), width=100)
-            readme_button.pack(side="right", padx=10)
-
-        # Mettre à jour l'indicateur de page
-        total_pages = (len(self.filtered_scripts) - 1) // self.scripts_per_page + 1
-        page_display = self.page + 1 if total_pages > 0 else 0
-        self.page_label.configure(text=f"Page {page_display} sur {max(1, total_pages)}")
-
-        # Activer/Désactiver les boutons de navigation
-        self.previous_button.configure(state="normal" if self.page > 0 else "disabled")
-        self.next_button.configure(state="normal" if end_index < len(self.filtered_scripts) else "disabled")
-
-        # Ajuster la taille de la fenêtre
-        self.update_idletasks()
+        # Border
+        self.canvas.create_rectangle(x, y, x+w, y+h, outline=self.COLOR_CARD_BORDER, width=1, tags="content")
         
-        # Calculer la hauteur totale nécessaire
-        total_height = 0
-        total_height += self.search_frame.winfo_reqheight() + 10 # + pady
-        total_height += self.main_frame.winfo_reqheight() + 20   # + pady top/bottom
-        total_height += self.nav_frame.winfo_reqheight() + 10    # + pady
-        total_height += self.bottom_frame.winfo_reqheight() + 10 # + pady
-        
-        # Ajouter une marge de sécurité
-        total_height += 20 
+        # Icon
+        icon_path = script.get("icon", "")
+        if icon_path not in self.icon_cache:
+             try:
+                 if os.path.exists(icon_path):
+                     img = Image.open(icon_path).resize((40, 40), Image.LANCZOS)
+                     self.icon_cache[icon_path] = ImageTk.PhotoImage(img)
+             except: pass
+        if icon_path in self.icon_cache:
+            self.canvas.create_image(x + 20, y + 20, image=self.icon_cache[icon_path], anchor="nw", tags="content")
 
-        new_height = max(self.min_window_height, total_height)
-        self.geometry(f"{self.preferred_width}x{new_height}")
+        # Title
+        self.canvas.create_text(x + 70, y + 20, text=script["name"], fill=self.COLOR_TEXT_MAIN, 
+                                font=("Roboto Medium", 16), anchor="nw", tags="content")
+        
+        # Description
+        self.canvas.create_text(x + 70, y + 50, text=script["description"], fill=self.COLOR_TEXT_SUB,
+                                font=("Roboto", 12), anchor="nw", width=w-90, tags="content")
+        
+        # Buttons
+        # Note: Canvas windows move with canvas.move if they are on the canvas!
+        # But we need to make sure we create_window with tags="content"? 
+        # Tkinter create_window accepts tags!
+        
+        readme_btn = ctk.CTkButton(self.canvas, text="?", width=30, height=30,
+                                 fg_color="transparent", text_color=self.COLOR_ACCENT_PRIMARY, 
+                                 border_width=1, border_color=self.COLOR_ACCENT_PRIMARY, 
+                                 hover_color="#333",
+                                 command=lambda r=script.get("readme", ""), n=script["name"], i=script.get("icon", ""): self.open_custom_readme(f"Aide - {n}", r, icon_path=i))
+        
+        self.canvas.create_window(x + 20, y + h - 45, window=readme_btn, anchor="nw", tags="content")
+        
+        launch_btn = ctk.CTkButton(self.canvas, text="Ouvrir", height=30, width=w-70,
+                                 fg_color="transparent", text_color=self.COLOR_ACCENT_PRIMARY,
+                                 border_width=1, border_color=self.COLOR_ACCENT_PRIMARY,
+                                 hover_color="#333333",
+                                 font=("Roboto Medium", 13),
+                                 command=lambda n=script["name"]: self.execute_module(n))
+        
+        self.canvas.create_window(x + 60, y + h - 45, window=launch_btn, anchor="nw", tags="content")
+
+    def get_icon(self, path):
+        if path in self.icon_cache:
+            return self.icon_cache[path]
+        try:
+            if os.path.exists(path):
+                img = Image.open(path).resize((40, 40), Image.LANCZOS)
+                ctk_img = CTkImage(img, size=(40, 40))
+                self.icon_cache[path] = ctk_img
+                return ctk_img
+        except: pass
+        return CTkImage(Image.new("RGBA", (40, 40), (100, 100, 100, 0)), size=(40, 40))
 
     def execute_module(self, module_name):
-        """Exécute un module dans un processus séparé."""
-        logger.info(f"Lancement du module depuis l'interface: {module_name}")
         lancer_module(module_name)
 
-    def next_page(self):
-        """Passe à la page suivante."""
-        if (self.page + 1) * self.scripts_per_page < len(self.filtered_scripts):
-            self.page += 1
-            self.update_page()
+    def check_updates(self):
+        def update_worker():
+             try:
+                 update_available, latest_version = check_for_updates()
+                 # Check if the window still exists before scheduling callback
+                 if self.winfo_exists():
+                     self.after(0, lambda: self.update_update_ui(update_available, latest_version))
+             except Exception as e:
+                 logger.debug(f"Update check thread ignored: {e}")
+        thread = threading.Thread(target=update_worker, daemon=True)
+        thread.start()
 
-    def previous_page(self):
-        """Revient à la page précédente."""
-        if self.page > 0:
-            self.page -= 1
-            self.update_page()
+    def update_update_ui(self, update_available, latest_version):
+        if update_available:
+            self.update_status_label.configure(text=f"Update: {latest_version}", text_color=self.COLOR_ACCENT_PRIMARY)
+        else:
+            self.update_status_label.configure(text=f"À jour", text_color="green")
+
+    def init_music(self):
+        """Initialise et lance la musique de fond."""
+        try:
+            pygame.mixer.init()
+            music_path = get_path(os.path.join("assets", "backgroundmusic.mp3"))
+            
+            self.music_playing = False
+            self.music_muted = False
+            
+            if os.path.exists(music_path):
+                try:
+                    pygame.mixer.music.load(music_path)
+                    pygame.mixer.music.play(-1) # Loop forever
+                    pygame.mixer.music.set_volume(0.5) # 50% volume by default
+                    self.music_playing = True
+                    logger.info(f"Music started: {music_path}")
+                except Exception as e:
+                    logger.error(f"Error loading/playing music: {e}")
+            else:
+                logger.warning(f"Music file not found: {music_path}")
+        except Exception as e:
+            logger.error(f"Failed to initialize pygame mixer: {e}")
+
+    def setup_music_controls(self):
+        """Ajoute les contrôles de musique dans la sidebar."""
+        # Seulementsi pygame a bien démarré
+        if not pygame.mixer.get_init():
+            return
+
+        # Play/Pause Button
+        self.play_btn = ctk.CTkButton(self.bottom_frame, text="⏸️", width=30, height=30,
+                                      fg_color="transparent", border_width=0, 
+                                      text_color=self.COLOR_TEXT_MAIN,
+                                      font=("Segoe UI Emoji", 20),
+                                      hover_color=self.COLOR_SIDEBAR_HOVER,
+                                      command=self.toggle_music)
+        self.play_btn.pack(side="left", padx=(15, 5))
+        
+        # Mute Button
+        self.mute_btn = ctk.CTkButton(self.bottom_frame, text="🔊", width=30, height=30,
+                                      fg_color="transparent", border_width=0,
+                                      text_color=self.COLOR_TEXT_MAIN,
+                                      font=("Segoe UI Emoji", 20),
+                                      hover_color=self.COLOR_SIDEBAR_HOVER,
+                                      command=self.toggle_mute)
+        self.mute_btn.pack(side="left", padx=0)
+
+    def toggle_music(self):
+        if self.music_playing:
+            pygame.mixer.music.pause()
+            self.play_btn.configure(text="▶️")
+            self.music_playing = False
+        else:
+            pygame.mixer.music.unpause()
+            # Cas où la musique a été stoppée ou non démarrée
+            if not pygame.mixer.music.get_busy():
+                 try:
+                    pygame.mixer.music.play(-1)
+                 except: pass
+            self.play_btn.configure(text="⏸️")
+            self.music_playing = True
+
+    def toggle_mute(self):
+        if self.music_muted:
+            pygame.mixer.music.set_volume(0.5) # Retour au volume par défaut
+            self.mute_btn.configure(text="🔊")
+            self.music_muted = False
+        else:
+            pygame.mixer.music.set_volume(0.0)
+            self.mute_btn.configure(text="🔇")
+            self.music_muted = True
+
+    def load_and_play_gif(self, path):
+        """Charge, redimensionne et joue un GIF animé."""
+        try:
+            full_path = get_path(path)
+            if not os.path.exists(full_path):
+                return
+
+            gif = Image.open(full_path)
+            self.gif_frames = []
+            
+            # Extract frames
+            try:
+                while True:
+                    # Convert to RGBA and resize if needed (e.g. max width 150)
+                    frame = gif.copy().convert("RGBA")
+                    # Resize logic: fit within 180px width
+                    target_w = 150
+                    ratio = target_w / frame.width
+                    target_h = int(frame.height * ratio)
+                    frame = frame.resize((target_w, target_h), Image.LANCZOS)
+                    
+                    self.gif_frames.append(CTkImage(frame, size=(target_w, target_h)))
+                    gif.seek(gif.tell() + 1)
+            except EOFError:
+                pass
+            
+            if self.gif_frames:
+                self.current_frame_idx = 0
+                self.animate_gif()
+                
+        except Exception as e:
+            logger.error(f"GIF Error: {e}")
+
+    def animate_gif(self):
+        """Boucle d'animation du GIF."""
+        if hasattr(self, 'gif_frames') and self.gif_frames:
+            frame = self.gif_frames[self.current_frame_idx]
+            self.gif_label.configure(image=frame)
+            
+            self.current_frame_idx = (self.current_frame_idx + 1) % len(self.gif_frames)
+            
+            # Delay (50ms = double speed)
+            self.after(50, self.animate_gif)
+
 
 def main():
     """Point d'entrée principal de l'application"""

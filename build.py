@@ -36,7 +36,7 @@ def build():
         f'--paths={toolkit_dir}',
         
         # Icon
-        f'--icon={os.path.join(toolkit_dir, "icons", "Retrogaming-Toolkit-AIO.ico")}',
+        f'--icon={os.path.join(base_dir, "assets", "Retrogaming-Toolkit-AIO.ico")}',
     ]
 
     # Add hidden imports
@@ -62,9 +62,11 @@ def build():
 
     # Add data files
     # Format: src;dest
-    # We copy the ENTIRE Retrogaming-Toolkit-AIO folder to ensure all scripts and resources are available
-    # This solves issues where child processes (multiprocessing) fail to import modules from PYZ.
+    # We copy the ENTIRE Retrogaming-Toolkit-AIO folder
     args.append(f'--add-data={toolkit_dir}{os.pathsep}Retrogaming-Toolkit-AIO')
+    # Use ABSOLUTE path for assets source to be safe, dest is 'assets'
+    assets_dir = os.path.join(base_dir, "assets")
+    args.append(f'--add-data={assets_dir}{os.pathsep}assets')
 
     # Binaries (ffmpeg, chdman, etc.) are NOT bundled anymore.
     # The tools will download them on demand if missing.

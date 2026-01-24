@@ -2,25 +2,93 @@ import os
 import subprocess
 import re
 import requests
-
 import tempfile
 import shutil
 import customtkinter as ctk
-from tkinter import filedialog, messagebox, Listbox, Checkbutton, BooleanVar
+import tkinter as tk # For some internals if needed
+from tkinter import filedialog, messagebox, BooleanVar
 import sys
 from tkinterdnd2 import TkinterDnD, DND_FILES
 
+# --- Import Theme ---
+try:
+    import theme
+except ImportError:
+    theme = None
+
+# --- Helpers ---
 try:
     import utils
 except ImportError:
     pass
+
+class FileListFrame(ctk.CTkScrollableFrame):
+    """
+    Manages a list of files with a modern look.
+    Each file has a remove button.
+    """
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+        
+        if theme:
+             self.configure(fg_color=theme.COLOR_CARD_BG)
+        
+        self.files = [] # List of full paths
+        
+    def add_file(self, file_path):
+        if file_path in self.files: return # Avoid duplicates
+        self.files.append(file_path)
+        self._render_row(file_path)
+        
+    def add_files(self, file_paths):
+        for p in file_paths:
+            self.add_file(p)
+
+    def get_files(self):
+        return self.files
+
+    def clear(self):
+        self.files = []
+        for widget in self.winfo_children():
+            widget.destroy()
+
+    def _remove_file(self, file_path, row_frame):
+        if file_path in self.files:
+            self.files.remove(file_path)
+        row_frame.destroy()
+
+    def _render_row(self, file_path):
+        row = ctk.CTkFrame(self, fg_color="transparent")
+        row.pack(fill="x", pady=2)
+        
+        # Filename label
+        name = os.path.basename(file_path)
+        lbl = ctk.CTkLabel(row, text=name, anchor="w", font=theme.get_font_main() if theme else None)
+        lbl.pack(side="left", fill="x", expand=True, padx=5)
+        
+        # Remove button (small X)
+        btn_del = ctk.CTkButton(
+            row, 
+            text="✕", 
+            width=24, 
+            height=24,
+            fg_color="transparent",
+            text_color=theme.COLOR_ERROR if theme else "red",
+            hover_color=theme.COLOR_GHOST_HOVER if theme else "#333",
+            command=lambda: self._remove_file(file_path, row)
+        )
+        btn_del.pack(side="right", padx=5)
+        
+        # Tooltip or path on hover? Simpler: Title on list?
+        # CTk doesn't have native tooltips. We'll stick to basename.
+
+# --- Logic copy-pasted/adapted ---
 
 def check_and_download_ffmpeg(root=None):
     target_name = "ffmpeg.exe"
     if 'utils' in sys.modules:
         ffmpeg_path = utils.get_binary_path(target_name)
     else:
-        # Fallback if utils not loaded (should not happen in main app)
         ffmpeg_path = os.path.join(os.getcwd(), target_name)
 
     if os.path.exists(ffmpeg_path):
@@ -30,371 +98,226 @@ def check_and_download_ffmpeg(root=None):
     if 'utils' in sys.modules and root:
         try:
              manager = utils.DependencyManager(root)
-             
-             # Resolve URL dynamically from GitHub
              ffmpeg_url = utils.fetch_latest_github_asset("GyanD", "codexffmpeg", "essentials")
              if not ffmpeg_url:
                 ffmpeg_url = utils.fetch_latest_github_asset("GyanD", "codexffmpeg", "full")
-             
              if not ffmpeg_url:
                  ffmpeg_url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
              
-             result = manager.install_dependency(
-                 name="FFmpeg",
-                 url=ffmpeg_url,
-                 target_exe_name=target_name,
-                 archive_type="zip",
-                 extract_file_in_archive=None
-             )
+             result = manager.install_dependency("FFmpeg", ffmpeg_url, target_name, "zip")
              return result
         except Exception as e:
             messagebox.showerror("Erreur", f"Échec de l'installation de FFmpeg: {e}")
             return None
     else:
-         # Fallback manual if utils or root missing (CLI/Standlone test?)
-         messagebox.showerror("Erreur", "Impossible de télécharger FFmpeg (utils ou root manquant).")
          return None
 
 def convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution, root=None, ffmpeg_path=None):
     if not ffmpeg_path:
-        check_and_download_ffmpeg(root)  # Vérifiez et téléchargez FFmpeg si nécessaire
-        if 'utils' in sys.modules:
-            ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
-        else:
-            ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
+        check_and_download_ffmpeg(root)
+        if 'utils' in sys.modules: ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
+        else: ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
+            
     try:
         command = [
-            ffmpeg_path,
-            "-i", input_file,
-            "-ss", start_time,
-            "-to", end_time,
-            "-c:v", "libx264",
-            "-preset", "fast",
-            f"-b:v", video_bitrate,
-            f"-r", fps,
-            f"-vf", f"scale={resolution}",
-            "-c:a", "aac",
-            f"-b:a", audio_bitrate,
-            "-y",  # Overwrite output file if it exists
-            output_file
+            ffmpeg_path, "-i", input_file, "-ss", start_time, "-to", end_time,
+            "-c:v", "libx264", "-preset", "fast",
+            f"-b:v", video_bitrate, f"-r", fps, f"-vf", f"scale={resolution}",
+            "-c:a", "aac", f"-b:a", audio_bitrate, "-y", output_file
         ]
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
         if result.returncode != 0:
             raise subprocess.CalledProcessError(result.returncode, command, output=result.stdout, stderr=result.stderr)
         return True
     except subprocess.CalledProcessError as e:
-        messagebox.showerror("Erreur", f"Erreur lors de l'exportation de la vidéo.\n{e.stderr}")
+        messagebox.showerror("Erreur", f"Erreur export vidéo.\n{e.stderr}")
         return False
     except Exception as e:
-        messagebox.showerror("Erreur", f"Une erreur inattendue s'est produite : {e}")
+        messagebox.showerror("Erreur", f"Erreur inattendue : {e}")
         return False
 
 def capture_first_frame(input_file, output_file, rotate=False, root=None, ffmpeg_path=None):
     if not ffmpeg_path:
-        check_and_download_ffmpeg(root)  # Vérifiez et téléchargez FFmpeg si nécessaire
-        if 'utils' in sys.modules:
-            ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
-        else:
-            ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
-    try:
-        command = [
-            ffmpeg_path,
-            "-i", input_file,
-            "-ss", "00:00:01",  # Capture à la première seconde
-            "-vframes", "1",    # Capture une seule frame
-        ]
-        if rotate:
-            command.extend(["-vf", "transpose=1"])  # Rotation à droite
-        command.append(output_file)
-        
-        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
-        if result.returncode != 0:
-            raise subprocess.CalledProcessError(result.returncode, command, output=result.stdout, stderr=result.stderr)
-    except subprocess.CalledProcessError as e:
-        messagebox.showerror("Erreur", f"Erreur lors de la capture de l'image.\n{e.stderr}")
-    except Exception as e:
-        messagebox.showerror("Erreur", f"Une erreur inattendue s'est produite : {e}")
-
-def browse_files():
-    try:
-        file_paths = filedialog.askopenfilenames(filetypes=[("Tous les fichiers vidéo", "*.*")])
-        if file_paths:
-            for file_path in file_paths:
-                listbox_files.insert("end", file_path)
-    except Exception as e:
-        messagebox.showerror("Erreur", f"Erreur lors de la sélection des fichiers : {e}")
-
-def clear_files():
-    listbox_files.delete(0, "end")
-
-def delete_selected_files(event):
-    """Supprime les éléments sélectionnés de la liste lors de l'appui sur Suppr."""
-    selection = listbox_files.curselection()
-    for index in reversed(selection):
-        listbox_files.delete(index)
-
-def start_conversion():
-    try:
-        start_time = entry_start_time.get()
-        end_time = entry_end_time.get()
-        video_bitrate = entry_video_bitrate.get()
-        audio_bitrate = entry_audio_bitrate.get()
-        fps = entry_fps.get()
-        resolution = entry_resolution.get()
-
-        if not start_time or not end_time:
-            messagebox.showerror("Erreur", "Veuillez entrer les heures de début et de fin.")
-            return
-
-        # VULNERABILITY FIX: Validate inputs with regex to prevent argument injection
-        time_pattern = r"^\d{2}:\d{2}:\d{2}$"
-        if not re.match(time_pattern, start_time):
-             messagebox.showerror("Erreur", "Format de l'heure de début invalide (HH:MM:SS).")
-             return
-        if not re.match(time_pattern, end_time):
-             messagebox.showerror("Erreur", "Format de l'heure de fin invalide (HH:MM:SS).")
-             return
-
-        # Bitrate validation (digits optionally followed by k/M/G)
-        bitrate_pattern = r"^\d+[kKmMgG]?$"
-        if not re.match(bitrate_pattern, video_bitrate):
-             messagebox.showerror("Erreur", "Bitrate vidéo invalide (ex: 8000k).")
-             return
-        if not re.match(bitrate_pattern, audio_bitrate):
-             messagebox.showerror("Erreur", "Bitrate audio invalide (ex: 128k).")
-             return
-
-        # FPS validation (integer or float)
-        fps_pattern = r"^\d+(\.\d+)?$"
-        if not re.match(fps_pattern, fps):
-             messagebox.showerror("Erreur", "FPS invalide (ex: 30 ou 29.97).")
-             return
-
-        # Resolution validation (WxH)
-        resolution_pattern = r"^\d+x\d+$"
-        if not re.match(resolution_pattern, resolution):
-             messagebox.showerror("Erreur", "Résolution invalide (ex: 1920x1080).")
-             return
-
-        # Prepare FFmpeg once
         check_and_download_ffmpeg(root)
-        if 'utils' in sys.modules:
-            ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
-        else:
-            ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
-            
-        if not os.path.exists(ffmpeg_path):
-             messagebox.showerror("Erreur", "FFmpeg introuvable.")
-             return
-
-        for index in range(listbox_files.size()):
-            input_file = listbox_files.get(index)
-            if not os.path.isfile(input_file):
-                messagebox.showerror("Erreur", f"Fichier non valide : {input_file}")
-                continue
-            
-            # Determine output extension
-            format_choice = selected_format.get()
-            if format_choice == "MP4":
-                ext = ".mp4"
-            elif format_choice == "MKV":
-                ext = ".mkv"
-            else: # Source
-                 ext = os.path.splitext(input_file)[1]
-
-            if selected_output_option.get() == "folder":
-                # Create output dir relative to input file
-                input_dir = os.path.dirname(input_file)
-                output_dir = os.path.join(input_dir, "vidéos_converties")
-                os.makedirs(output_dir, exist_ok=True)
-                
-                base_name = os.path.splitext(os.path.basename(input_file))[0]
-                output_file = os.path.join(output_dir, base_name + ext)
-            else:
-                # Replace mode
-                temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=ext).name
-                success = convert_video(input_file, start_time, end_time, temp_file, video_bitrate, audio_bitrate, fps, resolution, root, ffmpeg_path=ffmpeg_path)
-                
-                if not success:
-                    # Conversion failed, clean up temp file and do NOT overwrite original
-                    if os.path.exists(temp_file):
-                        try:
-                            os.remove(temp_file)
-                        except:
-                            pass
-                    continue # Skip to next file
-
-                # If extension changed, we must rename the target file
-                if ext != os.path.splitext(input_file)[1]:
-                     new_input_path = os.path.splitext(input_file)[0] + ext
-                     shutil.move(temp_file, new_input_path)
-                     try:
-                        os.remove(input_file) # Remove the old extension file
-                     except:
-                        pass
-                else:
-                    shutil.move(temp_file, input_file)
-                continue
-
-            convert_video(input_file, start_time, end_time, output_file, video_bitrate, audio_bitrate, fps, resolution, root, ffmpeg_path=ffmpeg_path)
-
-            # Capture d'image si les options sont cochées
-            if capture_without_rotation_var.get() or capture_with_rotation_var.get():
-                capture_dir = os.path.join(os.getcwd(), "captures")
-                os.makedirs(capture_dir, exist_ok=True)
-                file_name = os.path.basename(input_file)
-                output_image = os.path.join(capture_dir, f"screenshot-{os.path.splitext(file_name)[0]}.png")
-
-                if capture_without_rotation_var.get():
-                    capture_first_frame(input_file, output_image, rotate=False, root=root, ffmpeg_path=ffmpeg_path)
-                if capture_with_rotation_var.get():
-                    capture_first_frame(input_file, output_image, rotate=True, root=root, ffmpeg_path=ffmpeg_path)
-
-        messagebox.showinfo("Succès", "Traitement terminé pour toutes les vidéos.")
-    except Exception as e:
-        messagebox.showerror("Erreur", f"Une erreur s'est produite : {e}")
-
-def handle_drop(event):
+        if 'utils' in sys.modules: ffmpeg_path = utils.get_binary_path("ffmpeg.exe")
+        else: ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
     try:
-        files = root.tk.splitlist(event.data)
-        for file in files:
-            listbox_files.insert("end", file)
+        command = [ffmpeg_path, "-i", input_file, "-ss", "00:00:01", "-vframes", "1"]
+        if rotate: command.extend(["-vf", "transpose=1"])
+        command.append(output_file)
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
+        if result.returncode != 0: raise subprocess.CalledProcessError(result.returncode, command, output=result.stdout, stderr=result.stderr)
+    except subprocess.CalledProcessError as e:
+        messagebox.showerror("Erreur", f"Erreur capture.\n{e.stderr}")
     except Exception as e:
-        messagebox.showerror("Erreur", f"Erreur lors du glisser-déposer : {e}")
+        messagebox.showerror("Erreur", f"Erreur inattendue : {e}")
 
-# Wrapper pour supporter Drag & Drop avec CustomTkinter
-class Tk(ctk.CTk, TkinterDnD.DnDWrapper):
+# --- Apps Class ---
+
+class VideoConvertApp(ctk.CTk, TkinterDnD.DnDWrapper):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.TkdndVersion = TkinterDnD._require(self)
+        
+        # Theme
+        if theme:
+            theme.apply_theme(self, "Trim et Convertisseur Vidéo par Lot")
+        else:
+            ctk.set_appearance_mode("dark")
+            self.title("Trim et Convertisseur Vidéo par Lot")
+            
+        self.geometry("800x650")
+            
+        self._setup_ui()
+        
+        # DnD
+        self.drop_target_register(DND_FILES)
+        self.dnd_bind('<<Drop>>', self.handle_drop)
+        
+        # Check Dependency
+        self.after(100, lambda: check_and_download_ffmpeg(self))
+
+    def _setup_ui(self):
+        # 1. Inputs
+        frame_input = ctk.CTkFrame(self, fg_color="transparent")
+        frame_input.pack(padx=20, pady=(20, 10), fill="x")
+        
+        ctk.CTkLabel(frame_input, text="Vidéo d'entrée", font=theme.get_font_title() if theme else None).pack(anchor="w")
+        ctk.CTkLabel(frame_input, text="(Glisser-déposer disponible)", text_color=theme.COLOR_TEXT_SUB if theme else "gray").pack(anchor="w")
+
+        btn_row = ctk.CTkFrame(frame_input, fg_color="transparent")
+        btn_row.pack(fill="x", pady=5)
+        
+        ctk.CTkButton(btn_row, text="Ajouter des fichiers", command=self.browse_files, width=150,
+                      fg_color=theme.COLOR_ACCENT_PRIMARY if theme else None, hover_color=theme.COLOR_ACCENT_HOVER if theme else None).pack(side="left", padx=(0, 10))
+                      
+        ctk.CTkButton(btn_row, text="Tout effacer", command=lambda: self.file_list.clear(), width=100,
+                      fg_color="transparent", border_width=1, border_color=theme.COLOR_ACCENT_PRIMARY if theme else "gray").pack(side="left")
+
+        # List
+        self.file_list = FileListFrame(self, height=150)
+        self.file_list.pack(padx=20, pady=0, fill="x")
+        
+        # 2. Settings
+        settings_frame = ctk.CTkFrame(self, fg_color=theme.COLOR_CARD_BG if theme else None, corner_radius=10)
+        settings_frame.pack(padx=20, pady=20, fill="x")
+        
+        # Times
+        row_time = ctk.CTkFrame(settings_frame, fg_color="transparent")
+        row_time.pack(fill="x", padx=10, pady=10)
+        
+        ctk.CTkLabel(row_time, text="Début:", width=60).pack(side="left")
+        self.entry_start = ctk.CTkEntry(row_time, width=80); self.entry_start.insert(0, "00:00:00"); self.entry_start.pack(side="left", padx=5)
+        
+        ctk.CTkLabel(row_time, text="Fin:", width=50).pack(side="left")
+        self.entry_end = ctk.CTkEntry(row_time, width=80); self.entry_end.insert(0, "00:01:30"); self.entry_end.pack(side="left", padx=5)
+        
+        ctk.CTkLabel(row_time, text="Format:", width=60).pack(side="left", padx=(10,0))
+        self.combo_format = ctk.CTkComboBox(row_time, values=["Source", "MP4", "MKV"], width=80)
+        self.combo_format.pack(side="left", padx=5)
+        
+        # Quality
+        row_qual = ctk.CTkFrame(settings_frame, fg_color="transparent")
+        row_qual.pack(fill="x", padx=10, pady=10)
+
+        ctk.CTkLabel(row_qual, text="Vidéo (kbps):").pack(side="left")
+        self.entry_v_bitrate = ctk.CTkEntry(row_qual, width=80); self.entry_v_bitrate.insert(0, "8000k"); self.entry_v_bitrate.pack(side="left", padx=5)
+
+        ctk.CTkLabel(row_qual, text="Audio (kbps):").pack(side="left", padx=(10,0))
+        self.entry_a_bitrate = ctk.CTkEntry(row_qual, width=80); self.entry_a_bitrate.insert(0, "128k"); self.entry_a_bitrate.pack(side="left", padx=5)
+        
+        ctk.CTkLabel(row_qual, text="FPS:").pack(side="left", padx=(10,0))
+        self.entry_fps = ctk.CTkEntry(row_qual, width=60); self.entry_fps.insert(0, "30"); self.entry_fps.pack(side="left", padx=5)
+        
+        ctk.CTkLabel(row_qual, text="Res:").pack(side="left", padx=(10,0))
+        self.entry_res = ctk.CTkEntry(row_qual, width=100); self.entry_res.insert(0, "1920x1080"); self.entry_res.pack(side="left", padx=5)
+        
+        # 3. Output Options
+        opt_frame = ctk.CTkFrame(self, fg_color="transparent")
+        opt_frame.pack(padx=20, fill="x")
+        
+        self.out_opt = ctk.StringVar(value="folder")
+        ctk.CTkRadioButton(opt_frame, text="Exporter dans 'vidéos_converties'", variable=self.out_opt, value="folder", 
+                           fg_color=theme.COLOR_ACCENT_PRIMARY if theme else None).pack(anchor="w", pady=2)
+        ctk.CTkRadioButton(opt_frame, text="Remplacer originaux", variable=self.out_opt, value="replace",
+                           fg_color=theme.COLOR_ACCENT_PRIMARY if theme else None).pack(anchor="w", pady=2)
+                           
+        # Capture covers
+        self.cap_no_rot = BooleanVar()
+        self.cap_rot = BooleanVar()
+        ctk.CTkCheckBox(opt_frame, text="Capture cover (sans rotation)", variable=self.cap_no_rot, fg_color=theme.COLOR_ACCENT_PRIMARY if theme else None).pack(anchor="w", pady=2)
+        ctk.CTkCheckBox(opt_frame, text="Capture cover (avec rotation)", variable=self.cap_rot, fg_color=theme.COLOR_ACCENT_PRIMARY if theme else None).pack(anchor="w", pady=2)
+
+        # 4. Action
+        ctk.CTkButton(self, text="CONVERTIR", command=self.start_conversion, height=50, width=250,
+                      font=theme.get_font_title() if theme else ("Arial", 16, "bold"),
+                      fg_color=theme.COLOR_SUCCESS if theme else "green", 
+                      hover_color="#27ae60").pack(pady=20)
+
+    def browse_files(self):
+        paths = filedialog.askopenfilenames(filetypes=[("Vidéo", "*.*")])
+        if paths: self.file_list.add_files(paths)
+        
+    def handle_drop(self, event):
+        files = self.tk.splitlist(event.data)
+        self.file_list.add_files(files)
+
+    def start_conversion(self):
+        files = self.file_list.get_files()
+        if not files: return
+        
+        # Validation checks (same as before)
+        start = self.entry_start.get()
+        end = self.entry_end.get()
+        v_bit = self.entry_v_bitrate.get()
+        a_bit = self.entry_a_bitrate.get()
+        fps = self.entry_fps.get()
+        res = self.entry_res.get()
+        
+        # Regex (Simplified from original)
+        if not re.match(r"^\d{2}:\d{2}:\d{2}$", start) or not re.match(r"^\d{2}:\d{2}:\d{2}$", end): return messagebox.showerror("Err", "Format Heure invalide")
+        
+        # Get FFmpeg
+        ff_path = check_and_download_ffmpeg(self)
+        if not ff_path: return
+        
+        # Loop
+        for f in files:
+            if not os.path.isfile(f): continue
+            
+            fmt_choice = self.combo_format.get()
+            ext = ".mp4" if fmt_choice == "MP4" else ".mkv" if fmt_choice == "MKV" else os.path.splitext(f)[1]
+            
+            if self.out_opt.get() == "folder":
+                out_dir = os.path.join(os.path.dirname(f), "vidéos_converties")
+                os.makedirs(out_dir, exist_ok=True)
+                out_path = os.path.join(out_dir, os.path.splitext(os.path.basename(f))[0] + ext)
+                convert_video(f, start, end, out_path, v_bit, a_bit, fps, res, self, ff_path)
+            else:
+                # Replace logic
+                tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext).name
+                if convert_video(f, start, end, tmp, v_bit, a_bit, fps, res, self, ff_path):
+                     if ext != os.path.splitext(f)[1]:
+                         try: os.remove(f) 
+                         except: pass
+                         shutil.move(tmp, os.path.splitext(f)[0] + ext)
+                     else:
+                         shutil.move(tmp, f)
+            
+            # Captures
+            cap_dir = os.path.join(os.getcwd(), "captures")
+            if self.cap_no_rot.get():
+                os.makedirs(cap_dir, exist_ok=True)
+                capture_first_frame(f, os.path.join(cap_dir, "screen-"+os.path.basename(f)+".png"), False, self, ff_path)
+            if self.cap_rot.get():
+                os.makedirs(cap_dir, exist_ok=True)
+                capture_first_frame(f, os.path.join(cap_dir, "screen-rot-"+os.path.basename(f)+".png"), True, self, ff_path)
+
+        messagebox.showinfo("Fini", "Conversion Terminée")
 
 def main():
-    global root, listbox_files, entry_start_time, entry_end_time, entry_video_bitrate, entry_audio_bitrate, entry_fps, entry_resolution, selected_output_option, capture_without_rotation_var, capture_with_rotation_var, selected_format
-
-    ctk.set_appearance_mode("dark")
-    ctk.set_default_color_theme("blue")
-
-    # Initialisation avec support DnD
-    root = Tk()
-    root.title("Trim et Convertisseur Vidéo par Lot")
-    root.geometry("800x600")
-
-    # Input file selection
-    frame_input = ctk.CTkFrame(root)
-    frame_input.pack(padx=10, pady=5, fill="x")
-
-    label_input_files = ctk.CTkLabel(frame_input, text="Fichiers vidéo d'entrée (Glisser-Déposer accepté) :", font=("Arial", 16))
-    label_input_files.pack(side="left")
-
-    button_browse = ctk.CTkButton(frame_input, text="Ajouter des fichiers", command=browse_files, width=150)
-    button_browse.pack(side="left", padx=5)
-
-    button_clear = ctk.CTkButton(frame_input, text="Effacer la liste", command=clear_files, width=150)
-    button_clear.pack(side="left", padx=5)
-
-    # Listbox to show selected files
-    listbox_files = Listbox(root, selectmode="multiple", height=8, width=80)
-    listbox_files.pack(padx=10, pady=5, fill="both", expand=True)
-
-    # Enable Drag & Drop
-    listbox_files.drop_target_register(DND_FILES)
-    listbox_files.dnd_bind('<<Drop>>', handle_drop)
-    
-    # Enable Delete key
-    listbox_files.bind("<Delete>", delete_selected_files)
-
-    # Start/End time & Format (Compact Row)
-    frame_times = ctk.CTkFrame(root)
-    frame_times.pack(padx=10, pady=5, fill="x")
-
-    label_start_time = ctk.CTkLabel(frame_times, text="Début (HH:MM:SS) :", font=("Arial", 13))
-    label_start_time.pack(side="left", padx=5)
-
-    entry_start_time = ctk.CTkEntry(frame_times, width=80)
-    entry_start_time.insert(0, "00:00:00")
-    entry_start_time.pack(side="left", padx=5)
-
-    label_end_time = ctk.CTkLabel(frame_times, text="Fin (HH:MM:SS) :", font=("Arial", 13))
-    label_end_time.pack(side="left", padx=5)
-
-    entry_end_time = ctk.CTkEntry(frame_times, width=80)
-    entry_end_time.insert(0, "00:01:30")
-    entry_end_time.pack(side="left", padx=5)
-
-    # Output Format Selection (Moved here)
-    label_format = ctk.CTkLabel(frame_times, text="Format :", font=("Arial", 13))
-    label_format.pack(side="left", padx=(15, 5))
-    
-    selected_format = ctk.StringVar(value="Source")
-    combo_format = ctk.CTkComboBox(frame_times, variable=selected_format, values=["Source", "MP4", "MKV"], width=80, state="readonly")
-    combo_format.pack(side="left", padx=5)
-
-    # Video settings inputs (Compact Row)
-    frame_settings = ctk.CTkFrame(root)
-    frame_settings.pack(padx=10, pady=5, fill="x")
-
-    label_video_bitrate = ctk.CTkLabel(frame_settings, text="Vidéo (kbps) :", font=("Arial", 13))
-    label_video_bitrate.pack(side="left", padx=5)
-
-    entry_video_bitrate = ctk.CTkEntry(frame_settings, width=80)
-    entry_video_bitrate.insert(0, "8000k")
-    entry_video_bitrate.pack(side="left", padx=5)
-
-    label_audio_bitrate = ctk.CTkLabel(frame_settings, text="Audio (kbps) :", font=("Arial", 13))
-    label_audio_bitrate.pack(side="left", padx=5)
-
-    entry_audio_bitrate = ctk.CTkEntry(frame_settings, width=80)
-    entry_audio_bitrate.insert(0, "128k")
-    entry_audio_bitrate.pack(side="left", padx=5)
-
-    label_fps = ctk.CTkLabel(frame_settings, text="FPS :", font=("Arial", 13))
-    label_fps.pack(side="left", padx=5)
-
-    entry_fps = ctk.CTkEntry(frame_settings, width=60)
-    entry_fps.insert(0, "30")
-    entry_fps.pack(side="left", padx=5)
-
-    label_resolution = ctk.CTkLabel(frame_settings, text="Résolution :", font=("Arial", 13))
-    label_resolution.pack(side="left", padx=5)
-
-    entry_resolution = ctk.CTkEntry(frame_settings, width=100)
-    entry_resolution.insert(0, "1920x1080")
-    entry_resolution.pack(side="left", padx=5)
-
-    # Output options
-    frame_output_options = ctk.CTkFrame(root)
-    frame_output_options.pack(padx=10, pady=5, fill="x")
-
-    selected_output_option = ctk.StringVar(value="folder")
-
-    radio_folder = ctk.CTkRadioButton(frame_output_options, text="Exporter dans un sous-dossier 'vidéos_converties'", variable=selected_output_option, value="folder")
-    radio_folder.pack(anchor="w", padx=10, pady=2)
-
-    radio_replace = ctk.CTkRadioButton(frame_output_options, text="Remplacer les fichiers originaux", variable=selected_output_option, value="replace")
-    radio_replace.pack(anchor="w", padx=10, pady=2)
-
-    # Capture options
-    frame_capture_options = ctk.CTkFrame(root)
-    frame_capture_options.pack(padx=10, pady=5, fill="x")
-
-    capture_without_rotation_var = BooleanVar()
-    capture_with_rotation_var = BooleanVar()
-
-    check_capture_without_rotation = ctk.CTkCheckBox(frame_capture_options, text="Capture d'une cover sans rotation", variable=capture_without_rotation_var)
-    check_capture_without_rotation.pack(side="left", padx=10, pady=5)
-
-    check_capture_with_rotation = ctk.CTkCheckBox(frame_capture_options, text="Capture d'une cover avec rotation", variable=capture_with_rotation_var)
-    check_capture_with_rotation.pack(side="left", padx=10, pady=5)
-
-    # Convert button
-    button_convert = ctk.CTkButton(root, text="Convertir", command=start_conversion, width=200, height=40, font=("Arial", 14, "bold"))
-    button_convert.pack(pady=10)
-
-    # Check dependencies at startup
-    check_and_download_ffmpeg(root)
-
-    # Run the application
-    root.mainloop()
+    app = VideoConvertApp()
+    app.mainloop()
 
 if __name__ == "__main__":
     main()

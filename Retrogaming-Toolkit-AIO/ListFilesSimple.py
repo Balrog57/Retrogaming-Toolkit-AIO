@@ -1,67 +1,47 @@
-# Module généré automatiquement à partir de liste_fichier_simple.py
+import os
+import customtkinter as ctk
+from tkinter import filedialog, messagebox
+
+try: import theme
+except: theme=None
+
+ctk.set_appearance_mode("dark")
+
+def run(root_dir):
+    try:
+        struct = []
+        for r, _, files in os.walk(root_dir):
+            rel = os.path.relpath(r, root_dir)
+            if rel == '.': rel = ''
+            for f in files:
+                if f != "Liste.txt" and not f.endswith(".py"):
+                    struct.append(os.path.join(rel, f))
+        
+        out = os.path.join(root_dir, "Liste.txt")
+        with open(out, 'w', encoding='utf-8') as f:
+            for item in struct: f.write(item + '\n')
+            
+        messagebox.showinfo("Succès", f"Liste créée: {out}")
+    except Exception as e: messagebox.showerror("Err", str(e))
 
 def main():
-    import os
-    import customtkinter as ctk
-    from tkinter import filedialog, messagebox
-    ctk.set_appearance_mode("dark")
-    ctk.set_default_color_theme("blue")
-    
-    def list_files_with_structure_and_save(root_dir, script_name):
-        file_structure = []
-        output_file = os.path.join(root_dir, "Liste.txt")
-        
-        # Parcourir les fichiers et sous-dossiers
-        for root, dirs, files in os.walk(root_dir):
-            relative_path = os.path.relpath(root, root_dir)
-            if relative_path == '.':
-                relative_path = ''
-            
-            for file in files:
-                # Ignorer le script et le fichier de sortie
-                if file not in {script_name, "Liste.txt"}:
-                    file_structure.append(os.path.join(relative_path, file))
-        
-        # Écrire la liste dans Liste.txt
-        with open(output_file, 'w', encoding='utf-8') as f:
-            for file in file_structure:
-                f.write(file + '\n')
-        
-        messagebox.showinfo("Succès", f"Liste des fichiers sauvegardée dans : {output_file}")
-    
-    def select_directory():
-        folder_selected = filedialog.askdirectory()
-        if folder_selected:
-            folder_path_var.set(folder_selected)
-    
-    def run_script():
-        root_dir = folder_path_var.get()
-        if not root_dir:
-            messagebox.showerror("Erreur", "Veuillez sélectionner un dossier.")
-            return
-        
-        script_name = os.path.basename(__file__)
-        list_files_with_structure_and_save(root_dir, script_name)
-    
-    # Création de la fenêtre principale
     root = ctk.CTk()
-    root.title("Liste des fichiers")
+    if theme: theme.apply_theme(root, "Liste de Fichiers (Simple)")
+    else: root.title("Liste de Fichiers")
     
-    # Variables de contrôle
-    folder_path_var = ctk.StringVar()
+    root.geometry("500x200")
     
-    # Interface utilisateur
-    ctk.CTkLabel(root, text="Dossier :", font=("Arial", 16)).grid(row=0, column=0, sticky="w", padx=10, pady=10)
-    ctk.CTkEntry(root, textvariable=folder_path_var, width=400).grid(row=0, column=1, padx=10)
-    ctk.CTkButton(root, text="Parcourir", command=select_directory, width=100).grid(row=0, column=2, padx=10)
+    folder = ctk.StringVar()
     
-    ctk.CTkButton(root, 
-                 text="Générer la liste des fichiers", 
-                 command=run_script,
-                 width=200,
-                 font=("Arial", 16)).grid(row=1, column=1, pady=20)
+    fr = ctk.CTkFrame(root, fg_color="transparent")
+    fr.pack(padx=20, pady=20)
     
-    # Démarrer la boucle principale de l'interface graphique
+    ctk.CTkLabel(fr, text="Dossier:").grid(row=0, column=0, sticky="e")
+    ctk.CTkEntry(fr, textvariable=folder, width=300).grid(row=0, column=1)
+    ctk.CTkButton(fr, text="...", width=40, command=lambda: folder.set(filedialog.askdirectory()), fg_color=theme.COLOR_ACCENT_PRIMARY if theme else None).grid(row=0, column=2)
+    
+    ctk.CTkButton(fr, text="GÉNÉRER LISTE", command=lambda: run(folder.get()), fg_color=theme.COLOR_ACCENT_PRIMARY if theme else "blue").grid(row=1, column=1, pady=20)
+    
     root.mainloop()
 
 if __name__ == '__main__':

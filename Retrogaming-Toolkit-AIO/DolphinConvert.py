@@ -3,141 +3,72 @@
 def main():
     import os
     import subprocess
-    import urllib.request
-    import tarfile
     import sys
     import customtkinter as ctk
     from tkinter import filedialog, messagebox
+    
+    try: import theme
+    except: theme=None
 
-    # Configuration du thème
     ctk.set_appearance_mode("dark")
-    ctk.set_default_color_theme("blue")
 
-    # Import utils
-    try:
-        import utils
-    except ImportError:
-        pass
+    try: import utils
+    except ImportError: pass
 
-    # Nom du fichier DolphinTool
-    # Nom du fichier DolphinTool
     def get_dolphin_tool_path():
         if 'utils' in sys.modules:
-            bin_path = utils.get_binary_path("DolphinTool.exe")
-            if os.path.exists(bin_path):
-                return bin_path
-        
-        # AppData fallback
-        app_data_path = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit', "DolphinTool.exe")
-        if os.path.exists(app_data_path):
-            return app_data_path
-            
-        return app_data_path
+            p = utils.get_binary_path("DolphinTool.exe")
+            if os.path.exists(p): return p
+        p = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit', "DolphinTool.exe")
+        return p
 
     DOLPHIN_TOOL_NAME = get_dolphin_tool_path()
-    # URL de téléchargement de Dolphin Emulator
-    DOLPHIN_DOWNLOAD_URL = "https://dl.dolphin-emu.org/releases/2412/dolphin-2412-x64.7z"
 
-    def check_and_download_dolphintool():
-        """Vérifie et installe DolphinTool via DependencyManager."""
-        if os.path.exists(DOLPHIN_TOOL_NAME):
-            return
+    def check_and_download_dolphintool(root):
+        if os.path.exists(DOLPHIN_TOOL_NAME): return
+        if 'utils' not in sys.modules: return messagebox.showerror("Err", "Utils missing")
+        try:
+            manager = utils.DependencyManager(root)
+            res = manager.install_dependency("DolphinTool", "https://dl.dolphin-emu.org/releases/2412/dolphin-2412-x64.7z", "DolphinTool.exe", "7z")
+            if not res: root.destroy()
+        except Exception as e:
+            messagebox.showerror("Err", str(e)); root.destroy()
 
-        if 'utils' in sys.modules:
-             # Check bundled first
-             if os.path.exists(utils.get_binary_path("DolphinTool.exe")):
-                 return
+    def convert_rvz_to_iso(inp, out):
+        files = [os.path.join(inp, f) for f in os.listdir(inp) if f.endswith(".rvz")]
+        for f in files:
+            o = os.path.join(out, f"{os.path.splitext(os.path.basename(f))[0]}.iso")
+            if os.path.exists(o): os.remove(o)
+            subprocess.run([DOLPHIN_TOOL_NAME, "convert", "--format=iso", f"--input={f}", f"--output={o}"])
 
-             try:
-                manager = utils.DependencyManager(root)
-                result = manager.install_dependency(
-                    name="DolphinTool",
-                    url="https://dl.dolphin-emu.org/releases/2412/dolphin-2412-x64.7z",
-                    target_exe_name="DolphinTool.exe",
-                    archive_type="7z"
-                )
-                if not result:
-                     root.destroy()
-                     sys.exit()
-             except Exception as e:
-                 messagebox.showerror("Erreur", f"Erreur DependencyManager: {e}")
-                 root.destroy()
-                 sys.exit()
-        else:
-            messagebox.showerror("Erreur", "Module 'utils' manquant.")
-            root.destroy()
-            sys.exit()
-
-    # Old download/extract functions removed as they are replaced by utils
-
-
-    def select_directory(title):
-        """Ouvre une boîte de dialogue pour sélectionner un répertoire."""
-        return filedialog.askdirectory(title=title)
-
-    def convert_rvz_to_iso(input_dir, output_dir):
-        """Convertit les fichiers RVZ en ISO en utilisant DolphinTool."""
-        rvz_files = [
-            os.path.join(input_dir, file)
-            for file in os.listdir(input_dir)
-            if file.endswith(".rvz")
-        ]
-
-        for rvz_file in rvz_files:
-            output_file = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(rvz_file))[0]}.iso")
-            if os.path.exists(output_file):
-                os.remove(output_file)
-            subprocess.run([
-                DOLPHIN_TOOL_NAME, "convert", "--format=iso",
-                f"--input={rvz_file}", f"--output={output_file}"
-            ])
-
-    def convert_iso_to_rvz(input_dir, output_dir, compression_format, compression_level, block_size):
-        """Convertit les fichiers ISO en RVZ en utilisant DolphinTool avec des options de compression."""
-        iso_files = [
-            os.path.join(input_dir, file)
-            for file in os.listdir(input_dir)
-            if file.endswith(".iso")
-        ]
-
-        for iso_file in iso_files:
-            output_file = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(iso_file))[0]}.rvz")
-            if os.path.exists(output_file):
-                os.remove(output_file)
-            subprocess.run([
-                DOLPHIN_TOOL_NAME, "convert", "--format=rvz",
-                f"--input={iso_file}", f"--output={output_file}",
-                f"--block_size={block_size}", f"--compression={compression_format}",
-                f"--compression_level={compression_level}"
-            ])
+    def convert_iso_to_rvz(inp, out, fmt, lvl, blk):
+        files = [os.path.join(inp, f) for f in os.listdir(inp) if f.endswith(".iso")]
+        for f in files:
+            o = os.path.join(out, f"{os.path.splitext(os.path.basename(f))[0]}.rvz")
+            if os.path.exists(o): os.remove(o)
+            subprocess.run([DOLPHIN_TOOL_NAME, "convert", "--format=rvz", f"--input={f}", f"--output={o}", f"--block_size={blk}", f"--compression={fmt}", f"--compression_level={lvl}"])
 
     def start_conversion():
-        """Démarre le processus de conversion en fonction des paramètres sélectionnés."""
-        input_dir = input_dir_var.get()
-        output_dir = output_dir_var.get()
-        operation = operation_var.get()
-        compression_format = compression_format_var.get()
-        compression_level = compression_level_var.get()
-        block_size = block_size_var.get()
+        inp, out = input_dir_var.get(), output_dir_var.get()
+        if not inp or not out: return messagebox.showerror("Err", "Dirs missing")
+        
+        op = operation_var.get()
+        if op == "ISO vers RVZ":
+            convert_iso_to_rvz(inp, out, compression_format_var.get(), compression_level_var.get(), block_size_var.get())
+        elif op == "RVZ vers ISO":
+            convert_rvz_to_iso(inp, out)
+        else: return
+        messagebox.showinfo("Fini", "Conversion terminée.")
 
-        if not input_dir or not output_dir:
-            messagebox.showerror("Erreur", "Veuillez sélectionner les répertoires d'entrée et de sortie.")
-            return
-
-        if operation == "ISO vers RVZ":
-            convert_iso_to_rvz(input_dir, output_dir, compression_format, compression_level, block_size)
-        elif operation == "RVZ vers ISO":
-            convert_rvz_to_iso(input_dir, output_dir)
-        else:
-            messagebox.showerror("Erreur", "Opération inconnue sélectionnée.")
-
-        messagebox.showinfo("Terminé", "La conversion est terminée.")
-
-    # Interface graphique
     root = ctk.CTk()
-    root.title("Convertisseur RVZ/ISO")
+    if theme:
+        theme.apply_theme(root, "Convertisseur RVZ/ISO")
+        acc = theme.COLOR_ACCENT_PRIMARY
+    else:
+        root.title("Convertisseur RVZ/ISO")
+        root.geometry("600x450")
+        acc = "#1f6aa5"
 
-    # Variables CTk
     input_dir_var = ctk.StringVar()
     output_dir_var = ctk.StringVar()
     operation_var = ctk.StringVar(value="ISO vers RVZ")
@@ -145,44 +76,26 @@ def main():
     compression_level_var = ctk.IntVar(value=5)
     block_size_var = ctk.StringVar(value="131072")
 
-    # Fonctions de sélection de répertoire
-    def browse_input_dir():
-        input_dir = select_directory("Sélectionnez le répertoire d'entrée")
-        input_dir_var.set(input_dir)
+    main_fr = ctk.CTkFrame(root, fg_color="transparent")
+    main_fr.pack(padx=20, pady=20)
 
-    def browse_output_dir():
-        output_dir = select_directory("Sélectionnez le répertoire de sortie")
-        output_dir_var.set(output_dir)
+    def mk_row(r, txt, var=None, vals=None, cmd=None):
+        ctk.CTkLabel(main_fr, text=txt, anchor="e").grid(row=r, column=0, padx=5, pady=5, sticky="e")
+        if vals: ctk.CTkOptionMenu(main_fr, variable=var, values=vals, fg_color=acc).grid(row=r, column=1, padx=5, pady=5, sticky="ew")
+        else: 
+            ctk.CTkEntry(main_fr, textvariable=var, width=300).grid(row=r, column=1, padx=5, pady=5)
+            if cmd: ctk.CTkButton(main_fr, text="...", width=50, command=cmd, fg_color=acc).grid(row=r, column=2, padx=5, pady=5)
 
-    # Layout de l'interface
-    ctk.CTkLabel(root, text="Répertoire d'entrée :", font=("Arial", 16)).grid(row=0, column=0, padx=5, pady=5, sticky="e")
-    ctk.CTkEntry(root, textvariable=input_dir_var, width=300).grid(row=0, column=1, padx=5, pady=5)
-    ctk.CTkButton(root, text="Parcourir...", command=browse_input_dir, width=200).grid(row=0, column=2, padx=5, pady=5)
+    mk_row(0, "Entrée:", input_dir_var, cmd=lambda: input_dir_var.set(filedialog.askdirectory()))
+    mk_row(1, "Sortie:", output_dir_var, cmd=lambda: output_dir_var.set(filedialog.askdirectory()))
+    mk_row(2, "Opération:", operation_var, vals=["ISO vers RVZ", "RVZ vers ISO"])
+    mk_row(3, "Format:", compression_format_var, vals=["zstd", "lzma2", "lzma", "bzip", "none"])
+    mk_row(4, "Niveau:", compression_level_var, vals=[str(i) for i in range(1, 23)])
+    mk_row(5, "Block Size:", block_size_var, vals=["32768", "65536", "131072", "262144", "524288", "1048576", "2097152", "8388608", "16777216", "33554432"])
 
-    ctk.CTkLabel(root, text="Répertoire de sortie :", font=("Arial", 16)).grid(row=1, column=0, padx=5, pady=5, sticky="e")
-    ctk.CTkEntry(root, textvariable=output_dir_var, width=300).grid(row=1, column=1, padx=5, pady=5)
-    ctk.CTkButton(root, text="Parcourir...", command=browse_output_dir, width=200).grid(row=1, column=2, padx=5, pady=5)
+    ctk.CTkButton(root, text="DÉMARRER", command=start_conversion, width=200, fg_color=theme.COLOR_SUCCESS if theme else "green").pack(pady=20)
 
-    ctk.CTkLabel(root, text="Opération :", font=("Arial", 16)).grid(row=2, column=0, padx=5, pady=5, sticky="e")
-    operation_menu = ctk.CTkOptionMenu(root, variable=operation_var, values=["ISO vers RVZ", "RVZ vers ISO"])
-    operation_menu.grid(row=2, column=1, padx=5, pady=5)
-
-    ctk.CTkLabel(root, text="Compression Format :", font=("Arial", 16)).grid(row=3, column=0, padx=5, pady=5, sticky="e")
-    compression_format_menu = ctk.CTkOptionMenu(root, variable=compression_format_var, values=["zstd", "lzma2", "lzma", "bzip", "none"])
-    compression_format_menu.grid(row=3, column=1, padx=5, pady=5)
-
-    ctk.CTkLabel(root, text="Compression Level :", font=("Arial", 16)).grid(row=4, column=0, padx=5, pady=5, sticky="e")
-    compression_level_menu = ctk.CTkOptionMenu(root, variable=compression_level_var, values=[str(i) for i in range(1, 23)])
-    compression_level_menu.grid(row=4, column=1, padx=5, pady=5)
-
-    ctk.CTkLabel(root, text="Block Size (Bytes) :", font=("Arial", 16)).grid(row=5, column=0, padx=5, pady=5, sticky="e")
-    block_size_menu = ctk.CTkOptionMenu(root, variable=block_size_var, values=["32768", "65536", "131072", "262144", "524288", "1048576", "2097152", "8388608", "16777216", "33554432"])
-    block_size_menu.grid(row=5, column=1, padx=5, pady=5)
-
-    ctk.CTkButton(root, text="Démarrer la conversion", command=start_conversion, width=200).grid(row=6, column=1, padx=5, pady=10)
-
-    # Vérification et lancement
-    check_and_download_dolphintool()
+    check_and_download_dolphintool(root)
     root.mainloop()
 
 if __name__ == '__main__':

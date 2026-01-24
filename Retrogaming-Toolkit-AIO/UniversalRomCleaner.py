@@ -1,323 +1,323 @@
 import customtkinter as ctk
-import tkinter as tk
+import tkinter as tk # Needed for Toplevel (Ghost) and misc
 from tkinter import filedialog, messagebox
 import os
 import re
 import shutil
 import sys
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageTk
 
-# Set appearance to match "Balrog Toolkit"
-ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
+# Import shared theme
+try:
+    import theme
+except ImportError:
+    # Fallback if running standalone and theme not found (shouldn't happen in proper env)
+    theme = None
 
-class DragDropListbox(tk.Listbox):
+class DraggableListFrame(ctk.CTkScrollableFrame):
     """
-    A Tkinter Listbox with Drag & Drop reordering, cross-list transfer, 'Ghost' visual feedback,
-    and hover highlighting.
+    A CustomTkinter ScrollableFrame that mimics a Listbox with Drag & Drop.
+    Items are represented by CTkButtons (for hover/click style).
     """
-    def __init__(self, master, connected_listboxes=None, highlight_color=None, **kwargs):
-        # Default Dark Theme styling for the Listbox
-        kwargs.setdefault('bg', '#2b2b2b')
-        kwargs.setdefault('fg', '#ffffff')
-        kwargs.setdefault('selectbackground', '#1f538d') # CTk Blue-ish
-        kwargs.setdefault('selectforeground', '#ffffff')
-        kwargs.setdefault('highlightthickness', 0)
-        kwargs.setdefault('borderwidth', 0)
-        kwargs.setdefault('relief', 'flat')
-        kwargs.setdefault('font', ("Roboto", 11))
-        kwargs.setdefault('activestyle', 'none')
-        
+    def __init__(self, master, connected_frames=None, highlight_color=None, **kwargs):
         super().__init__(master, **kwargs)
         
-        self.connected_listboxes = connected_listboxes if connected_listboxes else []
+        self.connected_frames = connected_frames if connected_frames else []
         self.highlight_color = highlight_color
-        self.default_bg = kwargs['bg']
         
-        self.bind('<Button-1>', self.on_click)
-        self.bind('<B1-Motion>', self.on_drag)
-        self.bind('<ButtonRelease-1>', self.on_drop)
+        # Determine colors from theme or defaults
+        self.default_bg = self.cget("fg_color") # save original fg_color
+        if theme:
+             self.bg_color_normal = theme.COLOR_CARD_BG
+             self.item_fg_color = "transparent"
+             self.item_hover_color = theme.COLOR_ACCENT_HOVER
+             self.item_text_color = theme.COLOR_TEXT_MAIN
+        else:
+             self.bg_color_normal = "#2b2b2b"
+             self.item_fg_color = "transparent"
+             self.item_hover_color = "#1f538d"
+             self.item_text_color = "white"
+             
+        self.configure(fg_color=self.bg_color_normal)
+
+        self.items = [] # List of strings
+        self.item_widgets = [] # List of CTkButtons
         
-        self.cur_index = None
+        self.drag_data = {"item_index": None, "original_frame": None, "text": None}
         self.ghost_window = None
-        self.current_hover_widget = None
+        self.current_hover_frame = None
 
-    def connect(self, listbox):
-        if listbox not in self.connected_listboxes:
-            self.connected_listboxes.append(listbox)
-        if self not in listbox.connected_listboxes:
-            listbox.connected_listboxes.append(self)
+    def connect(self, frame):
+        if frame not in self.connected_frames:
+            self.connected_frames.append(frame)
+        if self not in frame.connected_frames:
+            frame.connected_frames.append(self)
 
-    def on_click(self, event):
-        try:
-            self.cur_index = self.nearest(event.y)
-            bbox = self.bbox(self.cur_index)
-            if not bbox: 
-                self.cur_index = None
-                return
-            if event.y > bbox[1] + bbox[3]: 
-                self.cur_index = None
-                return
-        except Exception:
-            self.cur_index = None
+    def set_items(self, new_items):
+        self.items = new_items
+        self._render_items()
 
-    def create_ghost(self, text, x, y):
-        if self.ghost_window:
-            return
+    def get_items(self):
+        return self.items
+
+    def add_item(self, text):
+        self.items.append(text)
+        self._render_items()
+        
+    def clear(self):
+        self.items = []
+        self._render_items()
+
+    def _render_items(self):
+        # Clear existing widgets
+        for w in self.item_widgets:
+            w.destroy()
+        self.item_widgets = []
+        
+        for idx, text in enumerate(self.items):
+            # Use Button for easy hover/click visual, but styled like a label item
+            btn = ctk.CTkButton(
+                self, 
+                text=text, 
+                fg_color=self.item_fg_color, 
+                text_color=self.item_text_color,
+                hover_color=self.item_hover_color,
+                anchor="w",
+                height=24,
+                font=theme.get_font_main() if theme else ("Roboto", 13)
+            )
+            btn.pack(fill="x", pady=1, padx=2)
+            
+            # Bind events
+            btn.bind("<Button-1>", lambda e, i=idx: self._on_drag_start(e, i))
+            btn.bind("<B1-Motion>", self._on_drag_motion)
+            btn.bind("<ButtonRelease-1>", self._on_drag_stop)
+            
+            self.item_widgets.append(btn)
+
+    def _on_drag_start(self, event, index):
+        self.drag_data["item_index"] = index
+        self.drag_data["original_frame"] = self
+        self.drag_data["text"] = self.items[index]
+        self.configure(cursor="hand2")
+
+    def _create_ghost(self, text, x, y):
+        if self.ghost_window: return
+        
         self.ghost_window = tk.Toplevel(self)
         self.ghost_window.overrideredirect(True)
-        self.ghost_window.attributes('-alpha', 0.6) # Semi-transparent
+        self.ghost_window.attributes('-alpha', 0.8)
         self.ghost_window.attributes('-topmost', True)
         
-        width = len(text) * 8 + 20
-        self.ghost_window.geometry(f"{width}x25+{x+15}+{y+15}")
+        # Simple label inside
+        lbl = tk.Label(self.ghost_window, text=text, bg=theme.COLOR_ACCENT_PRIMARY if theme else "#333", fg="white")
+        lbl.pack()
         
-        label = tk.Label(self.ghost_window, text=text, bg='#1f538d', fg='white', font=("Roboto", 11), relief='solid', borderwidth=1)
-        label.pack(fill='both', expand=True)
+        self.ghost_window.geometry(f"+{x+15}+{y+15}")
 
-    def update_ghost(self, x, y):
-        if self.ghost_window:
-            self.ghost_window.geometry(f"+{x+15}+{y+15}")
+    def _on_drag_motion(self, event):
+        if self.drag_data["item_index"] is None: return
 
-    def destroy_ghost(self):
+        x_root, y_root = event.x_root, event.y_root
+        
+        # Create/Update Ghost
+        if not self.ghost_window:
+            self._create_ghost(self.drag_data["text"], x_root, y_root)
+        else:
+             self.ghost_window.geometry(f"+{x_root+15}+{y_root+15}")
+
+        # Check for target
+        target = self._find_frame_under_mouse(x_root, y_root)
+        
+        if target != self.current_hover_frame:
+            # Clear invalid hover
+            if self.current_hover_frame:
+                self.current_hover_frame.configure(fg_color=self.bg_color_normal)
+            
+            # Set new hover
+            if target and target.highlight_color:
+                target.configure(fg_color=target.highlight_color)
+            elif target: # Self or no highlight color
+                 pass 
+            
+            self.current_hover_frame = target
+
+    def _on_drag_stop(self, event):
+        self.configure(cursor="")
         if self.ghost_window:
             self.ghost_window.destroy()
             self.ghost_window = None
 
-    def set_bg(self, color):
-        self.configure(bg=color)
+        if self.current_hover_frame:
+            self.current_hover_frame.configure(fg_color=self.bg_color_normal)
 
-    def on_drag(self, event):
-        if self.cur_index is None:
-            return
+        target = self.current_hover_frame
+        src_idx = self.drag_data["item_index"]
         
-        self.config(cursor="hand2")
-        
-        text = self.get(self.cur_index)
-        self.create_ghost(text, event.x_root, event.y_root)
-        self.update_ghost(event.x_root, event.y_root)
-
-        # Helper to find target listbox
-        x, y = event.x_root, event.y_root
-        target = None
-        
-        # Check connected listboxes (and self)
-        potential_targets = self.connected_listboxes + [self]
-        for lb in potential_targets:
-            # Simple bbox check on screen?
-            # winfo_containing is easiest but can be tricky with overlays
-            widget_under = lb.winfo_containing(x, y)
-            if widget_under == lb:
-                target = lb
-                break
-        
-        # Handle Highlight state
-        if target != self.current_hover_widget:
-            # Unhighlight previous
-            if self.current_hover_widget and isinstance(self.current_hover_widget, DragDropListbox):
-                self.current_hover_widget.set_bg(self.current_hover_widget.default_bg)
+        if src_idx is not None and target:
+            text = self.drag_data["text"]
             
-            # Highlight new
-            if target and isinstance(target, DragDropListbox) and target.highlight_color:
-                target.set_bg(target.highlight_color)
+            # Logic: Remove from self, Add to target
+            # If target is self, reorder
             
-            self.current_hover_widget = target
+            # 1. Remove from source
+            del self.items[src_idx]
+            self._render_items()
+            
+            # 2. Insert into target
+            # Ideal: find index based on Y. 
+            # Simplified: Add to end for now, or approximate.
+            # Unlike Listbox, ScrollableFrame doesn't inherently give index by Y easily without calculation.
+            # We can rely on target.item_widgets bbox.
+            
+            insert_idx = len(target.items) # Default: append
+            
+            # Try to find insertion point
+            # Map event root y to target-relative y? No event.y_root is simple.
+            # Iterate widgets in target
+            mouse_y = event.y_root
+            for i, w in enumerate(target.item_widgets):
+                if mouse_y < w.winfo_rooty() + w.winfo_height()/2:
+                    insert_idx = i
+                    break
+            
+            target.items.insert(insert_idx, text)
+            target._render_items()
+            
+        # Reset
+        self.drag_data = {"item_index": None, "original_frame": None, "text": None}
+        self.current_hover_frame = None
 
-
-    def on_drop(self, event):
-        self.config(cursor="arrow")
-        self.destroy_ghost()
-        
-        # Reset highlight
-        if self.current_hover_widget and isinstance(self.current_hover_widget, DragDropListbox):
-            self.current_hover_widget.set_bg(self.current_hover_widget.default_bg)
-        self.current_hover_widget = None
-
-        if self.cur_index is None:
-            return
-
-        x, y = event.x_root, event.y_root
-        
-        # Check if dropped on self
-        target_self = self.winfo_containing(x, y)
-        if target_self == self:
-            new_index = self.nearest(event.y)
-            if new_index != self.cur_index:
-                text = self.get(self.cur_index)
-                self.delete(self.cur_index)
-                self.insert(new_index, text)
-                self.see(new_index)
-                self.selection_clear(0, tk.END)
-                self.selection_set(new_index)
-            self.cur_index = None
-            return
-
-        # Check connect listboxes
-        for lb in self.connected_listboxes:
-            target = lb.winfo_containing(x, y)
-            if target == lb:
-                text = self.get(self.cur_index)
-                self.delete(self.cur_index)
-                
-                local_y = y - lb.winfo_rooty()
-                drop_index = lb.nearest(local_y)
-                
-                # Intelligent Insert
-                if lb.size() == 0:
-                    lb.insert(tk.END, text)
-                else:
-                     bbox = lb.bbox(drop_index)
-                     if bbox:
-                         if local_y > bbox[1] + bbox[3]/2:
-                             drop_index += 1
-                     lb.insert(drop_index, text)
-                     lb.see(drop_index)
-                
-                self.cur_index = None
-                return
-
-        self.cur_index = None
+    def _find_frame_under_mouse(self, x, y):
+        # Check connected frames + self
+        candidates = [self] + self.connected_frames
+        for f in candidates:
+            # Check coords
+            fx = f.winfo_rootx()
+            fy = f.winfo_rooty()
+            fw = f.winfo_width()
+            fh = f.winfo_height()
+            
+            if fx <= x <= fx + fw and fy <= y <= fy + fh:
+                return f
+        return None
 
 
 class UniversalRomCleanerApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Universal ROM Cleaner (Fork Python)")
-        self.geometry("1100x700")
         
-        # Data
+        # --- Theme Setup ---
+        if theme:
+            theme.apply_theme(self, "Universal ROM Cleaner (Fork Python)")
+        else:
+            ctk.set_appearance_mode("dark")
+            self.title("Universal ROM Cleaner (Fork Python)")
+            
+        self.geometry("1100x700")
+
+        # Icons
+        self._load_icons()
+
         self.rom_directory = ""
         self.all_files = [] 
         self.all_attributes = set()
-        
-        # Icons
-        self.icon_1g1r = None
-        self.icon_folder = None
-        self._load_icons()
 
         self._setup_ui()
 
     def _load_icons(self):
-        def resource_path(relative_path):
-            """ Get absolute path to resource, works for dev and for PyInstaller """
-            try:
-                # PyInstaller creates a temp folder and stores path in _MEIPASS
-                base_path = sys._MEIPASS
-            except Exception:
-                base_path = os.path.dirname(os.path.abspath(__file__))
+        # Use theme-like logic or existing logic
+        try:
+             if getattr(sys, 'frozen', False):
+                 base_path = os.path.join(sys._MEIPASS, "assets")
+             else:
+                 # Should be able to find assets in parent/assets if running via module
+                 # or ../assets if relative
+                 base_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets")
+                 
+             self.icon_1g1r = self._load_image(os.path.join(base_path, "icon_1g1r.png"))
+             self.icon_folder = self._load_image(os.path.join(base_path, "icon_folder.png"))
+        except Exception:
+            self.icon_1g1r = None
+            self.icon_folder = None
 
-            return os.path.join(base_path, relative_path)
-
-        # In dev: base is current file dir. In frozen (bundled dir), we need to check structure.
-        # build.py does: --add-data "Retrogaming-Toolkit-AIO;Retrogaming-Toolkit-AIO"
-        # So inside _MEIPASS we have Retrogaming-Toolkit-AIO folder.
-        
-        # Determine base directory
-        if getattr(sys, 'frozen', False):
-            # If frozen, we are likely in sys._MEIPASS
-            # The structure is sys._MEIPASS/Retrogaming-Toolkit-AIO/icons/...
-            # But this file (UniversalRomCleaner.py) might be running from unpacked location?
-            # Actually build.py treats them as data. 
-            # If launch via main.py -> subprocess UniversalRomCleaner.py, it's just a script.
-            
-            # Let's try locating relative to the executable IF it's --onedir (which build.py uses)
-            # In --onedir, sys.executable is in the root. 
-            # Retrogaming-Toolkit-AIO is a folder next to it? 
-            # No, build.py uses --add-data, so it's INTERNAL to the internal bundle dir.
-            
-            # Safe bet: use __file__ but resolve fully if possible, or fallback to sys._MEIPASS
-            try:
-                base_path = sys._MEIPASS
-            except Exception:
-                base_path = os.path.dirname(os.path.abspath(__file__))
-            
-            icon_path_1g1r = os.path.join(base_path, "Retrogaming-Toolkit-AIO", "icons", "icon_1g1r.png")
-            icon_path_folder = os.path.join(base_path, "Retrogaming-Toolkit-AIO", "icons", "icon_folder.png")
-            
-            # Fallback if structure is different (e.g. if __file__ is already inside Retrogaming-Toolkit-AIO)
-            if not os.path.exists(icon_path_1g1r):
-                 # Try relative to this file
-                 icon_path_1g1r = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "icon_1g1r.png")
-                 icon_path_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "icons", "icon_folder.png")
-
-        else:
-            # Dev mode
-            icon_path_1g1r = os.path.join(os.path.dirname(__file__), "icons", "icon_1g1r.png")
-            icon_path_folder = os.path.join(os.path.dirname(__file__), "icons", "icon_folder.png")
-        
-        if os.path.exists(icon_path_1g1r):
-            self.icon_1g1r = ctk.CTkImage(light_image=Image.open(icon_path_1g1r), 
-                                          dark_image=Image.open(icon_path_1g1r), size=(32, 32))
-        else:
-            print(f"Icon not found: {icon_path_1g1r}")
-
-        if os.path.exists(icon_path_folder):
-            self.icon_folder = ctk.CTkImage(light_image=Image.open(icon_path_folder), 
-                                            dark_image=Image.open(icon_path_folder), size=(32, 32))
+    def _load_image(self, path):
+        if os.path.exists(path):
+            return ctk.CTkImage(light_image=Image.open(path), dark_image=Image.open(path), size=(32, 32))
+        return None
 
     def _setup_ui(self):
-        # Configure layout
         self.grid_rowconfigure(1, weight=1) 
         self.grid_columnconfigure(0, weight=1)
 
-        # 1. Header (Folder Selection)
+        # 1. Header
         header_frame = ctk.CTkFrame(self, fg_color="transparent")
-        header_frame.grid(row=0, column=0, sticky="ew", padx=10, pady=10)
+        header_frame.grid(row=0, column=0, sticky="ew", padx=20, pady=20)
         
-        self.path_entry = ctk.CTkEntry(header_frame, placeholder_text="Sélectionner le dossier de ROMs...", height=30)
+        self.path_entry = ctk.CTkEntry(header_frame, placeholder_text="Sélectionner le dossier de ROMs...", height=35)
         self.path_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
         
-        load_btn = ctk.CTkButton(header_frame, text="Parcourir", command=self.load_directory, width=100, height=30)
+        # Styled Button
+        load_btn = ctk.CTkButton(
+            header_frame, 
+            text="Parcourir", 
+            command=self.load_directory, 
+            width=120, height=35,
+            fg_color=theme.COLOR_ACCENT_PRIMARY if theme else None,
+            hover_color=theme.COLOR_ACCENT_HOVER if theme else None
+        )
         load_btn.pack(side="left")
 
         # 2. Main Content
         main_content = ctk.CTkFrame(self, fg_color="transparent")
-        main_content.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
+        main_content.grid(row=1, column=0, sticky="nsew", padx=20, pady=(0, 20))
         
-        main_content.grid_columnconfigure(0, weight=1, uniform="group1") # Left Col
-        main_content.grid_columnconfigure(1, weight=1, uniform="group1") # Right Col
+        main_content.grid_columnconfigure(0, weight=1, uniform="group1") 
+        main_content.grid_columnconfigure(1, weight=1, uniform="group1")
         main_content.grid_rowconfigure(0, weight=1)
 
         # --- Left Column: Priority ---
-        left_frame = ctk.CTkFrame(main_content)
-        left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+        left_frame = ctk.CTkFrame(main_content, fg_color=theme.COLOR_CARD_BG if theme else None, corner_radius=10)
+        left_frame.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
         left_frame.grid_rowconfigure(1, weight=1)
         left_frame.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(left_frame, text="Ordre de Priorité (Glisser pour ordonner)", font=("Roboto", 13, "bold"), anchor="w").grid(row=0, column=0, sticky="w", padx=10, pady=5)
+        ctk.CTkLabel(left_frame, text="Ordre de Priorité", font=theme.get_font_title(16) if theme else ("Roboto", 16, "bold"), anchor="w", text_color=theme.COLOR_ACCENT_PRIMARY if theme else "white").grid(row=0, column=0, sticky="w", padx=15, pady=10)
         
-        self.priority_list = DragDropListbox(left_frame)
-        self.priority_list.grid(row=1, column=0, sticky="nsew", padx=2, pady=2)
+        self.priority_list = DraggableListFrame(left_frame, width=300) # Width is ignored by sticky nsew usually but good init
+        self.priority_list.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
 
-        # --- Right Column: Splits (Suppress / Ignore) ---
+        # --- Right Column: Splits ---
         right_frame = ctk.CTkFrame(main_content, fg_color="transparent")
-        right_frame.grid(row=0, column=1, sticky="nsew", padx=(5, 0))
+        right_frame.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
         right_frame.grid_columnconfigure(0, weight=1)
         right_frame.grid_rowconfigure(0, weight=1) # Suppress
         right_frame.grid_rowconfigure(1, weight=1) # Ignore
 
-        # Top Right: Suppress (RED HIGHLIGHT)
-        suppress_container = ctk.CTkFrame(right_frame)
-        suppress_container.grid(row=0, column=0, sticky="nsew", pady=(0, 5))
+        # Suppress
+        suppress_container = ctk.CTkFrame(right_frame, fg_color=theme.COLOR_CARD_BG if theme else None, corner_radius=10)
+        suppress_container.grid(row=0, column=0, sticky="nsew", pady=(0, 10))
         suppress_container.grid_rowconfigure(1, weight=1)
         suppress_container.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(suppress_container, text="Attributs à supprimer", font=("Roboto", 13, "bold"), anchor="w").grid(row=0, column=0, sticky="w", padx=10, pady=5)
-        # highlight_color="#550000" (Red background when hovering)
-        self.suppress_list = DragDropListbox(suppress_container, highlight_color="#550000")
-        self.suppress_list.grid(row=1, column=0, sticky="nsew", padx=2, pady=2)
+        ctk.CTkLabel(suppress_container, text="Attributs à supprimer", font=theme.get_font_title(16) if theme else None, anchor="w", text_color=theme.COLOR_ACCENT_PRIMARY if theme else "white").grid(row=0, column=0, sticky="w", padx=15, pady=10)
+        
+        # Red highlight for suppress
+        self.suppress_list = DraggableListFrame(suppress_container, highlight_color="#550000")
+        self.suppress_list.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
 
-        # Bottom Right: Ignore (BLUE HIGHLIGHT)
-        ignore_container = ctk.CTkFrame(right_frame)
-        ignore_container.grid(row=1, column=0, sticky="nsew", pady=(5, 0))
+        # Ignore
+        ignore_container = ctk.CTkFrame(right_frame, fg_color=theme.COLOR_CARD_BG if theme else None, corner_radius=10)
+        ignore_container.grid(row=1, column=0, sticky="nsew", pady=(10, 0))
         ignore_container.grid_rowconfigure(1, weight=1)
         ignore_container.grid_columnconfigure(0, weight=1)
 
-        ctk.CTkLabel(ignore_container, text="Attributs ignorés (Non utilisés pour le tri)", font=("Roboto", 13, "bold"), anchor="w").grid(row=0, column=0, sticky="w", padx=10, pady=5)
-        # highlight_color="#002244" (Blue background when hovering)
-        self.ignore_list = DragDropListbox(ignore_container, highlight_color="#002244")
-        self.ignore_list.grid(row=1, column=0, sticky="nsew", padx=2, pady=2)
+        ctk.CTkLabel(ignore_container, text="Attributs ignorés", font=theme.get_font_title(16) if theme else None, anchor="w", text_color=theme.COLOR_ACCENT_PRIMARY if theme else "white").grid(row=0, column=0, sticky="w", padx=15, pady=10)
+        
+        # Blue highlight for ignore
+        self.ignore_list = DraggableListFrame(ignore_container, highlight_color="#0e365c") 
+        self.ignore_list.grid(row=1, column=0, sticky="nsew", padx=10, pady=(0, 10))
 
         # Connect Drag & Drop
         self.priority_list.connect(self.suppress_list)
@@ -325,67 +325,69 @@ class UniversalRomCleanerApp(ctk.CTk):
         self.suppress_list.connect(self.priority_list)
         self.ignore_list.connect(self.priority_list)
 
-        # 3. Footer (Options & Actions)
-        footer_frame = ctk.CTkFrame(self, fg_color="transparent", height=40)
-        footer_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=10)
+        # 3. Footer
+        footer_frame = ctk.CTkFrame(self, fg_color="transparent", height=50)
+        footer_frame.grid(row=2, column=0, sticky="ew", padx=20, pady=20)
         
-        # Mode Selector (Bottom Left - Icon Button)
+        # Mode Selector
         self.mode_var = ctk.StringVar(value="Mode 1G1R")
-        
         self.mode_btn = ctk.CTkButton(
             footer_frame, 
-            text="", 
+            text="Mode 1G1R",  # Default Text
             image=self.icon_1g1r, 
-            width=50, 
+            width=140, 
             height=40,
             command=self.toggle_mode,
             fg_color="transparent",
-            hover_color="#333333"
+            border_width=1,
+            border_color=theme.COLOR_CARD_BORDER if theme else "gray",
+            hover_color=theme.COLOR_GHOST_HOVER if theme else "#333"
         )
         self.mode_btn.pack(side="left", padx=(0, 20))
-
-        # Options
+        
+        # Switches
         self.move_var = ctk.BooleanVar(value=False)
-        ctk.CTkSwitch(footer_frame, text="Déplacer les fichiers", variable=self.move_var).pack(side="left", padx=(0, 20))
+        ctk.CTkSwitch(footer_frame, text="Déplacer les fichiers", variable=self.move_var, progress_color=theme.COLOR_ACCENT_PRIMARY if theme else None).pack(side="left", padx=(0, 20))
         
         self.region_sort_var = ctk.BooleanVar(value=False)
-        ctk.CTkSwitch(footer_frame, text="Trier par Région", variable=self.region_sort_var).pack(side="left", padx=(0, 20))
-        
+        ctk.CTkSwitch(footer_frame, text="Trier par Région", variable=self.region_sort_var, progress_color=theme.COLOR_ACCENT_PRIMARY if theme else None).pack(side="left", padx=(0, 20))
+
         # Actions
-        ctk.CTkButton(footer_frame, text="Nettoyer / Exécuter", fg_color="green", hover_color="darkgreen", 
+        ctk.CTkButton(footer_frame, text="Nettoyer / Exécuter", fg_color=theme.COLOR_SUCCESS if theme else "green", 
+                      hover_color="#27ae60", height=40,
                       command=lambda: self.process_roms(simulate=False)).pack(side="right", padx=10)
-        ctk.CTkButton(footer_frame, text="Simulation", command=lambda: self.process_roms(simulate=True)).pack(side="right", padx=10)
-        # Reset button visible (Red/Orange)
-        ctk.CTkButton(footer_frame, text="Reset", fg_color="#d63031", hover_color="#b71c1c",
-                      command=self.scan_files, width=80).pack(side="right", padx=10)
+                      
+        ctk.CTkButton(footer_frame, text="Simulation", fg_color=theme.COLOR_ACCENT_PRIMARY if theme else "blue",
+                      hover_color=theme.COLOR_ACCENT_HOVER if theme else "darkblue", height=40,
+                      command=lambda: self.process_roms(simulate=True)).pack(side="right", padx=10)
+        
+        ctk.CTkButton(footer_frame, text="Reset", fg_color=theme.COLOR_ERROR if theme else "red", 
+                      hover_color="#c0392b", width=80, height=40,
+                      command=self.scan_files).pack(side="right", padx=10)
 
     def toggle_mode(self):
         current = self.mode_var.get()
         if current == "Mode 1G1R":
             self.mode_var.set("Mode Dossier")
-            if self.icon_folder:
-                self.mode_btn.configure(image=self.icon_folder)
+            self.mode_btn.configure(image=self.icon_folder, text="Mode Dossier")
         else:
             self.mode_var.set("Mode 1G1R")
-            if self.icon_1g1r:
-                self.mode_btn.configure(image=self.icon_1g1r)
+            self.mode_btn.configure(image=self.icon_1g1r, text="Mode 1G1R")
 
     def load_directory(self):
         path = filedialog.askdirectory(title="Sélectionner le dossier de ROMs")
         if path:
             self.rom_directory = path
-            self.path_entry.configure(placeholder_text=path)
             self.path_entry.delete(0, tk.END)
             self.path_entry.insert(0, path)
             self.scan_files()
 
     def scan_files(self):
-        if not self.rom_directory:
-            return
-            
-        self.priority_list.delete(0, tk.END)
-        self.suppress_list.delete(0, tk.END)
-        self.ignore_list.delete(0, tk.END)
+        if not self.rom_directory: return
+        
+        self.priority_list.clear() # method of DraggableListFrame
+        self.suppress_list.clear()
+        self.ignore_list.clear()
         
         try:
             files = [f for f in os.listdir(self.rom_directory) if os.path.isfile(os.path.join(self.rom_directory, f))]
@@ -393,188 +395,138 @@ class UniversalRomCleanerApp(ctk.CTk):
         except Exception as e:
             messagebox.showerror("Erreur", f"Impossible d'accéder au dossier : {e}")
             return
-        
-        # Tag Analysis
-        tag_stats = {} # tag -> {'total_pos': 0, 'count': 0}
-        
+            
+        # Analysis
+        tag_stats = {}
         self.all_attributes.clear()
         
         for f in files:
-            # Find all (...) or [...] groups
             matches = re.finditer(r'[\(\[\{](.*?)[\)\]\}]', f)
             for i, m in enumerate(matches):
                 tag = m.group(1).strip()
                 if not tag: continue
-                
                 self.all_attributes.add(tag)
                 
-                if tag not in tag_stats:
-                    tag_stats[tag] = {'total_pos': 0, 'count': 0}
-                
+                if tag not in tag_stats: tag_stats[tag] = {'total_pos': 0, 'count': 0}
                 tag_stats[tag]['total_pos'] += i
                 tag_stats[tag]['count'] += 1
         
-        # Sorter Logic:
-        # 1. Primary: Position Average (Ascending) -> Tags that usually appear first are at top
-        # 2. Secondary: Alphabetical (Descending Z-A) -> As requested
-        
-        def get_sort_key(tag):
-            stats = tag_stats.get(tag, {'total_pos': 0, 'count': 1})
-            avg_pos = stats['total_pos'] / stats['count']
-            return (avg_pos, tag) # Tuple comparison
-
-        # To get Z-A for the second part, we sort normally then can't easily reverse just secondary.
-        # Python sort is stable. 
-        # Strategy: Sort by Name DESC first, then by Position ASC.
-        
         all_tags = list(self.all_attributes)
-        
-        # 1. Sort by Name Z-A
         all_tags.sort(key=str.lower, reverse=True)
-        
-        # 2. Sort by Avg Position (Stable sort maintains Z-A for ties/close groups)
         all_tags.sort(key=lambda t: tag_stats[t]['total_pos'] / tag_stats[t]['count'])
-
-        for attr in all_tags:
-            self.priority_list.insert(tk.END, attr)
-
-    def get_list_content(self, listbox):
-        return list(listbox.get(0, tk.END))
+        
+        self.priority_list.set_items(all_tags)
 
     def get_game_name(self, filename):
         match = re.match(r'^(.*?)[\(\[\{]', filename)
-        if match:
-            return match.group(1).strip()
+        if match: return match.group(1).strip()
         return os.path.splitext(filename)[0].strip()
 
     def get_region_from_filename(self, filename):
-        # User requested: Take the FIRST tag as the Region folder
         match = re.search(r'[\(\[\{](.*?)[\)\]\}]', filename)
-        if match:
-            return match.group(1).strip()
+        if match: return match.group(1).strip()
         return "Autre"
 
     def process_roms(self, simulate=True):
-        if not self.rom_directory or not self.all_files:
+        if not self.rom_directory:
             messagebox.showwarning("Attention", "Aucune ROM chargée.")
             return
 
-        priority_attrs = self.get_list_content(self.priority_list)
-        suppress_attrs = self.get_list_content(self.suppress_list)
-        ignore_attrs = self.get_list_content(self.ignore_list)
+        priority_attrs = self.priority_list.get_items()
+        suppress_attrs = self.suppress_list.get_items()
+        ignore_attrs = self.ignore_list.get_items()
+        
         current_mode = self.mode_var.get()
-
         game_groups = {}
         
-        # Classification
+        # Grouping Logic
         for f in self.all_files:
-            # Check ignore (Only applies in 1G1R mode)
             if "1G1R" in current_mode:
                 is_ignored = False
                 for ig in ignore_attrs:
                     if f"({ig})" in f or f"[{ig}]" in f:
-                        is_ignored = True
-                        break
+                        is_ignored = True; break
                 if is_ignored: continue
-
-            # Grouping
-            if "1G1R" in current_mode:
                 game_name = self.get_game_name(f)
-            else: # Mode Dossier
-                game_name = f # Each file is its own group
-
-            if game_name not in game_groups:
-                game_groups[game_name] = []
+            else:
+                game_name = f
+            
+            if game_name not in game_groups: game_groups[game_name] = []
             game_groups[game_name].append(f)
-
+            
         kept_files_count = 0
         actions_log = []
         output_dir = os.path.join(self.rom_directory, "CLEAN_ROM")
         
         for game, files in game_groups.items():
             if not files: continue
-
-            # Filter suppressed (Applies in both modes)
+            
+            # Filter suppress
             candidates = []
             for f in files:
                 is_suppressed = False
                 for sup in suppress_attrs:
                     if f"({sup})" in f or f"[{sup}]" in f:
-                        is_suppressed = True
-                        break
-                if not is_suppressed:
-                    candidates.append(f)
-
+                        is_suppressed = True; break
+                if not is_suppressed: candidates.append(f)
+            
             if not candidates:
                 actions_log.append(f"[KO][SUPPRIME] {game}")
                 continue
-
-            # Determine winner
+                
+            # Selection
             winner = None
-            if len(candidates) == 1:
-                winner = candidates[0]
-            elif not priority_attrs:
-                winner = candidates[0]
+            if len(candidates) == 1: winner = candidates[0]
+            elif not priority_attrs: winner = candidates[0]
             else:
                 best_score = 9999
                 for f in candidates:
                     current_score = 9999
                     for idx, attr in enumerate(priority_attrs):
-                         if f"({attr})" in f or f"[{attr}]" in f:
-                            current_score = idx
-                            break
+                        if f"({attr})" in f or f"[{attr}]" in f:
+                             current_score = idx; break
                     
                     if winner is None or current_score < best_score:
-                        winner = f
-                        best_score = current_score
-            
+                        winner = f; best_score = current_score
+
             if winner:
                 kept_files_count += 1
                 dest_subfolder = ""
                 if self.region_sort_var.get():
-                    dest_subfolder = self.get_region_from_filename(winner)
+                     dest_subfolder = self.get_region_from_filename(winner)
                 
                 full_dest_dir = os.path.join(output_dir, dest_subfolder)
-                
-                if "1G1R" in current_mode:
-                    actions_log.append(f"[OK] {game} -> {winner} ({dest_subfolder})")
-                else:
-                    actions_log.append(f"[OK] {winner} ({dest_subfolder})")
+                actions_log.append(f"[OK] {winner} ({dest_subfolder})")
                 
                 if not simulate:
                     try:
-                        if not os.path.exists(full_dest_dir):
-                            os.makedirs(full_dest_dir)
+                        if not os.path.exists(full_dest_dir): os.makedirs(full_dest_dir)
                         src = os.path.join(self.rom_directory, winner)
                         dst = os.path.join(full_dest_dir, winner)
-                        if self.move_var.get():
-                            shutil.move(src, dst)
-                        else:
-                            shutil.copy2(src, dst)
+                        if self.move_var.get(): shutil.move(src, dst)
+                        else: shutil.copy2(src, dst)
                     except Exception as e:
                         actions_log.append(f"   [ERREUR] {e}")
 
-        # Report logic
         if simulate:
             self.show_log(actions_log)
         else:
-            messagebox.showinfo("Terminé", f"Nettoyage terminé pour {len(game_groups)} jeux.\nFichiers conservés : {kept_files_count}")
+            messagebox.showinfo("Terminé", f"Nettoyage terminé. Fichiers conservés : {kept_files_count}")
 
     def show_log(self, logs):
         log_win = ctk.CTkToplevel(self)
         log_win.title("Rapport de Simulation")
         log_win.geometry("800x600")
-        log_win.attributes('-topmost', True)
-        log_win.grab_set() # Make modal
-        log_win.focus_force()
+        if theme: theme.apply_theme(log_win, "Rapport de Simulation")
         
-        txt = ctk.CTkTextbox(log_win)
-        txt.pack(fill="both", expand=True)
+        log_win.grab_set()
+        
+        txt = ctk.CTkTextbox(log_win, font=("Consolas", 12))
+        txt.pack(fill="both", expand=True, padx=10, pady=10)
         txt.insert("0.0", "\n".join(logs))
 
 def main():
     app = UniversalRomCleanerApp()
-    app.minsize(1100, 700) # Ensure content fits without squeezing
     app.mainloop()
 
 if __name__ == "__main__":

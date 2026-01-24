@@ -1,51 +1,29 @@
 import os
 import subprocess
-# import zipfile
-# import rarfile
 from PIL import Image
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
-import fitz  # PyMuPDF
+import tempfile
+import shutil
 
-# Configuration de l'apparence de l'interface
+try: import theme
+except: theme=None
+
 ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("blue")
 
-# Fonction pour extraire la première image d'un fichier
 def extract_first_image(file_path, output_dir):
     try:
-        import shutil
-        import tempfile
-        try:
-             import utils
-        except ImportError:
-             messagebox.showerror("Erreur", "Module utils manquant.")
-             return
+        try: import utils
+        except ImportError: return messagebox.showerror("Err", "Utils missing")
 
-        # Temp dir for extraction
         temp_dir = tempfile.mkdtemp()
-        
-        # Extensions to look for inside archive
-        # 7za wildcards
-        # We try to extract only images
-        # 7za e archive -o{dir} *.jpg *.png *.jpeg -r -y
-        
-        # Note: extract_with_7za helper accepts file_to_extract but here we wont multiple.
-        # Let's call 7za directly via manager or modify helper?
-        # Helper is simple. Let's do it manually using manager path for flexibility or just use helper if we don't pass file (extract all? risky if huge).
-        # Better to modify helper? No, let's just use the manager instance here.
-        
         manager = utils.DependencyManager()
-        if not manager.bootstrap_7za():
-             raise Exception("7za manquant")
+        if not manager.bootstrap_7za(): raise Exception("7za missing")
              
         cmd = [manager.seven_za_path, 'e', file_path, f'-o{temp_dir}', '*.jpg', '*.jpeg', '*.png', '-r', '-y']
+        su = subprocess.STARTUPINFO(); su.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        subprocess.run(cmd, check=True, startupinfo=su, capture_output=True)
         
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
-        
-        # Find first image in temp_dir
         found_img = None
         for root, _, files in os.walk(temp_dir):
             for f in files:
@@ -55,59 +33,54 @@ def extract_first_image(file_path, output_dir):
             if found_img: break
             
         if found_img:
-            # Save as png in output_dir
-            dest_name = f"{os.path.splitext(os.path.basename(file_path))[0]}.png"
-            dest_path = os.path.join(output_dir, dest_name)
-            
-            # Convert to PNG using Pillow just in case
-            img = Image.open(found_img)
-            img.save(dest_path)
-            # shutil.move(found_img, dest_path) # or just move if we don't care about format conversion, but original code converted to PNG.
+            dest = os.path.join(output_dir, f"{os.path.splitext(os.path.basename(file_path))[0]}.png")
+            Image.open(found_img).save(dest)
             
         shutil.rmtree(temp_dir)
+    except Exception as e: print(f"Err {file_path}: {e}")
 
-    except Exception as e:
-        # messagebox.showerror("Erreur", f"Erreur lors de l'extraction de l'image : {e}")
-        print(f"Erreur extraction {file_path}: {e}") # Non-blocking log
-
-
-# Fonction pour parcourir les fichiers du répertoire
 def process_directory(input_dir):
-    for root, dirs, files in os.walk(input_dir):
-        for file in files:
-            if file.lower().endswith(('.cbz', '.cbr', '.pdf', '.zip', '.rar')):
-                extract_first_image(os.path.join(root, file), input_dir)
-    messagebox.showinfo("Succès", "Extraction des images terminée !")
+    for root, _, files in os.walk(input_dir):
+        for f in files:
+            if f.lower().endswith(('.cbz', '.cbr', '.pdf', '.zip', '.rar')):
+                extract_first_image(os.path.join(root, f), input_dir)
+    messagebox.showinfo("Fini", "Extraction terminée !")
 
-# Interface graphique
 class App(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Extracteur d'images")
-        self.geometry("400x200")
+        
+        if theme:
+            theme.apply_theme(self, "Extracteur de Cover")
+            self.COLOR_ACCENT = theme.COLOR_ACCENT_PRIMARY
+            self.COLOR_BG = theme.COLOR_BG
+        else:
+            self.title("Extracteur de Cover")
+            self.COLOR_ACCENT = "#1f6aa5"
+            self.COLOR_BG = None
+            
+        self.geometry("500x350")
+        
+        main_frame = ctk.CTkFrame(self, fg_color="transparent")
+        main_frame.pack(fill="both", expand=True, padx=30, pady=30)
 
-        self.label = ctk.CTkLabel(self, text="Choisissez un répertoire :", font=("Arial", 16))
-        self.label.pack(pady=10)
+        ctk.CTkLabel(main_frame, text="Extracteur de Cover", font=theme.get_font_title(24) if theme else ("Arial", 24, "bold")).pack(pady=(10, 25))
+        
+        self.lbl = ctk.CTkLabel(main_frame, text="Choisissez un répertoire :", font=theme.get_font_main(14) if theme else ("Arial", 14))
+        self.lbl.pack(pady=10)
 
-        self.button_browse = ctk.CTkButton(self, text="Parcourir", command=self.browse_directory, width=200)
-        self.button_browse.pack(pady=10)
+        ctk.CTkButton(main_frame, text="Parcourir", command=self.browse, width=220, height=40, fg_color=self.COLOR_ACCENT).pack(pady=15)
+        ctk.CTkButton(main_frame, text="EXECUTER", command=self.validate, width=220, height=40, fg_color=theme.COLOR_SUCCESS if theme else "green").pack(pady=10)
 
-        self.button_validate = ctk.CTkButton(self, text="Valider", command=self.validate, width=200)
-        self.button_validate.pack(pady=10)
+        self.sel_dir = ""
 
-        self.selected_directory = ""
-
-    def browse_directory(self):
-        self.selected_directory = filedialog.askdirectory()
-        if self.selected_directory:
-            self.label.configure(text=f"Répertoire sélectionné : {self.selected_directory}")
+    def browse(self):
+        self.sel_dir = filedialog.askdirectory()
+        if self.sel_dir: self.lbl.configure(text=f"Dir: {self.sel_dir}")
 
     def validate(self):
-        if not self.selected_directory:
-            messagebox.showwarning("Avertissement", "Veuillez sélectionner un répertoire.")
-            return
-
-        process_directory(self.selected_directory)
+        if not self.sel_dir: return messagebox.showwarning("Warn", "Sélectionnez un dossier.")
+        process_directory(self.sel_dir)
 
 def main():
     app = App()
