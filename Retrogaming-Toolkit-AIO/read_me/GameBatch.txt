@@ -1,3 +1,2 @@
-🚀 GameBatch
 Intégrez sans douleur votre ludothèque PC moderne (Windows, Steam, Epic Games) dans votre interface rétro. Ce module génère automatiquement les scripts de lancement (.bat) nécessaires pour que vos frontends (comme RetroBat ou EmulationStation) puissent exécuter vos jeux PC aussi simplement que des ROMs consoles.
 Fini le codage manuel fastidieux : l'outil gère tout pour vous, de la commande de lancement complexe à la surveillance du processus pour garantir une fermeture propre. Il suffit de renseigner l'ID du jeu ou de pointer vers l'exécutable, et vous obtenez un lanceur universel prêt à l'emploi.

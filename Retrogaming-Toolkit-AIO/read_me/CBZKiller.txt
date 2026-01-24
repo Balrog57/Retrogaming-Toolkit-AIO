@@ -1,3 +1,2 @@
-📚 CBZKiller
 Standardisez votre bibliothèque de bandes dessinées numériques et mangas en un clin d'œil. Ce module convertit massivement vos fichiers PDF et CBR vers le format universel CBZ, le standard préféré des liseuses et des émulateurs rétro.
 Plus besoin de manipuler les fichiers un par un : sélectionnez un dossier complet, et l'outil convertit tout à la chaîne en préservant la qualité des images. Il intègre une option intelligente de nettoyage pour supprimer automatiquement les fichiers originaux après conversion, optimisant ainsi votre espace de stockage sans effort. Une interface claire pour une collection parfaitement ordonnée.

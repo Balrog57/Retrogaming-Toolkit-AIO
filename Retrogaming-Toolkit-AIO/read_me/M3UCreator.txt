@@ -1,3 +1,2 @@
-🎵 M3UCreator
 Mettez fin au chaos des jeux multi-disques et des dossiers obscurs. Cet outil 2-en-1 organise vos collections PlayStation (PS1) et PS Vita pour une expérience de navigation fluide.
 D'un côté, il regroupe automatiquement vos jeux à plusieurs CD (Disc 1, Disc 2...) en un fichier unique .m3u, éliminant les doublons dans vos menus. De l'autre, il traduit les dossiers cryptiques de la Vita (ID type PCSB00000) en noms de jeux lisibles grâce à sa base de données intégrée, générant des raccourcis clairs prêts à être lancés par votre émulateur.

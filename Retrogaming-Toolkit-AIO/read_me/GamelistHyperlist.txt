@@ -1,3 +1,2 @@
-📜 GamelistHyperlist
 Assurez la transition de vos métadonnées entre différents frontends sans perte. Ce convertisseur transforme vos fichiers de configuration gamelist.xml (standard EmulationStation/RetroBat) vers le format HyperList, souvent requis par des interfaces comme Hyperspin ou AttractMode.
 Au-delà de la simple conversion XML, l'outil réalise un travail d'archivage précis : il extrait automatiquement la description de chaque jeu pour générer des fichiers texte individuels (.txt) dans un dossier dédié. C'est l'outil parfait pour adapter votre base de données à des thèmes spécifiques ou pour migrer votre collection vers une nouvelle architecture.

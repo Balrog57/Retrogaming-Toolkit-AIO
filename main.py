@@ -1037,6 +1037,7 @@ class Application(ctk.CTk):
             
             self.music_playing = False
             self.music_muted = False
+            self.gif_paused = False
             
             if os.path.exists(music_path):
                 try:
@@ -1081,6 +1082,7 @@ class Application(ctk.CTk):
             pygame.mixer.music.pause()
             self.play_btn.configure(text="▶️")
             self.music_playing = False
+            self.gif_paused = True # Pause GIF
         else:
             pygame.mixer.music.unpause()
             # Cas où la musique a été stoppée ou non démarrée
@@ -1090,6 +1092,11 @@ class Application(ctk.CTk):
                  except: pass
             self.play_btn.configure(text="⏸️")
             self.music_playing = True
+            
+            # Resume GIF if it was paused
+            if self.gif_paused:
+                self.gif_paused = False
+                self.animate_gif()
 
     def toggle_mute(self):
         if self.music_muted:
@@ -1136,6 +1143,9 @@ class Application(ctk.CTk):
 
     def animate_gif(self):
         """Boucle d'animation du GIF."""
+        if self.gif_paused:
+            return
+
         if hasattr(self, 'gif_frames') and self.gif_frames:
             frame = self.gif_frames[self.current_frame_idx]
             self.gif_label.configure(image=frame)

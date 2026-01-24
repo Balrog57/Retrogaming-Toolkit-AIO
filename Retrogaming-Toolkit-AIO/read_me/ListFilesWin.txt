@@ -1,3 +1,2 @@
-🪟 ListFilesWin
 Obtenez une "photo" instantanée du contenu d'un répertoire sans vous noyer dans les détails. Contrairement à l'outil précédent qui fouille en profondeur, ce module se concentre sur l'essentiel : il génère un inventaire clair de tous les fichiers et dossiers situés à la racine du répertoire sélectionné.
 C'est l'outil idéal pour lister rapidement vos catégories de systèmes ou vérifier la structure globale d'un dossier d'émulateurs. Le résultat est exporté proprement dans un fichier Liste.txt, parfait pour une vérification rapide ou pour partager la structure de votre installation.

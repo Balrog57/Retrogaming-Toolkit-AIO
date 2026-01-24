@@ -1,3 +1,2 @@
-💾 BGBackup
 Ne craignez plus de perdre vos précieuses métadonnées lors d'une mauvaise manipulation. BGBackup agit comme une assurance-vie pour votre collection : il scanne automatiquement vos dossiers de jeux pour localiser tous vos fichiers gamelist.xml.
 En un seul clic, il crée une archive ZIP de sécurité contenant toutes vos listes, sans jamais toucher ni modifier vos fichiers originaux. C'est l'outil indispensable pour sauvegarder instantanément des heures de travail de "scraping" avant de tester de nouvelles configurations.

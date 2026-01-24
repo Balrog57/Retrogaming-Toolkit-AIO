@@ -1,3 +1,2 @@
-📦 CollectionExtractor
 L'outil indispensable pour isoler, sauvegarder ou partager vos configurations. Ce module extrait "chirurgicalement" une collection complète (un système console ou une playlist thématique) depuis votre installation principale pour la placer dans un dossier indépendant.
 Il ne se limite pas aux simples fichiers de jeux : l'outil identifie et déplace intelligemment tous les éléments liés, y compris les médias, les menus, les cœurs d'émulateurs (RetroArch ou autonomes) et les fichiers de configuration. C'est la solution idéale pour créer des packs "Standalone" portables ou sauvegarder un système spécifique, avec un rapport détaillé généré à la fin de l'opération.

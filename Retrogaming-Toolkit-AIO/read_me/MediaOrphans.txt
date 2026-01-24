@@ -1,3 +1,2 @@
-🔍 MediaOrphans
 Nettoyez vos dossiers multimédias encombrés après avoir fait du tri dans vos jeux. Ce script analyse vos dossiers d'images (medium_artwork) et vérifie pour chaque fichier si le jeu correspondant existe toujours dans votre dossier de ROMs.
 S'il détecte une image "orpheline" (sans jeu associé), il ne la supprime pas mais la déplace prudemment dans un sous-dossier nommé orphan. C'est l'outil idéal pour récupérer de l'espace disque sans risque de perdre des fichiers importants, tout en préservant intelligemment les images système nommées "default".

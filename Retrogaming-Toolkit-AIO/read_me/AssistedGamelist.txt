@@ -1,3 +1,2 @@
-🤖 AssistedGamelist
 Donnez vie à vos menus de jeu incomplets grâce à la puissance de l'Intelligence Artificielle. Ce module analyse vos fichiers gamelist.xml (Recalbox/Batocera) pour repérer les jeux qui n'ont pas de description ou d'informations.
 Il interroge ensuite automatiquement une IA performante (comme Gemini ou GPT) pour rédiger les synopsis manquants et compléter les métadonnées avec précision. Le processus est sécurisé : l'outil fusionne intelligemment les nouvelles données sans jamais écraser vos chemins d'images ou vos configurations existantes. C'est la solution ultime pour "boucher les trous" de votre collection sans lever le petit doigt.

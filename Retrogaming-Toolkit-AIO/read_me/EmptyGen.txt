@@ -1,3 +1,2 @@
-📁 EmptyGen
 Gagnez un temps précieux lors de la configuration de vos émulateurs spécifiques comme ScummVM ou Singe. Ce module automatise la création des fichiers de lancement "vides" (dummy files) indispensables pour que certains émulateurs détectent correctement vos dossiers de jeux.
 Il parcourt l'arborescence de votre choix et dépose instantanément dans chaque sous-dossier un fichier portant le nom adéquat avec l'extension requise (.scummvm, .singe, .cgenius). Flexible et sûr, il propose des extensions prédéfinies tout en vous laissant la liberté d'en définir des personnalisées, sans jamais écraser vos données existantes. Une solution simple pour une tâche répétitive.
