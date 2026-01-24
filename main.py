@@ -110,6 +110,14 @@ scripts = [
     {"name": "UniversalRomCleaner", "description": "Nettoie et trie vos ROMs (1G1R, Régions).", "icon": get_path(os.path.join("Retrogaming-Toolkit-AIO", "icons", "UniversalRomCleaner.png")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "UniversalRomCleaner.txt"))},
 ]
 
+CATEGORY_MAPPING = {
+    "Gestion des Jeux & ROMs": ["CHDManager", "MaxCSO", "DolphinConvert", "FolderToZip", "GameBatch", "GameRemoval", "UniversalRomCleaner"],
+    "Métadonnées & Gamelists": ["AssistedGamelist", "GamelistHyperlist", "HyperlistGamelist", "BGBackup", "StoryHyperlist", "StoryCleaner", "SystemsExtractor"],
+    "Multimédia & Artworks": ["YTDownloader", "VideoConvert", "ImageConvert", "CoverExtractor", "MediaOrphans", "CBZKiller"],
+    "Organisation & Collections": ["CollectionBuilder", "CollectionExtractor", "M3UCreator", "FolderCleaner", "FolderToTxt", "EmptyGen"],
+    "Maintenance Système": ["LongPaths", "InstallDeps", "ListFilesSimple", "ListFilesWin"]
+}
+
 def run_module_process(module_name):
     """Fonction exécutée dans le processus enfant pour lancer le module."""
     app_data_dir = os.path.join(os.getenv('LOCALAPPDATA'), 'RetrogamingToolkit')
@@ -298,6 +306,18 @@ class Application(ctk.CTk):
         self.search_label = ctk.CTkLabel(self.search_frame, text="Rechercher :", font=("Arial", 14))
         self.search_label.pack(side="left", padx=10)
 
+        # Filtre par catégorie
+        self.category_var = ctk.StringVar(value="Toutes les catégories")
+        self.category_combo = ctk.CTkComboBox(
+            self.search_frame,
+            values=["Toutes les catégories"] + list(CATEGORY_MAPPING.keys()),
+            command=self.filter_scripts,
+            variable=self.category_var,
+            width=200,
+            state="readonly"
+        )
+        self.category_combo.pack(side="left", padx=(0, 10))
+
         self.search_var = ctk.StringVar()
         self.search_var.trace("w", self.filter_scripts)
         self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_var, width=300, placeholder_text="Nom ou description... (Ctrl+F)")
@@ -410,8 +430,9 @@ class Application(ctk.CTk):
             self.update_label.configure(text=f"Version à jour ({VERSION})", text_color="gray")
 
     def filter_scripts(self, *args):
-        """Filtre la liste des scripts en fonction de la recherche."""
+        """Filtre la liste des scripts en fonction de la recherche et de la catégorie."""
         query = self.search_var.get().lower()
+        category = self.category_var.get()
 
         # Toggle clear button visibility
         if query:
@@ -419,13 +440,21 @@ class Application(ctk.CTk):
         else:
             self.clear_button.pack_forget()
 
-        if not query:
-            self.filtered_scripts = list(self.scripts)
+        # Filter by category first
+        if category and category != "Toutes les catégories":
+            allowed_scripts = CATEGORY_MAPPING.get(category, [])
+            temp_scripts = [s for s in self.scripts if s["name"] in allowed_scripts]
         else:
+            temp_scripts = list(self.scripts)
+
+        # Filter by query
+        if query:
             self.filtered_scripts = [
-                s for s in self.scripts 
+                s for s in temp_scripts
                 if query in s["name"].lower() or query in s["description"].lower()
             ]
+        else:
+            self.filtered_scripts = temp_scripts
         
         # Sort by favorites
         self.filtered_scripts.sort(key=lambda s: (s["name"] not in self.favorites, s["name"]))
