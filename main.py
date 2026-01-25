@@ -490,12 +490,10 @@ class Application(ctk.CTk):
         self.check_updates()
         self.filter_and_display()
         
+        
         # Start Radio after UI is ready
         self.play_radio()
         
-        # Check Dependencies (FFmpeg)
-        self.after(1000, self.check_dependencies)
-
         # Shortcuts
         self.bind("<Control-f>", lambda event: self.search_entry.focus_set())
         self.bind("<Escape>", lambda event: self.clear_search())
@@ -1061,53 +1059,7 @@ class Application(ctk.CTk):
         else:
             self.update_status_label.configure(text=f"À jour", text_color="green")
 
-    def check_dependencies(self):
-        """Vérifie et installe les dépendances externes (FFmpeg) au démarrage."""
-        if not utils:
-            return
 
-        def _check_ffmpeg():
-            try:
-                target_name = "ffmpeg.exe"
-                # Check if exists
-                if os.path.exists(utils.get_binary_path(target_name)):
-                    logger.info("FFmpeg détecté.")
-                    return
-
-                # Not found, Ask/Install
-                logger.info("FFmpeg manquant. Démarrage de l'installation...")
-                
-                # Check version info from VideoConvert logic logic or simple download
-                # We use the direct logic here to avoid complex imports
-                manager = utils.DependencyManager(self)
-                
-                # Update Status
-                self.update_status_label.configure(text="Vérification FFmpeg...", text_color="orange")
-                
-                # Try GitHub first (GyanD)
-                url = utils.fetch_latest_github_asset("GyanD", "codexffmpeg", "essentials")
-                if not url:
-                     url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
-                
-                res = manager.install_dependency("FFmpeg", url, target_name, "zip")
-                
-                if res:
-                    logger.info("FFmpeg installé avec succès.")
-                    self.update_status_label.configure(text="FFmpeg Prêt", text_color="green")
-                else:
-                    self.update_status_label.configure(text="Erreur FFmpeg", text_color="red")
-                    
-                # Clear status after 5s
-                self.after(5000, lambda: self.update_status_label.configure(text="Prêt", text_color=self.COLOR_TEXT_SUB))
-
-            except Exception as e:
-                logger.error(f"Erreur check_dependencies: {e}")
-                self.update_status_label.configure(text="Erreur Deps", text_color="red")
-        
-        # Run in a separate way? No, install_dependency creates a modal window with event loop.
-        # So we can call it directly, it will block execution but UI updates will work inside the modal.
-        # BUT we are in an 'after' callback.
-        _check_ffmpeg()
 
     def init_music(self):
         """Initialise la radio via Processus Isolé."""

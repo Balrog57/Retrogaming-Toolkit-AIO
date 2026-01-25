@@ -32,6 +32,8 @@ def build():
     hidden_imports.append("fitz") # PyMuPDF
     hidden_imports.append("lxml")
     hidden_imports.append("tqdm")
+    hidden_imports.append("pyperclip")
+    hidden_imports.append("pygame")
 
     print(f"Found {len(hidden_imports)} modules to include as hidden imports.")
 
