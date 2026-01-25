@@ -12,6 +12,7 @@ import traceback
 from PIL import Image, ImageTk
 from customtkinter import CTkImage
 import requests
+import urllib.request
 import webbrowser
 import threading
 import json
@@ -719,13 +720,18 @@ class Application(ctk.CTk):
 
         # GIF Animation
         self.gif_label = ctk.CTkLabel(self.sidebar_frame, text="")
-        self.gif_label.grid(row=10, column=0, padx=20, pady=(10, 0), sticky="s") # Sticky south + tweaked padding
-        self.gif_label = ctk.CTkLabel(self.sidebar_frame, text="")
-        self.gif_label.grid(row=10, column=0, padx=20, pady=(10, 0), sticky="s") # Sticky south + tweaked padding
+        self.gif_label.grid(row=10, column=0, padx=20, pady=(10, 0), sticky="s")
         self.start_gif_rotation()
+
+        # Track Info Label
+        self.track_label = ctk.CTkLabel(self.sidebar_frame, text="Loading...", 
+                                      font=("Roboto", 10), text_color="gray70",
+                                      wraplength=180, justify="center")
+        self.track_label.grid(row=11, column=0, padx=10, pady=(0, 5), sticky="ew")
+        self.start_track_updater()
             
         self.bottom_frame = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
-        self.bottom_frame.grid(row=11, column=0, padx=20, pady=(10, 0), sticky="ew")
+        self.bottom_frame.grid(row=12, column=0, padx=20, pady=(0, 10), sticky="ew")
 
         self.version_label = ctk.CTkLabel(self.bottom_frame, text=f"v{VERSION}", text_color=self.COLOR_TEXT_SUB)
         self.version_label.pack(side="left")
@@ -1032,26 +1038,60 @@ class Application(ctk.CTk):
             self.update_status_label.configure(text=f"À jour", text_color="green")
 
     def init_music(self):
-        """Initialise et lance la musique de fond."""
+        """Initialise et lance la musique de fond (Web Radio)."""
         try:
+            # Increase buffer size to handle streaming better
+            pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=8192)
             pygame.mixer.init()
-            music_path = get_path(os.path.join("assets", "backgroundmusic.mp3"))
+            
+            # 8Beats Radio Stream (HTTP for compatibility)
+            stream_url = "http://stream.radiojar.com/2fa4wbch308uv"
             
             self.music_playing = False
             self.music_muted = False
             self.gif_paused = False
             
-            if os.path.exists(music_path):
+            def load_stream():
                 try:
-                    pygame.mixer.music.load(music_path)
-                    pygame.mixer.music.play(-1) # Loop forever
-                    pygame.mixer.music.set_volume(0.5) # 50% volume by default
-                    self.music_playing = True
-                    logger.info(f"Music started: {music_path}")
+                    logger.info(f"Connecting to Web Radio: {stream_url}")
+                    
+                    # Add headers to mimic a browser/player
+                    headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                        'Icy-MetaData': '1' 
+                    }
+                    
+                    r = requests.get(stream_url, headers=headers, stream=True, timeout=15)
+                    
+                    if r.status_code == 200:
+                        class StreamWrapper:
+                            def __init__(self, raw):
+                                self.raw = raw
+                            def read(self, n=-1):
+                                if n == -1: n = 8192 # Read standard chunk if undefined
+                                return self.raw.read(n)
+                            def seek(self, offset, whence=0):
+                                pass 
+                            def tell(self):
+                                return 0
+                            def close(self):
+                                self.raw.close()
+
+                        # Load wrapped stream
+                        pygame.mixer.music.load(StreamWrapper(r.raw))
+                        pygame.mixer.music.play()
+                        self.music_playing = True
+                        pygame.mixer.music.set_volume(0.5)
+                        logger.info("Web Radio playback started.")
+                    else:
+                        logger.error(f"Web Radio connection failed: {r.status_code}")
+
                 except Exception as e:
-                    logger.error(f"Error loading/playing music: {e}")
-            else:
-                logger.warning(f"Music file not found: {music_path}")
+                    logger.error(f"Error loading Web Radio: {e}")
+
+            # Lancer le chargement dans un thread pour ne pas bloquer l'interface au démarrage
+            threading.Thread(target=load_stream, daemon=True).start()
+
         except Exception as e:
             logger.error(f"Failed to initialize pygame mixer: {e}")
 
@@ -1191,6 +1231,33 @@ class Application(ctk.CTk):
             
             self.after(self.gif_delay, self.animate_gif)
 
+
+    def start_track_updater(self):
+        """Lance le thread de mise à jour des infos musique."""
+        threading.Thread(target=self.track_updater_loop, daemon=True).start()
+
+    def track_updater_loop(self):
+        """Boucle de mise à jour du titre en cours."""
+        api_url = "https://www.radiojar.com/api/stations/2fa4wbch308uv/now_playing/"
+        while True:
+            try:
+                r = requests.get(api_url, timeout=5)
+                if r.status_code == 200:
+                    data = r.json()
+                    artist = data.get('artist', '')
+                    title = data.get('title', '')
+                    
+                    track_text = f"{artist} - {title}" if artist else title
+                    if not track_text: track_text = "8Beats Radio"
+                    
+                    # Update UI in main thread safely (ctk is often thread safe for config, but be careful)
+                    self.track_label.configure(text=track_text)
+                
+            except Exception as e:
+                pass # Silent fail, retry later
+            
+            # Wait 20 seconds before next update
+            threading.Event().wait(20)
 
 def main():
     """Point d'entrée principal de l'application"""
