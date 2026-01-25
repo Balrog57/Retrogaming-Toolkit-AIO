@@ -23,6 +23,15 @@ def build():
     # Explicitly add new modules
     hidden_imports.append("radio")
     hidden_imports.append("vlc")
+    
+    # Add dependencies used in dynamic imports or not detected by PyInstaller
+    hidden_imports.append("yt_dlp")
+    hidden_imports.append("imageio_ffmpeg")
+    hidden_imports.append("pytubefix")
+    hidden_imports.append("openai")
+    hidden_imports.append("fitz") # PyMuPDF
+    hidden_imports.append("lxml")
+    hidden_imports.append("tqdm")
 
     print(f"Found {len(hidden_imports)} modules to include as hidden imports.")
 
