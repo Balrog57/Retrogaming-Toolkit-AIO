@@ -17,9 +17,12 @@ def build():
             module_name = filename[:-3] # Remove .py
             hidden_imports.append(module_name)
     
-    # Also add utils explicitly if not caught (though it should be)
     if "utils" not in hidden_imports:
         hidden_imports.append("utils")
+
+    # Explicitly add new modules
+    hidden_imports.append("radio")
+    hidden_imports.append("vlc")
 
     print(f"Found {len(hidden_imports)} modules to include as hidden imports.")
 

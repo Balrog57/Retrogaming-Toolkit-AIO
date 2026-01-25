@@ -19,6 +19,8 @@ import webbrowser
 import threading
 import json
 import atexit
+import ctypes
+import radio # Import our new module
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
 import pygame
 
@@ -50,7 +52,7 @@ except ImportError:
     utils = None
     theme = None
 
-VERSION = "3.0.1"
+VERSION = "3.0.3"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')
@@ -472,6 +474,9 @@ class ReadmeWindow(ctk.CTkToplevel):
          except Exception as e:
              logger.error(f"Failed to apply icon to readme: {e}")
 
+
+
+
 class Application(ctk.CTk):
     def __init__(self):
         super().__init__()
@@ -528,6 +533,9 @@ class Application(ctk.CTk):
         self.setup_content_area()
         self.check_updates()
         self.filter_and_display()
+        
+        # Start Radio after UI is ready
+        self.play_radio()
 
         # Shortcuts
         self.bind("<Control-f>", lambda event: self.search_entry.focus_set())
@@ -744,12 +752,24 @@ class Application(ctk.CTk):
         self.gif_label.pack(side="top", pady=(0, 5))
         self.start_gif_rotation()
 
-        # 2. Track Info
-        self.track_label = ctk.CTkLabel(self.sidebar_bottom_container, text="Loading...", 
-                                      font=("Roboto", 11), text_color="gray80",
-                                      wraplength=180, justify="center")
-        self.track_label.pack(side="top", pady=(0, 10), padx=10)
+        # 2. Track Info (3 Levels Scrolling)
+        # Ligne 1: Chanson (Blanc)
+        self.song_label = ctk.CTkLabel(self.sidebar_bottom_container, text="Loading...", 
+                                      font=("Roboto Medium", 12), text_color="white", width=190)
+        self.song_label.pack(side="top", pady=(0, 0), padx=5)
+
+        # Ligne 2: Artiste (Gris)
+        self.artist_label = ctk.CTkLabel(self.sidebar_bottom_container, text="", 
+                                      font=("Roboto", 11), text_color="gray70", width=190)
+        self.artist_label.pack(side="top", pady=(0, 0), padx=5)
+
+        # Ligne 3: Album/Jeu (Blanc)
+        self.album_label = ctk.CTkLabel(self.sidebar_bottom_container, text="", 
+                                      font=("Roboto Medium", 11), text_color="white", width=190)
+        self.album_label.pack(side="top", pady=(0, 10), padx=5)
+
         self.start_track_updater()
+        self.start_marquee_loop()
             
         # 3. Footer (Version + Controls)
         self.bottom_frame = ctk.CTkFrame(self.sidebar_bottom_container, fg_color="transparent")
@@ -1069,86 +1089,68 @@ class Application(ctk.CTk):
             self.update_status_label.configure(text=f"À jour", text_color="green")
 
     def init_music(self):
-        """Initialise la radio via PowerShell (plus robuste pour le streaming)."""
-        self.radio_process = None
+        """Initialise la radio via Processus Isolé."""
         self.music_playing = False
         self.music_muted = False
         self.gif_paused = False
         
-        # Mute Flag File (communication with PowerShell)
-        self.mute_flag_path = os.path.join(tempfile.gettempdir(), "balrog_radio_mute.flag")
-        # Ensure clean state behavior
-        if os.path.exists(self.mute_flag_path):
-             try: os.remove(self.mute_flag_path)
-             except: pass
+        # Communication Queue
+        self.radio_queue = multiprocessing.Queue()
         
-        # Register cleanup to ensure radio stops even if app crashes/exits
+        # Start Radio Process
+        self.radio_process = multiprocessing.Process(target=radio.run_radio_process, args=(self.radio_queue,))
+        self.radio_process.daemon = True
+        self.radio_process.start()
+        
+        # Register cleanup
         atexit.register(self.cleanup)
-        
-        # Start immediately
-        self.play_radio()
 
     def play_radio(self):
-        """Lance le flux radio via un processus PowerShell caché."""
-        if self.radio_process:
+        """Envoie la commande PLAY au processus radio."""
+        if self.music_playing:
             return
 
         stream_url = "http://stream.radiojar.com/2fa4wbch308uv"
-        # Safer path handling for PS
-        mute_flag = self.mute_flag_path.replace("\\", "/")
         
-        # Script PowerShell pour utiliser Windows Media Player en mode caché
-        ps_script = f"""
-        Add-Type -AssemblyName PresentationCore
-        Add-Type -AssemblyName WindowsBase
-        $player = New-Object System.Windows.Media.MediaPlayer
-        $player.Open('{stream_url}')
-        $player.Play()
-        $muteFile = '{mute_flag}'
+        # Update UI Immediately (Optimistic)
+        self.music_playing = True
+        self.play_btn.configure(text="⏸️")
         
-        while ($true) {{
-            if (Test-Path $muteFile) {{
-                $player.Volume = 0.0
-            }} else {{
-                $player.Volume = 1.0
-            }}
-            Start-Sleep -Milliseconds 500
-        }}
-        """
-        
-        try:
-            # Creationflags 0x08000000 = CREATE_NO_WINDOW
-            self.radio_process = subprocess.Popen(
-                ["powershell", "-WindowStyle", "Hidden", "-Command", ps_script],
-                creationflags=0x08000000
-            )
-            self.music_playing = True
-            logger.info("Radio started via PowerShell.")
-        except Exception as e:
-            logger.error(f"Failed to start radio: {e}")
+        if self.gif_paused:
+            self.gif_paused = False
+            self.animate_gif()
+            
+        # Send Command
+        if self.radio_process.is_alive():
+             self.radio_queue.put(f"PLAY:{stream_url}")
+        else:
+             # Restart if died?
+             self.init_music() # simplified
 
     def stop_radio(self):
-        """Arrête le processus radio."""
-        if self.radio_process:
-            try:
-                pid = self.radio_process.pid
-                logger.info(f"Killing radio process {pid}...")
-                # Kill process tree forcibly
-                subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], 
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                
-                self.radio_process = None
-                self.music_playing = False
-                logger.info("Radio stopped (killed).")
-            except Exception as e:
-                logger.error(f"Failed to kill radio: {e}")
+        """Envoie la commande STOP au processus radio."""
+        self.music_playing = False
+        self.play_btn.configure(text="▶️")
+        self.gif_paused = True
+        
+        if self.radio_process.is_alive():
+             self.radio_queue.put("STOP")
 
     def cleanup(self):
-        """Nettoyage final (appelé par atexit ou on_closing)."""
-        self.stop_radio()
+        """Nettoyage final."""
         try:
-            if os.path.exists(self.mute_flag_path):
-                os.remove(self.mute_flag_path)
+            if hasattr(self, 'radio_queue'):
+                self.radio_queue.put("EXIT")
+            
+            if hasattr(self, 'radio_process') and self.radio_process.is_alive():
+                self.radio_process.join(timeout=1)
+                if self.radio_process.is_alive():
+                    self.radio_process.terminate()
+        except: pass
+        
+        try:
+            if hasattr(self, 'mute_flag_path') and os.path.exists(self.mute_flag_path):
+                os.remove(self.mute_flag_path) # Legacy cleanup just in case
         except: pass
         try:
             pygame.quit()
@@ -1164,7 +1166,16 @@ class Application(ctk.CTk):
                 widget.destroy()
 
         # Play/Pause Button
-        self.play_btn = ctk.CTkButton(self.bottom_frame, text="⏸️", width=30, height=30,
+        # Start state depends on self.music_playing (which might be pending)
+        # Default to Pause icon (assuming auto-play) or Play if failed
+        
+        icon = "⏸️" if self.music_playing else "▶️"
+        # If we are just starting up, music_playing is False initially until thread succeeds.
+        # But we want to show it's *trying* to play? 
+        # For now, let's default to "Play" icon if not playing, but we know init_music calls play_radio.
+        # We'll let play_radio update the icon to Pause when it succeeds.
+        
+        self.play_btn = ctk.CTkButton(self.bottom_frame, text=icon, width=30, height=30,
                                       fg_color="transparent", border_width=0, 
                                       text_color=self.COLOR_TEXT_MAIN,
                                       font=("Segoe UI Emoji", 20),
@@ -1184,35 +1195,18 @@ class Application(ctk.CTk):
     def toggle_music(self):
         if self.music_playing:
             self.stop_radio()
-            self.play_btn.configure(text="▶️")
-            self.gif_paused = True # Pause GIF
+            # UI updated in stop_radio
         else:
             self.play_radio()
-            self.play_btn.configure(text="⏸️")
-            
-            # Resume GIF
-            if self.gif_paused:
-                self.gif_paused = False
-                self.animate_gif()
+            # UI updated in play_radio thread success callback
 
     def toggle_mute(self):
-        # Mute toggle using file flag
         if self.music_muted:
-            # Unmute: Remove flag
-            try:
-                if os.path.exists(self.mute_flag_path):
-                    os.remove(self.mute_flag_path)
-            except: pass
-            
+            self.radio_queue.put("UNMUTE")
             self.mute_btn.configure(text="🔊")
             self.music_muted = False
         else:
-            # Mute: Create flag
-            try:
-                with open(self.mute_flag_path, 'w') as f:
-                    f.write('1')
-            except: pass
-            
+            self.radio_queue.put("MUTE")
             self.mute_btn.configure(text="🔇")
             self.music_muted = True
 
@@ -1310,20 +1304,60 @@ class Application(ctk.CTk):
                 r = requests.get(api_url, timeout=5)
                 if r.status_code == 200:
                     data = r.json()
-                    artist = data.get('artist', '')
-                    title = data.get('title', '')
+                    song_name = data.get('title', '')
+                    artist_name = data.get('artist', '')
+                    album_name = data.get('album', '')
                     
-                    track_text = f"{artist} - {title}" if artist else title
-                    if not track_text: track_text = "8Beats Radio"
-                    
-                    # Update UI in main thread safely (ctk is often thread safe for config, but be careful)
-                    self.track_label.configure(text=track_text)
+                    self.update_marquee_text(song_name, artist_name, album_name)
                 
             except Exception as e:
-                pass # Silent fail, retry later
+                 pass
             
             # Wait 20 seconds before next update
             threading.Event().wait(20)
+
+    def update_marquee_text(self, t1, t2, t3):
+        self.marquee_data = {
+            "l1": {"full": t1, "idx": 0},
+            "l2": {"full": t2, "idx": 0},
+            "l3": {"full": t3, "idx": 0}
+        }
+
+    def start_marquee_loop(self):
+        self.marquee_data = {
+            "l1": {"full": "", "idx": 0}, 
+            "l2": {"full": "", "idx": 0}, 
+            "l3": {"full": "", "idx": 0}
+        }
+        self.after(250, self.marquee_step)
+
+    def marquee_step(self):
+        try:
+            mapping = [
+                ("l1", self.song_label),
+                ("l2", self.artist_label),
+                ("l3", self.album_label)
+            ]
+            for key, label in mapping:
+                data = self.marquee_data.get(key)
+                if not data or not data["full"]: 
+                    label.configure(text="")
+                    continue
+                
+                text = data["full"]
+                limit = 28
+                if len(text) > limit:
+                    idx = data["idx"]
+                    display_len = limit
+                    # Infinite scroll with spaces
+                    extended = text + "     " + text
+                    display_text = extended[idx : idx + display_len]
+                    label.configure(text=display_text)
+                    data["idx"] = (idx + 1) % (len(text) + 5)
+                else:
+                    label.configure(text=text)
+        except: pass
+        self.after(200, self.marquee_step)
 
 def main():
     """Point d'entrée principal de l'application"""
