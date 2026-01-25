@@ -795,6 +795,8 @@ class Application(ctk.CTk):
                                          hover_color="#333",
                                          command=self.clear_search)
         self.clear_btn.pack(side="right")
+        if theme and hasattr(theme, 'CTkToolTip'):
+            theme.CTkToolTip(self.clear_btn, "Effacer la recherche")
 
         # --- Canvas ---
         # bg="#1e1e1e" for the "Fond Opaque" requested
@@ -1025,6 +1027,8 @@ class Application(ctk.CTk):
                                  command=lambda r=script.get("readme", ""), n=script["name"], i=script.get("icon", ""): self.open_custom_readme(f"Aide - {n}", r, icon_path=i))
         
         self.canvas.create_window(x + 20, y + h - 45, window=readme_btn, anchor="nw", tags="content")
+        if theme and hasattr(theme, 'CTkToolTip'):
+            theme.CTkToolTip(readme_btn, "Afficher la documentation")
         
         launch_btn = ctk.CTkButton(self.canvas, text="Ouvrir", height=30, width=w-70,
                                  fg_color="transparent", text_color=self.COLOR_ACCENT_PRIMARY,
@@ -1034,6 +1038,8 @@ class Application(ctk.CTk):
                                  command=lambda n=script["name"]: self.execute_module(n))
         
         self.canvas.create_window(x + 60, y + h - 45, window=launch_btn, anchor="nw", tags="content")
+        if theme and hasattr(theme, 'CTkToolTip'):
+            theme.CTkToolTip(launch_btn, "Lancer l'outil")
 
     def get_icon(self, path):
         if path in self.icon_cache:
@@ -1171,6 +1177,8 @@ class Application(ctk.CTk):
                                       hover_color=self.COLOR_SIDEBAR_HOVER,
                                       command=self.toggle_music)
         self.play_btn.pack(side="left", padx=(15, 5))
+        if theme and hasattr(theme, 'CTkToolTip'):
+            theme.CTkToolTip(self.play_btn, "Lecture/Pause")
         
         # Mute Button
         self.mute_btn = ctk.CTkButton(self.bottom_frame, text="🔊", width=30, height=30,
@@ -1180,6 +1188,8 @@ class Application(ctk.CTk):
                                       hover_color=self.COLOR_SIDEBAR_HOVER,
                                       command=self.toggle_mute)
         self.mute_btn.pack(side="left", padx=5)
+        if theme and hasattr(theme, 'CTkToolTip'):
+            theme.CTkToolTip(self.mute_btn, "Couper/Activer le son")
 
     def toggle_music(self):
         if self.music_playing:

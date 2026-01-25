@@ -63,3 +63,63 @@ def apply_theme(app, title_prefix="Retrogaming Toolkit"):
             app.iconbitmap(icon_path)
     except Exception:
         pass
+
+class CTkToolTip:
+    """
+    Simple ToolTip for CustomTkinter.
+    Shows text on hover.
+    """
+    def __init__(self, widget, text, delay=500):
+        self.widget = widget
+        self.text = text
+        self.delay = delay
+        self.id = None
+        self.tip_window = None
+
+        self.widget.bind("<Enter>", self.schedule)
+        self.widget.bind("<Leave>", self.hide)
+        self.widget.bind("<ButtonPress>", self.hide)
+
+    def schedule(self, event=None):
+        self.unschedule()
+        self.id = self.widget.after(self.delay, self.show)
+
+    def unschedule(self, event=None):
+        if self.id:
+            self.widget.after_cancel(self.id)
+        self.id = None
+
+    def show(self, event=None):
+        if self.tip_window: return
+
+        # Position logic
+        try:
+            x = self.widget.winfo_rootx() + (self.widget.winfo_width() // 2)
+            y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+        except:
+            return
+
+        self.tip_window = ctk.CTkToplevel(self.widget)
+        self.tip_window.wm_overrideredirect(True)
+        self.tip_window.wm_geometry(f"+{x}+{y}")
+
+        # Avoid stealing focus
+        self.tip_window.wm_attributes("-topmost", True)
+
+        # Styling matches theme
+        label = ctk.CTkLabel(self.tip_window, text=self.text, text_color=COLOR_TEXT_MAIN,
+                             fg_color="#2b2b2b", corner_radius=6,
+                             font=("Roboto", 11))
+        label.pack(padx=8, pady=4)
+
+        # Windows specifics for border if possible, otherwise simple label
+        try:
+             # Add a thin border using a frame if needed, but label is fine for micro-ux
+             pass
+        except: pass
+
+    def hide(self, event=None):
+        self.unschedule()
+        if self.tip_window:
+            self.tip_window.destroy()
+            self.tip_window = None
