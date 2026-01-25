@@ -21,10 +21,9 @@ def process_pdf_to_cbz(pdf_path, cbz_path):
         with zipfile.ZipFile(cbz_path, 'w') as cbz:
             for i in range(len(doc)):
                 page = doc.load_page(i)
-                with tempfile.NamedTemporaryFile(suffix=".jpg", delete=False) as tmp: img_p=tmp.name
-                page.get_pixmap().save(img_p)
-                cbz.write(img_p, arcname=f"p_{i+1:03d}.jpg")
-                os.remove(img_p)
+                # Optimization: Write directly to zip from memory, skipping disk I/O
+                img_bytes = page.get_pixmap().tobytes(output="jpg")
+                cbz.writestr(f"p_{i+1:03d}.jpg", img_bytes)
         doc.close()
         return True, f"OK: {pdf_path}"
     except Exception as e: return False, f"Err PDF {pdf_path}: {e}"
@@ -145,7 +144,10 @@ class PDFCBRtoCBZConverter(ctk.CTk):
              utils.extract_with_7za(cbr, tmp, root=self)
              manager = utils.DependencyManager(self)
              cmd = [manager.seven_za_path, 'a', '-tzip', cbz, f'.{os.sep}{tmp}{os.sep}*']
-             si=subprocess.STARTUPINFO(); si.dwFlags|=subprocess.STARTF_USESHOWWINDOW
+             si = None
+             if os.name == 'nt':
+                 si = subprocess.STARTUPINFO()
+                 si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
              subprocess.run(cmd, check=True, startupinfo=si, capture_output=True)
              shutil.rmtree(tmp)
         except Exception as e: raise e
