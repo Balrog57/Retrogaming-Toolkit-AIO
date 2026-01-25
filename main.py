@@ -301,7 +301,6 @@ class Application(ctk.CTk):
         self.preferred_width = 800
 
         self.icon_cache = {}
-        self.favorites = self.load_favorites()
 
         # Barre de recherche
         self.search_frame = ctk.CTkFrame(self, corner_radius=10)
@@ -473,6 +472,7 @@ class Application(ctk.CTk):
             s["category"] = SCRIPT_CATEGORIES.get(s["name"], "Organisation & Collections")
             
         self.icon_cache = {}
+        self.favorites = self.load_favorites()
         self.current_category = "Tout"
         self.search_query = ""
 
@@ -505,6 +505,32 @@ class Application(ctk.CTk):
         
         # Select "Tout" category by default
         self.after(100, lambda: self.change_category("Tout"))
+
+    def load_favorites(self):
+        try:
+            fav_file = os.path.join(app_data_dir, 'favorites.json')
+            if os.path.exists(fav_file):
+                with open(fav_file, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading favorites: {e}")
+        return []
+
+    def save_favorites(self):
+        try:
+            fav_file = os.path.join(app_data_dir, 'favorites.json')
+            with open(fav_file, 'w') as f:
+                json.dump(self.favorites, f)
+        except Exception as e:
+            logger.error(f"Error saving favorites: {e}")
+
+    def toggle_favorite(self, script_name):
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.append(script_name)
+        self.save_favorites()
+        self.filter_and_display()
 
     def on_closing(self):
         """Arrêter proprement l'application (radio incluse)."""
@@ -565,75 +591,6 @@ class Application(ctk.CTk):
             logger.error(f"BG Resize Error: {e}")
 
     # ... setup_background ...
-
-    def filter_and_display(self):
-        self.canvas.delete("content") # Only delete scrollable content
-        
-        # Reset Scroll
-        self.scroll_y = 0
-        self.canvas.yview_moveto(0) 
-        
-        filtered = []
-        for s in self.scripts:
-            cat_match = (self.current_category == "Tout") or (s.get("category") == self.current_category)
-            search_match = True
-            if self.search_query:
-                tags = f"{s['name']} {s['description']} {s.get('category','')}".lower()
-                if self.search_query not in tags: search_match = False
-            if cat_match and search_match: filtered.append(s)
-        
-        filtered.sort(key=lambda x: x["name"])
-
-        # Layout sorting - FLUID 2 COLUMNS
-        # Force 2 columns always
-        col_count = 2
-        
-        # Determine available width
-        pad_x = 20
-        pad_y = 20
-        start_y = 20
-        
-        # Width available for content is Window Width - Sidebar (200)
-        # OR self.canvas.winfo_width()
-        canvas_w = self.canvas.winfo_width()
-        if canvas_w < 100: canvas_w = self.last_width - 200 # Fallback
-        
-        # Adjust calculations
-        # content_width = canvas_w
-        # margins (left/right) = pad_x
-        # gap between cols = pad_x
-        # total_width = 2 * card_width + 1 * pad_x + 2 * pad_x (margins)
-        # card_width = (canvas_w - 3 * pad_x) / 2
-        
-        available_w = canvas_w - (3 * pad_x) # 2 outer margins + 1 inner gap
-        card_width = int(available_w // 2)
-        
-        # Safety min width
-        if card_width < 200: card_width = 200
-        
-        card_height = 140 # Keep height fixed for consistency
-
-        # Centrage / Padding
-        start_x = pad_x # Left margin
-        
-        if not filtered:
-            msg = f"Aucun résultat pour '{self.search_query}'" if self.search_query else "Aucun outil dans cette catégorie."
-            self.canvas.create_text(canvas_w // 2, 100, text=msg, fill="white", font=("Arial", 16), tags="content")
-            return
-
-        for idx, script in enumerate(filtered):
-            row = idx // col_count
-            col = idx % col_count
-            
-            x = start_x + col * (card_width + pad_x)
-            y = start_y + row * (card_height + pad_y)
-            
-            self.draw_card(script, x, y, card_width, card_height)
-
-        # Calculate Total Height
-        total_rows = (len(filtered) + col_count - 1) // col_count
-        content_total_h = start_y + total_rows * (card_height + pad_y) + 50 # padding bottom
-        self.update_content_height(content_total_h)
 
     def setup_background(self):
         """Configure l'image de fond Sakura (Globale)."""
@@ -915,7 +872,7 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        filtered.sort(key=lambda x: (x["name"] not in self.favorites, x["name"]))
 
         # Layout sorting
         col_count = 2
@@ -986,6 +943,19 @@ class Application(ctk.CTk):
         self.canvas.create_text(x + 70, y + 20, text=script["name"], fill=self.COLOR_TEXT_MAIN, 
                                 font=("Roboto Medium", 16), anchor="nw", tags="content")
         
+        # Favorite Button
+        is_fav = script["name"] in self.favorites
+        fav_text = "★" if is_fav else "☆"
+        fav_color = "#FFD700" if is_fav else "gray"
+
+        fav_btn = ctk.CTkButton(self.canvas, text=fav_text, width=30, height=30,
+                                fg_color="transparent", text_color=fav_color,
+                                font=("Arial", 20),
+                                hover_color="#333",
+                                command=lambda n=script["name"]: self.toggle_favorite(n))
+
+        self.canvas.create_window(x + w - 40, y + 10, window=fav_btn, anchor="nw", tags="content")
+
         # Description
         self.canvas.create_text(x + 70, y + 50, text=script["description"], fill=self.COLOR_TEXT_SUB,
                                 font=("Roboto", 12), anchor="nw", width=w-90, tags="content")
