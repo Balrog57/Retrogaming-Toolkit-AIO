@@ -85,5 +85,9 @@ class App(ctk.CTk):
         
         ctk.CTkButton(main, text="ACTIVER LONG PATHS", command=lambda: enable_long_paths(self.lbl_status), height=50, fg_color=self.COLOR_BTN).pack(pady=20, fill="x")
 
+def main():
+    app = App()
+    app.mainloop()
+
 if __name__ == "__main__":
-    App().mainloop()
+    main()
