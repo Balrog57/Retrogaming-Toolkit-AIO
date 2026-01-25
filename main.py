@@ -52,7 +52,7 @@ except ImportError:
     utils = None
     theme = None
 
-VERSION = "3.0.3"
+VERSION = "3.0.4"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')
@@ -239,6 +239,13 @@ def check_for_updates():
         response.raise_for_status()
         latest_release = response.json()
         latest_version = latest_release["tag_name"]
+        
+        # Récupérer l'URL de l'installateur (.exe)
+        installer_url = None
+        for asset in latest_release.get("assets", []):
+            if asset["name"].endswith(".exe"):
+                installer_url = asset["browser_download_url"]
+                break
 
         # Fonction pour convertir une version en tuple de nombres
         def version_to_tuple(version):
@@ -250,13 +257,13 @@ def check_for_updates():
 
         # Comparer les versions
         if latest_version_tuple > current_version_tuple:
-            return True, latest_version
+            return True, latest_version, installer_url
         else:
-            return False, latest_version
+            return False, latest_version, None
 
     except Exception as e:
         logger.error(f"Erreur lors de la vérification des mises à jour : {e}")
-        return False, VERSION
+        return False, VERSION, None
 
 def download_and_run_installer(download_url):
     """Télécharge et exécute l'installateur."""
@@ -276,8 +283,9 @@ def download_and_run_installer(download_url):
         logger.info("Téléchargement terminé. Lancement de l'installateur...")
 
         # Lancer l'installateur et fermer l'application actuelle
-        subprocess.Popen([installer_path, "/SILENT"]) # Ou sans /SILENT pour voir l'UI
-        sys.exit(0)
+        # Lancer l'installateur et fermer l'application actuelle
+        subprocess.Popen([installer_path]) # Run installer interactively so "Run after install" works
+        os._exit(0) # Force exit from thread
 
     except Exception as e:
         messagebox.showerror("Erreur Mise à jour", f"Erreur lors du téléchargement : {e}")
@@ -1073,18 +1081,32 @@ class Application(ctk.CTk):
     def check_updates(self):
         def update_worker():
              try:
-                 update_available, latest_version = check_for_updates()
+                 update_available, latest_version, installer_url = check_for_updates()
                  # Check if the window still exists before scheduling callback
                  if self.winfo_exists():
-                     self.after(0, lambda: self.update_update_ui(update_available, latest_version))
+                     self.after(0, lambda: self.update_update_ui(update_available, latest_version, installer_url))
              except Exception as e:
                  logger.debug(f"Update check thread ignored: {e}")
         thread = threading.Thread(target=update_worker, daemon=True)
         thread.start()
 
-    def update_update_ui(self, update_available, latest_version):
+    def update_update_ui(self, update_available, latest_version, installer_url):
         if update_available:
             self.update_status_label.configure(text=f"Update: {latest_version}", text_color=self.COLOR_ACCENT_PRIMARY)
+            
+            # Propose update automatically
+            if installer_url:
+                 # Check if frozen (running as exe)
+                 is_frozen = False
+                 if globals().get("utils") and hasattr(utils, 'is_frozen'):
+                     is_frozen = utils.is_frozen()
+                 elif getattr(sys, 'frozen', False):
+                     is_frozen = True
+                 
+                 if is_frozen:
+                     if messagebox.askyesno("Mise à jour disponible", f"Une nouvelle version ({latest_version}) est disponible.\nVoulez-vous la télécharger et l'installer maintenant ?"):
+                         # Run in thread to avoid freezing UI during download
+                         threading.Thread(target=download_and_run_installer, args=(installer_url,), daemon=True).start()
         else:
             self.update_status_label.configure(text=f"À jour", text_color="green")
 
