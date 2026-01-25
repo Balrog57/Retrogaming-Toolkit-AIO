@@ -31,13 +31,20 @@ def check_and_import(package_name, import_name=None):
     try:
         return importlib.import_module(import_name)
     except ImportError:
-        try:
-             subprocess.check_call([sys.executable, "-m", "pip", "install", package_name, "--quiet"])
-             importlib.invalidate_caches()
-             return importlib.import_module(import_name)
-        except Exception as e:
-             print(f"Failed to install/import {package_name}: {e}")
-             sys.exit(1)
+        if getattr(sys, 'frozen', False):
+            # In frozen mode, we cannot pip install. 
+            # We must assume dependencies are bundled or we fail gracefully.
+            # Using sys.executable in frozen mode launches the app itself, causing a loop.
+            messagebox.showerror("Erreur Dépendance", f"La dépendance '{package_name}' est manquante et ne peut pas être installée automatiquement dans la version portable.")
+            return None
+        else:
+            try:
+                 subprocess.check_call([sys.executable, "-m", "pip", "install", package_name, "--quiet"])
+                 importlib.invalidate_caches()
+                 return importlib.import_module(import_name)
+            except Exception as e:
+                 print(f"Failed to install/import {package_name}: {e}")
+                 sys.exit(1)
 
 # Bootstrap dependencies
 ctk = check_and_import("customtkinter")
@@ -101,8 +108,11 @@ class YtDlpGui(ctk.CTk):
         if 'utils' in sys.modules:
             try:
                 m = utils.DependencyManager(self)
-                return m.install_dependency("FFmpeg", "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip", target, "zip")
-            except: pass
+                url = utils.fetch_latest_github_asset("GyanD", "codexffmpeg", "essentials")
+                if not url: url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+                return m.install_dependency("FFmpeg", url, target, "zip")
+            except Exception as e:
+                print(f"[WARN] Failed to install FFmpeg via Utils: {e}")
         # 4. ImageIO
         if ffmpeg_module:
             try: return ffmpeg_module.get_ffmpeg_exe()

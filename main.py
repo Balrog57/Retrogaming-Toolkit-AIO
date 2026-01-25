@@ -53,7 +53,7 @@ except ImportError:
     utils = None
     theme = None
 
-VERSION = "3.0.5"
+VERSION = "3.0.6"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')
@@ -201,7 +201,7 @@ def check_for_updates():
         logger.error(f"Erreur lors de la vérification des mises à jour : {e}")
         return False, VERSION, None
 
-def download_and_run_installer(download_url):
+def download_and_run_installer(download_url, app_instance=None):
     """Télécharge et exécute l'installateur."""
     try:
         # Créer un fichier temporaire pour l'installateur
@@ -219,6 +219,18 @@ def download_and_run_installer(download_url):
         logger.info("Téléchargement terminé. Lancement de l'installateur...")
 
         # Lancer l'installateur et fermer l'application actuelle
+        # Terminer proprement l'application avant de lancer l'installateur
+        # Cela permet de libérer les verrous sur les fichiers (DLLs, exe, etc.)
+        if app_instance:
+            try:
+                # Stop radio explicitly
+                if hasattr(app_instance, 'stop_radio'):
+                    app_instance.stop_radio()
+                if hasattr(app_instance, 'cleanup'):
+                    app_instance.cleanup()
+            except Exception as e:
+                logger.error(f"Error cleaning up before update: {e}")
+
         # Lancer l'installateur et fermer l'application actuelle
         subprocess.Popen([installer_path]) # Run installer interactively so "Run after install" works
         os._exit(0) # Force exit from thread
@@ -246,7 +258,7 @@ def launch_update():
 
             if installer_url:
                 if messagebox.askyesno("Mise à jour", "Une nouvelle version est disponible. Voulez-vous la télécharger et l'installer maintenant ?"):
-                    download_and_run_installer(installer_url)
+                    download_and_run_installer(installer_url, app_instance=globals().get('app'))
             else:
                 messagebox.showerror("Erreur", "Aucun fichier d'installation trouvé dans la dernière release.")
 
@@ -480,6 +492,9 @@ class Application(ctk.CTk):
         
         # Start Radio after UI is ready
         self.play_radio()
+        
+        # Check Dependencies (FFmpeg)
+        self.after(1000, self.check_dependencies)
 
         # Shortcuts
         self.bind("<Control-f>", lambda event: self.search_entry.focus_set())
@@ -1042,9 +1057,57 @@ class Application(ctk.CTk):
                  if is_frozen:
                      if messagebox.askyesno("Mise à jour disponible", f"Une nouvelle version ({latest_version}) est disponible.\nVoulez-vous la télécharger et l'installer maintenant ?"):
                          # Run in thread to avoid freezing UI during download
-                         threading.Thread(target=download_and_run_installer, args=(installer_url,), daemon=True).start()
+                         threading.Thread(target=download_and_run_installer, args=(installer_url, self), daemon=True).start()
         else:
             self.update_status_label.configure(text=f"À jour", text_color="green")
+
+    def check_dependencies(self):
+        """Vérifie et installe les dépendances externes (FFmpeg) au démarrage."""
+        if not utils:
+            return
+
+        def _check_ffmpeg():
+            try:
+                target_name = "ffmpeg.exe"
+                # Check if exists
+                if os.path.exists(utils.get_binary_path(target_name)):
+                    logger.info("FFmpeg détecté.")
+                    return
+
+                # Not found, Ask/Install
+                logger.info("FFmpeg manquant. Démarrage de l'installation...")
+                
+                # Check version info from VideoConvert logic logic or simple download
+                # We use the direct logic here to avoid complex imports
+                manager = utils.DependencyManager(self)
+                
+                # Update Status
+                self.update_status_label.configure(text="Vérification FFmpeg...", text_color="orange")
+                
+                # Try GitHub first (GyanD)
+                url = utils.fetch_latest_github_asset("GyanD", "codexffmpeg", "essentials")
+                if not url:
+                     url = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
+                
+                res = manager.install_dependency("FFmpeg", url, target_name, "zip")
+                
+                if res:
+                    logger.info("FFmpeg installé avec succès.")
+                    self.update_status_label.configure(text="FFmpeg Prêt", text_color="green")
+                else:
+                    self.update_status_label.configure(text="Erreur FFmpeg", text_color="red")
+                    
+                # Clear status after 5s
+                self.after(5000, lambda: self.update_status_label.configure(text="Prêt", text_color=self.COLOR_TEXT_SUB))
+
+            except Exception as e:
+                logger.error(f"Erreur check_dependencies: {e}")
+                self.update_status_label.configure(text="Erreur Deps", text_color="red")
+        
+        # Run in a separate way? No, install_dependency creates a modal window with event loop.
+        # So we can call it directly, it will block execution but UI updates will work inside the modal.
+        # BUT we are in an 'after' callback.
+        _check_ffmpeg()
 
     def init_music(self):
         """Initialise la radio via Processus Isolé."""
@@ -1321,6 +1384,7 @@ def main():
     """Point d'entrée principal de l'application"""
     multiprocessing.freeze_support()
 
+    global app
     app = Application()
     app.mainloop()
 
