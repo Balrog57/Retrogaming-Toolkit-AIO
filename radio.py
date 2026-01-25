@@ -6,10 +6,39 @@ import logging
 import multiprocessing
 import vlc
 
+# --- VLC LOCAL PATH SETUP ---
 try:
-    # Ensure plugins are found if locally embedded (optional, good practice)
-    os.environ['VLC_PLUGIN_PATH'] = os.path.abspath(os.path.join(os.path.dirname(__file__), 'vlc', 'plugins'))
-except: pass
+    # Get the directory where the script/exe is located
+    if getattr(sys, 'frozen', False):
+        # If frozen with PyInstaller
+        if hasattr(sys, '_MEIPASS'):
+            base_path = sys._MEIPASS
+        else:
+            base_path = os.path.dirname(os.path.abspath(__file__))
+    else:
+        # If running as script
+        base_path = os.path.dirname(os.path.abspath(__file__))
+
+    # Path to local vlc folder
+    vlc_path = os.path.join(base_path, 'vlc')
+    
+    # If the folder exists, add it to DLL search path (Windows)
+    if os.path.exists(vlc_path):
+        # For Windows 8+ and Python 3.8+ DLL loading security:
+        if hasattr(os, 'add_dll_directory'):
+            os.add_dll_directory(vlc_path)
+            
+        # Also set VLC_PLUGIN_PATH env var
+        plugin_path = os.path.join(vlc_path, 'plugins')
+        if os.path.exists(plugin_path):
+            os.environ['VLC_PLUGIN_PATH'] = plugin_path
+            
+        # Fallback/Additional path env
+        os.environ['PATH'] = vlc_path + os.pathsep + os.environ['PATH']
+
+except Exception as e:
+    print(f"Warning: Failed to setup local VLC path: {e}")
+# -----------------------------
 
 # Configure logging
 logger = logging.getLogger("RadioProcess")

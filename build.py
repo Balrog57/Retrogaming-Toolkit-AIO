@@ -23,8 +23,7 @@ def build():
     # Explicitly add new modules
     hidden_imports.append("radio")
     hidden_imports.append("vlc")
-    
-    # Add dependencies used in dynamic imports or not detected by PyInstaller
+
     hidden_imports.append("yt_dlp")
     hidden_imports.append("imageio_ffmpeg")
     hidden_imports.append("pytubefix")
@@ -52,6 +51,14 @@ def build():
         # Icon
         f'--icon={os.path.join(base_dir, "assets", "Retrogaming-Toolkit-AIO.ico")}',
     ]
+
+    # Add VLC binaries if present
+    vlc_dir = os.path.join(toolkit_dir, "vlc")
+    if os.path.exists(vlc_dir):
+         print("Found VLC directory, bundling it...")
+         args.append(f'--add-data={vlc_dir}{os.pathsep}vlc')
+    else:
+         print("Warning: VLC directory not found. The app may fail to run without local VLC installation.")
 
     # Add hidden imports
 
