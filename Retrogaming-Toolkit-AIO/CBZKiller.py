@@ -139,15 +139,19 @@ class PDFCBRtoCBZConverter(ctk.CTk):
     def convert_cbr(self, cbr, cbz):
         try:
              import utils
-             tmp = "temp_ext_cbr"
-             if os.path.exists(tmp): shutil.rmtree(tmp)
              
-             utils.extract_with_7za(cbr, tmp, root=self)
-             manager = utils.DependencyManager(self)
-             cmd = [manager.seven_za_path, 'a', '-tzip', cbz, f'.{os.sep}{tmp}{os.sep}*']
-             si=subprocess.STARTUPINFO(); si.dwFlags|=subprocess.STARTF_USESHOWWINDOW
-             subprocess.run(cmd, check=True, startupinfo=si, capture_output=True)
-             shutil.rmtree(tmp)
+             # Use TemporaryDirectory for thread safety and security (Race Condition fix)
+             with tempfile.TemporaryDirectory() as tmp_dir:
+                 utils.extract_with_7za(cbr, tmp_dir, root=self)
+
+                 # Create CBZ (ZIP) using Python's zipfile instead of subprocess
+                 # This avoids shell injection risks and handles paths safely
+                 with zipfile.ZipFile(cbz, 'w', zipfile.ZIP_DEFLATED) as zf:
+                     for root, dirs, files in os.walk(tmp_dir):
+                         for file in files:
+                             abs_path = os.path.join(root, file)
+                             rel_path = os.path.relpath(abs_path, tmp_dir)
+                             zf.write(abs_path, arcname=rel_path)
         except Exception as e: raise e
 
     def update_prog(self, v):
