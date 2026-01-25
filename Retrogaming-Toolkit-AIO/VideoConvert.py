@@ -277,6 +277,16 @@ class VideoConvertApp(ctk.CTk, TkinterDnD.DnDWrapper):
         # Regex (Simplified from original)
         if not re.match(r"^\d{2}:\d{2}:\d{2}$", start) or not re.match(r"^\d{2}:\d{2}:\d{2}$", end): return messagebox.showerror("Err", "Format Heure invalide")
         
+        # Validation Inputs
+        if not re.match(r"^\d+[kK]?$", v_bit):
+             return messagebox.showerror("Erreur", "Bitrate Vidéo invalide (ex: 8000k ou 8000)")
+        if not re.match(r"^\d+[kK]?$", a_bit):
+             return messagebox.showerror("Erreur", "Bitrate Audio invalide (ex: 128k ou 128)")
+        if not re.match(r"^\d+(\.\d+)?$", fps):
+             return messagebox.showerror("Erreur", "FPS invalide (ex: 30 ou 29.97)")
+        if not re.match(r"^\d+x\d+$", res):
+             return messagebox.showerror("Erreur", "Résolution invalide (ex: 1920x1080)")
+
         # Get FFmpeg
         ff_path = check_and_download_ffmpeg(self)
         if not ff_path: return
