@@ -7,6 +7,14 @@ def build():
     # Define paths
     base_dir = os.path.dirname(os.path.abspath(__file__))
     toolkit_dir = os.path.join(base_dir, "Retrogaming-Toolkit-AIO")
+
+    # Check for VLC binaries first
+    vlc_lib_path = os.path.join(toolkit_dir, "vlc", "libvlc.dll")
+    if not os.path.exists(vlc_lib_path):
+        print(f"ERROR: VLC binaries not found at {vlc_lib_path}")
+        print("Please run download_vlc.py first.")
+        return
+
     
     # Collect all python modules in Retrogaming-Toolkit-AIO for hidden imports
     hidden_imports = []

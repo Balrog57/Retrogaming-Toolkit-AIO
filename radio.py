@@ -4,8 +4,6 @@ import time
 import signal
 import logging
 import multiprocessing
-import vlc
-
 # --- VLC LOCAL PATH SETUP ---
 try:
     # Get the directory where the script/exe is located
@@ -39,6 +37,11 @@ try:
 except Exception as e:
     print(f"Warning: Failed to setup local VLC path: {e}")
 # -----------------------------
+
+import vlc
+
+# --- VLC LOCAL PATH SETUP ---
+
 
 # Configure logging
 logger = logging.getLogger("RadioProcess")

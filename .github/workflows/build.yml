@@ -38,6 +38,10 @@ jobs:
           pip install -r requirements.txt
           pip install pyinstaller
 
+      - name: Download VLC binaries
+        run: |
+          python download_vlc.py
+
       - name: Build Executable
         run: |
           python build.py
