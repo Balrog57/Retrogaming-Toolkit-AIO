@@ -15,7 +15,10 @@ import requests
 import urllib.request
 import webbrowser
 import threading
+import webbrowser
+import threading
 import json
+import atexit
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
 import pygame
 
@@ -47,7 +50,7 @@ except ImportError:
     utils = None
     theme = None
 
-VERSION = "3.0.0"
+VERSION = "3.0.1"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')
@@ -530,8 +533,21 @@ class Application(ctk.CTk):
         self.bind("<Control-f>", lambda event: self.search_entry.focus_set())
         self.bind("<Escape>", lambda event: self.clear_search())
         
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+        
         self.last_width = 1100
         self.last_height = 720
+        
+        # Select "Tout" category by default
+        self.after(100, lambda: self.change_category("Tout"))
+
+    def on_closing(self):
+        """Arrêter proprement l'application (radio incluse)."""
+        self.stop_radio()
+        try:
+            pygame.quit()
+        except: pass
+        self.destroy()
 
     def on_window_resize(self, event):
         if event.widget == self:
@@ -689,16 +705,14 @@ class Application(ctk.CTk):
         """Crée la barre latérale avec les catégories."""
         self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=0, fg_color="transparent")
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
+        self.sidebar_frame.grid_propagate(False) # Force 200px width strict
         self.sidebar_frame.grid_rowconfigure(10, weight=1)
         
-
-
         self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="🌸 Retrogaming 🌸\nToolkit", 
                                      font=("Roboto Medium", 20), text_color=self.COLOR_ACCENT_PRIMARY)
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
         
         self.category_buttons = {}
-        # Ordre spécifique demandé
         categories = [
             "Tout",
             "Gestion des Jeux & ROMs",
@@ -718,26 +732,38 @@ class Application(ctk.CTk):
             btn.grid(row=i+1, column=0, sticky="ew", padx=10, pady=2)
             self.category_buttons[cat] = btn
 
-        # GIF Animation
-        self.gif_label = ctk.CTkLabel(self.sidebar_frame, text="")
-        self.gif_label.grid(row=10, column=0, padx=20, pady=(10, 0), sticky="s")
+        # Spacer to push everything down
+        self.sidebar_frame.grid_rowconfigure(9, weight=1)
+
+        # Container for bottom elements (GIF, Track, Footer)
+        self.sidebar_bottom_container = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
+        self.sidebar_bottom_container.grid(row=10, column=0, sticky="ew", padx=0, pady=0)
+
+        # 1. GIF
+        self.gif_label = ctk.CTkLabel(self.sidebar_bottom_container, text="")
+        self.gif_label.pack(side="top", pady=(0, 5))
         self.start_gif_rotation()
 
-        # Track Info Label
-        self.track_label = ctk.CTkLabel(self.sidebar_frame, text="Loading...", 
-                                      font=("Roboto", 10), text_color="gray70",
+        # 2. Track Info
+        self.track_label = ctk.CTkLabel(self.sidebar_bottom_container, text="Loading...", 
+                                      font=("Roboto", 11), text_color="gray80",
                                       wraplength=180, justify="center")
-        self.track_label.grid(row=11, column=0, padx=10, pady=(0, 5), sticky="ew")
+        self.track_label.pack(side="top", pady=(0, 10), padx=10)
         self.start_track_updater()
             
-        self.bottom_frame = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
-        self.bottom_frame.grid(row=12, column=0, padx=20, pady=(0, 10), sticky="ew")
+        # 3. Footer (Version + Controls)
+        self.bottom_frame = ctk.CTkFrame(self.sidebar_bottom_container, fg_color="transparent")
+        self.bottom_frame.pack(side="top", fill="x", padx=20, pady=(0, 15))
 
         self.version_label = ctk.CTkLabel(self.bottom_frame, text=f"v{VERSION}", text_color=self.COLOR_TEXT_SUB)
         self.version_label.pack(side="left")
         
-        self.update_status_label = ctk.CTkLabel(self.sidebar_frame, text="...", text_color=self.COLOR_TEXT_SUB, font=("Arial", 10))
-        self.update_status_label.grid(row=12, column=0, padx=20, pady=(0, 20), sticky="w")
+        # Spacer for controls
+        # (Music controls are added later via setup_music_controls targeting self.bottom_frame)
+        
+        # Update Status (Placed below version/controls)
+        self.update_status_label = ctk.CTkLabel(self.sidebar_bottom_container, text="...", text_color=self.COLOR_TEXT_SUB, font=("Arial", 10))
+        self.update_status_label.pack(side="top", pady=(0, 15))
 
         # Music Controls
         self.setup_music_controls()
@@ -864,6 +890,11 @@ class Application(ctk.CTk):
                     self.canvas.tag_lower("bg")
         except Exception as e:
             logger.error(f"Canvas BG Error: {e}")
+
+        self.setup_music_controls()
+        
+        # Select "Tout" category by default
+        self.after(100, lambda: self.change_category("Tout"))
 
     def change_category(self, category):
         if self.current_category in self.category_buttons:
@@ -1038,68 +1069,99 @@ class Application(ctk.CTk):
             self.update_status_label.configure(text=f"À jour", text_color="green")
 
     def init_music(self):
-        """Initialise et lance la musique de fond (Web Radio)."""
+        """Initialise la radio via PowerShell (plus robuste pour le streaming)."""
+        self.radio_process = None
+        self.music_playing = False
+        self.music_muted = False
+        self.gif_paused = False
+        
+        # Mute Flag File (communication with PowerShell)
+        self.mute_flag_path = os.path.join(tempfile.gettempdir(), "balrog_radio_mute.flag")
+        # Ensure clean state behavior
+        if os.path.exists(self.mute_flag_path):
+             try: os.remove(self.mute_flag_path)
+             except: pass
+        
+        # Register cleanup to ensure radio stops even if app crashes/exits
+        atexit.register(self.cleanup)
+        
+        # Start immediately
+        self.play_radio()
+
+    def play_radio(self):
+        """Lance le flux radio via un processus PowerShell caché."""
+        if self.radio_process:
+            return
+
+        stream_url = "http://stream.radiojar.com/2fa4wbch308uv"
+        # Safer path handling for PS
+        mute_flag = self.mute_flag_path.replace("\\", "/")
+        
+        # Script PowerShell pour utiliser Windows Media Player en mode caché
+        ps_script = f"""
+        Add-Type -AssemblyName PresentationCore
+        Add-Type -AssemblyName WindowsBase
+        $player = New-Object System.Windows.Media.MediaPlayer
+        $player.Open('{stream_url}')
+        $player.Play()
+        $muteFile = '{mute_flag}'
+        
+        while ($true) {{
+            if (Test-Path $muteFile) {{
+                $player.Volume = 0.0
+            }} else {{
+                $player.Volume = 1.0
+            }}
+            Start-Sleep -Milliseconds 500
+        }}
+        """
+        
         try:
-            # Increase buffer size to handle streaming better
-            pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=8192)
-            pygame.mixer.init()
-            
-            # 8Beats Radio Stream (HTTP for compatibility)
-            stream_url = "http://stream.radiojar.com/2fa4wbch308uv"
-            
-            self.music_playing = False
-            self.music_muted = False
-            self.gif_paused = False
-            
-            def load_stream():
-                try:
-                    logger.info(f"Connecting to Web Radio: {stream_url}")
-                    
-                    # Add headers to mimic a browser/player
-                    headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                        'Icy-MetaData': '1' 
-                    }
-                    
-                    r = requests.get(stream_url, headers=headers, stream=True, timeout=15)
-                    
-                    if r.status_code == 200:
-                        class StreamWrapper:
-                            def __init__(self, raw):
-                                self.raw = raw
-                            def read(self, n=-1):
-                                if n == -1: n = 8192 # Read standard chunk if undefined
-                                return self.raw.read(n)
-                            def seek(self, offset, whence=0):
-                                pass 
-                            def tell(self):
-                                return 0
-                            def close(self):
-                                self.raw.close()
-
-                        # Load wrapped stream
-                        pygame.mixer.music.load(StreamWrapper(r.raw))
-                        pygame.mixer.music.play()
-                        self.music_playing = True
-                        pygame.mixer.music.set_volume(0.5)
-                        logger.info("Web Radio playback started.")
-                    else:
-                        logger.error(f"Web Radio connection failed: {r.status_code}")
-
-                except Exception as e:
-                    logger.error(f"Error loading Web Radio: {e}")
-
-            # Lancer le chargement dans un thread pour ne pas bloquer l'interface au démarrage
-            threading.Thread(target=load_stream, daemon=True).start()
-
+            # Creationflags 0x08000000 = CREATE_NO_WINDOW
+            self.radio_process = subprocess.Popen(
+                ["powershell", "-WindowStyle", "Hidden", "-Command", ps_script],
+                creationflags=0x08000000
+            )
+            self.music_playing = True
+            logger.info("Radio started via PowerShell.")
         except Exception as e:
-            logger.error(f"Failed to initialize pygame mixer: {e}")
+            logger.error(f"Failed to start radio: {e}")
+
+    def stop_radio(self):
+        """Arrête le processus radio."""
+        if self.radio_process:
+            try:
+                pid = self.radio_process.pid
+                logger.info(f"Killing radio process {pid}...")
+                # Kill process tree forcibly
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(pid)], 
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                
+                self.radio_process = None
+                self.music_playing = False
+                logger.info("Radio stopped (killed).")
+            except Exception as e:
+                logger.error(f"Failed to kill radio: {e}")
+
+    def cleanup(self):
+        """Nettoyage final (appelé par atexit ou on_closing)."""
+        self.stop_radio()
+        try:
+            if os.path.exists(self.mute_flag_path):
+                os.remove(self.mute_flag_path)
+        except: pass
+        try:
+            pygame.quit()
+        except: pass
 
     def setup_music_controls(self):
         """Ajoute les contrôles de musique dans la sidebar."""
-        # Seulementsi pygame a bien démarré
-        if not pygame.mixer.get_init():
-            return
+        # Clean existing controls if any
+        for widget in self.bottom_frame.winfo_children():
+            # Keep version label (checked by text or class, but simplest is to repack version loop if needed)
+            # Actually simplest: Remove play/mute buttons only.
+            if isinstance(widget, ctk.CTkButton) and widget.cget("text") in ["⏸️", "▶️", "🔊", "🔇"]:
+                widget.destroy()
 
         # Play/Pause Button
         self.play_btn = ctk.CTkButton(self.bottom_frame, text="⏸️", width=30, height=30,
@@ -1112,41 +1174,45 @@ class Application(ctk.CTk):
         
         # Mute Button
         self.mute_btn = ctk.CTkButton(self.bottom_frame, text="🔊", width=30, height=30,
-                                      fg_color="transparent", border_width=0,
+                                      fg_color="transparent", border_width=0, 
                                       text_color=self.COLOR_TEXT_MAIN,
                                       font=("Segoe UI Emoji", 20),
                                       hover_color=self.COLOR_SIDEBAR_HOVER,
                                       command=self.toggle_mute)
-        self.mute_btn.pack(side="left", padx=0)
+        self.mute_btn.pack(side="left", padx=5)
 
     def toggle_music(self):
         if self.music_playing:
-            pygame.mixer.music.pause()
+            self.stop_radio()
             self.play_btn.configure(text="▶️")
-            self.music_playing = False
             self.gif_paused = True # Pause GIF
         else:
-            pygame.mixer.music.unpause()
-            # Cas où la musique a été stoppée ou non démarrée
-            if not pygame.mixer.music.get_busy():
-                 try:
-                    pygame.mixer.music.play(-1)
-                 except: pass
+            self.play_radio()
             self.play_btn.configure(text="⏸️")
-            self.music_playing = True
             
-            # Resume GIF if it was paused
+            # Resume GIF
             if self.gif_paused:
                 self.gif_paused = False
                 self.animate_gif()
 
     def toggle_mute(self):
+        # Mute toggle using file flag
         if self.music_muted:
-            pygame.mixer.music.set_volume(0.5) # Retour au volume par défaut
+            # Unmute: Remove flag
+            try:
+                if os.path.exists(self.mute_flag_path):
+                    os.remove(self.mute_flag_path)
+            except: pass
+            
             self.mute_btn.configure(text="🔊")
             self.music_muted = False
         else:
-            pygame.mixer.music.set_volume(0.0)
+            # Mute: Create flag
+            try:
+                with open(self.mute_flag_path, 'w') as f:
+                    f.write('1')
+            except: pass
+            
             self.mute_btn.configure(text="🔇")
             self.music_muted = True
 
@@ -1154,12 +1220,12 @@ class Application(ctk.CTk):
         """Charge les deux GIFs et lance la rotation."""
         self.gif_list = []
         
-        # Charger dance.gif
-        g1 = self.load_gif_data(os.path.join("assets", "dance.gif"))
+        # Charger dance2.gif d'abord
+        g1 = self.load_gif_data(os.path.join("assets", "dance2.gif"))
         if g1: self.gif_list.append(g1)
         
-        # Charger dance2.gif
-        g2 = self.load_gif_data(os.path.join("assets", "dance2.gif"))
+        # Charger dance.gif ensuite
+        g2 = self.load_gif_data(os.path.join("assets", "dance.gif"))
         if g2: self.gif_list.append(g2)
         
         if not self.gif_list:
