@@ -125,6 +125,83 @@ class DependencyManager:
             if os.path.exists(zip_path):
                 os.remove(zip_path)
 
+    def bootstrap_7z_sfx(self):
+        """Ensures 7z.sfx (or compatible) is available."""
+        # Prefer default name
+        sfx_target = os.path.join(self.app_data_dir, "7z.sfx")
+        if os.path.exists(sfx_target):
+            return sfx_target
+        
+        # 1. Try Local Installation (C:\Program Files\7-Zip\7z.sfx)
+        local_sfx = r"C:\Program Files\7-Zip\7z.sfx"
+        if os.path.exists(local_sfx):
+            print(f"DEBUG: Found local 7z.sfx at {local_sfx}")
+            try:
+                shutil.copy2(local_sfx, sfx_target)
+                return sfx_target
+            except Exception as e:
+                print(f"DEBUG: Failed to copy local SFX: {e}")
+
+        # 2. We need 7za to extract .7z archives (chicken and egg handled by bootstrap_7za check below)
+        if not self.bootstrap_7za():
+            return None
+
+        # Download 7z extra
+        url = "https://www.7-zip.org/a/7z2301-extra.7z"
+        temp_7z = os.path.join(tempfile.gettempdir(), "7z_extra.7z")
+        
+        try:
+            print(f"DEBUG: Attempting to download {url} to {temp_7z}")
+            self.download_with_progress(url, temp_7z, "Téléchargement 7z SFX Modules")
+            
+            # Extract ALL .sfx files
+            print(f"DEBUG: Extracting *.sfx from {temp_7z}")
+            # 7za e archive -o{dir} *.sfx -r -y
+            cmd = [self.seven_za_path, 'e', temp_7z, f'-o{self.app_data_dir}', '*.sfx', '-r', '-y']
+            
+            startupinfo = None
+            if os.name == 'nt':
+                startupinfo = subprocess.STARTUPINFO()
+                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            
+            subprocess.run(cmd, check=True, startupinfo=startupinfo, capture_output=True)
+            
+            # Check for candidates
+            candidates = [f for f in os.listdir(self.app_data_dir) if f.lower().endswith('.sfx')]
+            print(f"DEBUG: Found sfx candidates: {candidates}")
+            
+            if not candidates:
+                return None
+                
+            # Selection priority: 7z.sfx > 7zS.sfx (GUI) > 7zCon.sfx > others
+            selected = None
+            if "7z.sfx" in candidates: selected = "7z.sfx"
+            elif "7zS.sfx" in candidates: selected = "7zS.sfx"
+            elif "7zCon.sfx" in candidates: selected = "7zCon.sfx"
+            else: selected = candidates[0]
+            
+            # If selected is not 7z.sfx, copy/rename it to 7z.sfx for consistency or just return it?
+            # Let's return the actual path, logic handles variable path.
+            # But PackWrapper expects "7z.sfx" hardcoded in on_start check?
+            # Wait, PackWrapper logic: sfx_module = os.path.join(dep_manager.app_data_dir, "7z.sfx") in replace_file_content step 230/234
+            # I changed PackWrapper to: sfx_module = os.path.join(dep_manager.app_data_dir, "7z.sfx")
+            # So I should RENAMME/COPY the best candidate to 7z.sfx to guarantee PackWrapper finds it.
+            
+            src = os.path.join(self.app_data_dir, selected)
+            if selected != "7z.sfx":
+                shutil.copy2(src, sfx_target)
+                
+            return sfx_target
+            
+        except Exception as e:
+            logging.error(f"Failed to bootstrap SFX: {e}")
+            print(f"DEBUG ERROR: {e}")
+            return None
+        finally:
+            if os.path.exists(temp_7z):
+                try: os.remove(temp_7z)
+                except: pass
+
     def download_with_progress(self, url, dest_path, description="Téléchargement"):
         """Downloads a file with a progress bar UI."""
         # Setup UI

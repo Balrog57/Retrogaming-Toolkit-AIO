@@ -19,6 +19,11 @@ try:
 
     # Path to local vlc folder
     vlc_path = os.path.join(base_path, 'vlc')
+    if not os.path.exists(vlc_path):
+        # Try checking in Retrogaming-Toolkit-AIO subdirectory (if running from main.py context)
+        fallback_path = os.path.join(base_path, 'Retrogaming-Toolkit-AIO', 'vlc')
+        if os.path.exists(fallback_path):
+             vlc_path = fallback_path
     
     # If the folder exists, add it to DLL search path (Windows)
     if os.path.exists(vlc_path):

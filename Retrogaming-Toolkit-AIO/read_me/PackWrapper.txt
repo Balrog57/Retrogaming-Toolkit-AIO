@@ -1,0 +1,27 @@
+PackWrapper est un outil conçu pour créer des packs de différences entre votre configuration actuelle (Source) et une configuration de base (Type). Il est idéal pour générer des patchs de mise à jour ou des packs de contenu additionnel pour Retrobat ou RetroFE.
+
+Fonctionnalités :
+- Comparaison Intelligente : Ne garde que les fichiers nouveaux ou modifiés.
+- Modes Dédiés :
+  - Standard : Copie tout ce qui est différent.
+  - Retrobat : Sépare intelligemment le contenu (roms/saves) du système.
+  - RetroFE : Gère la structure spécifique 'collections/<System>/roms'.
+- Formats de Sortie : 
+  - ZIP standart.
+  - EXE (SFX) : Archive auto-extractible (nécessite 7-Zip, téléchargement auto).
+- Manifest Externe : Génère un fichier .txt listant le contenu du pack.
+ 
+Utilisation :
+1. Dossier Source (Modifié) : Votre dossier contenant vos ajouts/modifications.
+2. Dossier Type (Original) : Le dossier de référence (vide ou version précédente).
+3. Dossier Destination : Où sauvegarder le pack généré.
+4. Configuration :
+   - Sélectionnez le Mode (Standard, Retrobat, RetroFE).
+   - Sélectionnez le Type (Base = fichiers système, Content = roms/media).
+   - Sélectionnez le Format (ZIP ou EXE).
+5. Détails : Donnez un nom et une description à votre pack.
+6. Lancez !
+
+Notes :
+- En mode EXE (SFX), l'outil peut demander à télécharger des dépendances 7-Zip lors de la première utilisation.
+- Le fichier "manifest.txt" généré accompagne l'archive pour identifier son contenu sans l'ouvrir.
