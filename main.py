@@ -720,7 +720,9 @@ class Application(ctk.CTk):
         # GIF Animation
         self.gif_label = ctk.CTkLabel(self.sidebar_frame, text="")
         self.gif_label.grid(row=10, column=0, padx=20, pady=(10, 0), sticky="s") # Sticky south + tweaked padding
-        self.load_and_play_gif(os.path.join("assets", "dance.gif"))
+        self.gif_label = ctk.CTkLabel(self.sidebar_frame, text="")
+        self.gif_label.grid(row=10, column=0, padx=20, pady=(10, 0), sticky="s") # Sticky south + tweaked padding
+        self.start_gif_rotation()
             
         self.bottom_frame = ctk.CTkFrame(self.sidebar_frame, fg_color="transparent")
         self.bottom_frame.grid(row=11, column=0, padx=20, pady=(10, 0), sticky="ew")
@@ -1108,38 +1110,73 @@ class Application(ctk.CTk):
             self.mute_btn.configure(text="🔇")
             self.music_muted = True
 
-    def load_and_play_gif(self, path):
-        """Charge, redimensionne et joue un GIF animé."""
+    def start_gif_rotation(self):
+        """Charge les deux GIFs et lance la rotation."""
+        self.gif_list = []
+        
+        # Charger dance.gif
+        g1 = self.load_gif_data(os.path.join("assets", "dance.gif"))
+        if g1: self.gif_list.append(g1)
+        
+        # Charger dance2.gif
+        g2 = self.load_gif_data(os.path.join("assets", "dance2.gif"))
+        if g2: self.gif_list.append(g2)
+        
+        if not self.gif_list:
+            return
+
+        self.current_gif_index = 0
+        self.set_active_gif(self.gif_list[0])
+        self.animate_gif()
+        
+        # Rotation timer (60s) seulement si on a plus d'un GIF
+        if len(self.gif_list) > 1:
+            self.rotate_gif()
+
+    def load_gif_data(self, path):
+        """Charge les frames et le délai d'un GIF."""
         try:
             full_path = get_path(path)
             if not os.path.exists(full_path):
-                return
+                return None
 
             gif = Image.open(full_path)
-            self.gif_frames = []
+            duration = gif.info.get('duration', 100)
+            if duration < 20: duration = 100
             
-            # Extract frames
+            frames = []
             try:
                 while True:
-                    # Convert to RGBA and resize if needed (e.g. max width 150)
                     frame = gif.copy().convert("RGBA")
-                    # Resize logic: fit within 180px width
                     target_w = 150
                     ratio = target_w / frame.width
                     target_h = int(frame.height * ratio)
                     frame = frame.resize((target_w, target_h), Image.LANCZOS)
-                    
-                    self.gif_frames.append(CTkImage(frame, size=(target_w, target_h)))
+                    frames.append(CTkImage(frame, size=(target_w, target_h)))
                     gif.seek(gif.tell() + 1)
             except EOFError:
                 pass
-            
-            if self.gif_frames:
-                self.current_frame_idx = 0
-                self.animate_gif()
                 
+            if frames:
+                return {'frames': frames, 'delay': duration}
         except Exception as e:
-            logger.error(f"GIF Error: {e}")
+            logger.error(f"GIF Load Error {path}: {e}")
+        return None
+
+    def set_active_gif(self, gif_data):
+        """Définit le GIF actif."""
+        self.gif_frames = gif_data['frames']
+        self.gif_delay = gif_data['delay']
+        self.current_frame_idx = 0
+
+    def rotate_gif(self):
+        """Change de GIF toutes les 60 secondes."""
+        self.current_gif_index = (self.current_gif_index + 1) % len(self.gif_list)
+        new_gif = self.gif_list[self.current_gif_index]
+        self.set_active_gif(new_gif)
+        
+        # Re-planifier dans 60s
+        self.after(60000, self.rotate_gif)
 
     def animate_gif(self):
         """Boucle d'animation du GIF."""
@@ -1152,8 +1189,7 @@ class Application(ctk.CTk):
             
             self.current_frame_idx = (self.current_frame_idx + 1) % len(self.gif_frames)
             
-            # Delay (50ms = double speed)
-            self.after(50, self.animate_gif)
+            self.after(self.gif_delay, self.animate_gif)
 
 
 def main():
