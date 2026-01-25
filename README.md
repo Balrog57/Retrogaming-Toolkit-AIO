@@ -180,3 +180,9 @@ Le logiciel intègre un système de vérification de version :
 
 ---
 *Développé avec ❤️ pour la communauté de l'émulation.*
+
+---
+
+## 🖥️ Aperçu de l'Interface
+
+![Interface du Retrogaming Toolkit AIO](screenshot.png)
