@@ -1,2 +1,0 @@
-Réduisez la taille de vos jeux (notamment PSP et PS2) sans effort pour gagner de précieux giga-octets. Ce module convertit vos fichiers ISO volumineux en formats compressés (CSO) optimisés, lisibles par tous les émulateurs.
-L'outil est autonome : il télécharge lui-même les composants nécessaires et exploite toute la puissance de votre processeur (multi-cœurs) pour une compression ultra-rapide. Une interface simple vous permet de traiter des dossiers entiers en décidant si vous souhaitez remplacer les originaux ou créer des copies légères.

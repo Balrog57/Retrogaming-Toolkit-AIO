@@ -53,7 +53,7 @@ except ImportError:
     utils = None
     theme = None
 
-VERSION = "3.0.10"
+VERSION = "3.0.11"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')
@@ -87,40 +87,448 @@ def get_path(p):
         return utils.resource_path(p)
     return p
 
-# Liste des scripts avec descriptions, chemins des icônes et fichiers "Lisez-moi"
+# Dictionnaires de traduction
+TRANSLATIONS = {
+    "FR": {
+        "search_label": "Rechercher :",
+        "search_placeholder": "Nom ou description... (Ctrl+F)",
+        "close": "Fermer",
+        "readme": "Lisez-moi",
+        "error": "Erreur",
+        "file_not_found": "Le fichier {} n'existe pas.",
+        "update_title": "Mise à jour",
+        "update_confirm": "Une nouvelle version est disponible. Voulez-vous la télécharger et l'installer maintenant ?",
+        "no_installer": "Aucun fichier d'installation trouvé dans la dernière release.",
+        "update_bat_missing": "Le fichier update.bat n'existe pas.",
+        "cat_all": "Tout",
+        "cat_games": "Gestion des Jeux & ROMs",
+        "cat_metadata": "Métadonnées & Gamelists",
+        "cat_media": "Multimédia & Artworks",
+        "cat_org": "Organisation & Collections",
+        "cat_sys": "Maintenance Système",
+        "loading": "Chargement...",
+        "no_result": "Aucun résultat pour '{}'",
+        "no_tool_cat": "Aucun outil dans cette catégorie.",
+        "launch_module": "Lancement du module : {}",
+        "error_exec": "Erreur lors de l'exécution du module {}: {}",
+        "open": "Ouvrir"
+    },
+    "EN": {
+        "search_label": "Search:",
+        "search_placeholder": "Name or description... (Ctrl+F)",
+        "close": "Close",
+        "readme": "Readme",
+        "error": "Error",
+        "file_not_found": "File {} does not exist.",
+        "update_title": "Update",
+        "update_confirm": "A new version is available. Do you want to download and install it now?",
+        "no_installer": "No installer file found in the latest release.",
+        "update_bat_missing": "The update.bat file does not exist.",
+        "cat_all": "All",
+        "cat_games": "Games & ROMs Management",
+        "cat_metadata": "Metadata & Gamelists",
+        "cat_media": "Multimedia & Artworks",
+        "cat_org": "Organization & Collections",
+        "cat_sys": "System Maintenance",
+        "loading": "Loading...",
+        "no_result": "No result for '{}'",
+        "no_tool_cat": "No tools in this category.",
+        "launch_module": "Launching module: {}",
+        "error_exec": "Error executing module {}: {}",
+        "open": "Open"
+    },
+    "ES": {
+        "search_label": "Buscar:",
+        "search_placeholder": "Nombre o descripción... (Ctrl+F)",
+        "close": "Cerrar",
+        "readme": "Léame",
+        "error": "Error",
+        "file_not_found": "El archivo {} no existe.",
+        "update_title": "Actualización",
+        "update_confirm": "¿Hay una nueva versión disponible. Quieres descargarla e instalarla ahora?",
+        "no_installer": "No se encontró ningún archivo de instalación en la última versión.",
+        "update_bat_missing": "El archivo update.bat no existe.",
+        "cat_all": "Todo",
+        "cat_games": "Gestión de Juegos y ROMs",
+        "cat_metadata": "Metadatos y Listas de Juegos",
+        "cat_media": "Multimedia y Arte",
+        "cat_org": "Organización y Colecciones",
+        "cat_sys": "Mantenimiento del Sistema",
+        "loading": "Cargando...",
+        "no_result": "Ningún resultado para '{}'",
+        "no_tool_cat": "No hay herramientas en esta categoría.",
+        "launch_module": "Lanzando módulo: {}",
+        "error_exec": "Error al ejecutar el módulo {}: {}",
+        "open": "Abrir"
+    },
+    "IT": {
+        "search_label": "Cerca:",
+        "search_placeholder": "Nome o descrizione... (Ctrl+F)",
+        "close": "Chiudi",
+        "readme": "Leggimi",
+        "error": "Errore",
+        "file_not_found": "Il file {} non esiste.",
+        "update_title": "Aggiornamento",
+        "update_confirm": "È disponibile una nuova versione. Vuoi scaricarla e installarla ora?",
+        "no_installer": "Nessun file di installazione trovato nell'ultima versione.",
+        "update_bat_missing": "Il file update.bat non esiste.",
+        "cat_all": "Tutto",
+        "cat_games": "Gestione Giochi e ROM",
+        "cat_metadata": "Metadati e Gamelist",
+        "cat_media": "Multimedia e Artwork",
+        "cat_org": "Organizzazione e Collezioni",
+        "cat_sys": "Manutenzione Sistema",
+        "loading": "Caricamento...",
+        "no_result": "Nessun risultato per '{}'",
+        "no_tool_cat": "Nessuno strumento in questa categoria.",
+        "launch_module": "Avvio modulo: {}",
+        "error_exec": "Errore durante l'esecuzione del modulo {}: {}",
+        "open": "Apri"
+    },
+    "DE": {
+        "search_label": "Suchen:",
+        "search_placeholder": "Name oder Beschreibung... (Ctrl+F)",
+        "close": "Schließen",
+        "readme": "Lies mich",
+        "error": "Fehler",
+        "file_not_found": "Die Datei {} existiert nicht.",
+        "update_title": "Aktualisierung",
+        "update_confirm": "Eine neue Version ist verfügbar. Möchten Sie sie jetzt herunterladen und installieren?",
+        "no_installer": "Keine Installationsdatei in der neuesten Version gefunden.",
+        "update_bat_missing": "Die Datei update.bat existiert nicht.",
+        "cat_all": "Alle",
+        "cat_games": "Spiele & ROMs Verwaltung",
+        "cat_metadata": "Metadaten & Spielelisten",
+        "cat_media": "Multimedia & Kunstwerke",
+        "cat_org": "Organisation & Sammlungen",
+        "cat_sys": "Systemwartung",
+        "loading": "Laden...",
+        "no_result": "Kein Ergebnis für '{}'",
+        "no_tool_cat": "Keine Werkzeuge in dieser Kategorie.",
+        "launch_module": "Modul wird gestartet: {}",
+        "error_exec": "Fehler beim Ausführen des Moduls {}: {}",
+        "open": "Öffnen"
+    },
+    "PT": {
+        "search_label": "Pesquisar:",
+        "search_placeholder": "Nome ou descrição... (Ctrl+F)",
+        "close": "Fechar",
+        "readme": "Leia-me",
+        "error": "Erro",
+        "file_not_found": "O arquivo {} não existe.",
+        "update_title": "Atualização",
+        "update_confirm": "Uma nova versão está disponível. Deseja baixar e instalar agora?",
+        "no_installer": "Nenhum arquivo de instalação encontrado na última versão.",
+        "update_bat_missing": "O arquivo update.bat não existe.",
+        "cat_all": "Tudo",
+        "cat_games": "Gestão de Jogos e ROMs",
+        "cat_metadata": "Metadados e GameLists",
+        "cat_media": "Multimídia e Artes",
+        "cat_org": "Organização e Coleções",
+        "cat_sys": "Manutenção do Sistema",
+        "loading": "Carregando...",
+        "no_result": "Nenhum resultado para '{}'",
+        "no_tool_cat": "Nenhuma ferramenta nesta categoria.",
+        "launch_module": "Iniciando módulo: {}",
+        "error_exec": "Erro ao executar o módulo {}: {}",
+        "open": "Abrir"
+    }
+}
+
+
+SCRIPT_DESCRIPTIONS = {
+    "AssistedGamelist": {
+        "FR": "(Retrobat) Améliore vos gamelists XML (tri, nettoyage, formats).",
+        "EN": "(Retrobat) Improves your XML gamelists (sorting, cleaning, headers).",
+        "ES": "(Retrobat) Mejora sus listas de juegos XML (ordenación, limpieza).",
+        "IT": "(Retrobat) Migliora le tue gamelist XML (ordinamento, pulizia).",
+        "DE": "(Retrobat) Verbessert Ihre XML-Spielelisten (Sortieren, Bereinigen).",
+        "PT": "(Retrobat) Melhora suas listas de jogos XML (ordenação, limpeza)."
+    },
+    "BGBackup": {
+        "FR": "(Retrobat) Crée une copie de sécurité de vos fichiers gamelist.xml.",
+        "EN": "(Retrobat) Creates a safety backup of your gamelist.xml files.",
+        "ES": "(Retrobat) Crea una copia de seguridad de sus archivos gamelist.xml.",
+        "IT": "(Retrobat) Crea una copia di sicurezza dei file gamelist.xml.",
+        "DE": "(Retrobat) Erstellt eine Sicherheitskopie Ihrer gamelist.xml-Dateien.",
+        "PT": "(Retrobat) Cria uma cópia de segurança dos seus arquivos gamelist.xml."
+    },
+    "CHDManager": {
+        "FR": "Gère la compression de vos jeux au format CHD (MAME/Disc).",
+        "EN": "Manages game compression to CHD format (MAME/Disc).",
+        "ES": "Gestiona la compresión de juegos al formato CHD (MAME/Disco).",
+        "IT": "Gestisce la compressione dei giochi in formato CHD (MAME/Disco).",
+        "DE": "Verwaltet die Spielekomprimierung im CHD-Format (MAME/Disc).",
+        "PT": "Gerencia a compressão de jogos para o formato CHD (MAME/Disco)."
+    },
+    "CollectionBuilder": {
+        "FR": "(Core) Créez des collections de jeux automatiques par mots-clés.",
+        "EN": "(Core) Create automatic game collections based on keywords.",
+        "ES": "(Core) Cree colecciones de juegos automáticas por palabras clave.",
+        "IT": "(Core) Crea collezioni di giochi automatiche basate su parole chiave.",
+        "DE": "(Core) Erstellen Sie automatische Spielesammlungen basierend auf Stichwörtern.",
+        "PT": "(Core) Crie coleções automáticas de jogos com base em palavras-chave."
+    },
+    "CollectionExtractor": {
+        "FR": "(Core) Extrayez et isolez des jeux spécifiques pour créer des packs.",
+        "EN": "(Core) Extract and isolate specific games to create small packs.",
+        "ES": "(Core) Extraiga y aísle juegos específicos para crear paquetes.",
+        "IT": "(Core) Estrai e isola giochi specifici per creare pacchetti.",
+        "DE": "(Core) Extrahieren und isolieren Sie bestimmte Spiele für Pakete.",
+        "PT": "(Core) Extraia e isole jogos específicos para criar pacotes."
+    },
+    "LongPaths": {
+        "FR": "Débloque la limite des 260 caractères pour les noms de fichiers Windows.",
+        "EN": "Unlocks the 260 character limit for Windows filenames.",
+        "ES": "Desbloquea el límite de 260 caracteres para nombres de archivo de Windows.",
+        "IT": "Sblocca il limite di 260 caratteri per i nomi dei file Windows.",
+        "DE": "Hebt das 260-Zeichen-Limit für Windows-Dateinamen auf.",
+        "PT": "Desbloqueia o limite de 260 caracteres para nomes de arquivos do Windows."
+    },
+    "FolderToTxt": {
+        "FR": "Génère automatiquement un fichier .txt vide pour chaque fichier existant (fichiers compagnons).",
+        "EN": "Automatically generates an empty .txt file for each existing file (companion files).",
+        "ES": "Genera automáticamente un archivo .txt vacío para cada archivo existente (archivos complementarios).",
+        "IT": "Genera automaticamente un file .txt vuoto per ogni file esistente (file complementari).",
+        "DE": "Generiert automatisch eine leere .txt-Datei für jede vorhandene Datei (Begleitdateien).",
+        "PT": "Gera automaticamente um arquivo .txt vazio para cada arquivo existente (arquivos complementares)."
+    },
+    "FolderToZip": {
+        "FR": "Archive chaque sous-dossier en un fichier ZIP indépendant (Batch Zip).",
+        "EN": "Archives each subfolder into an independent ZIP file (Batch Zip).",
+        "ES": "Archiva cada subcarpeta en un archivo ZIP independiente (Batch Zip).",
+        "IT": "Archivia ogni sottocartella in un file ZIP indipendente (Batch Zip).",
+        "DE": "Archiviert jeden Unterordner in eine unabhängige ZIP-Datei (Batch Zip).",
+        "PT": "Arquiva cada subpasta em um arquivo ZIP independente (Batch Zip)."
+    },
+    "GameBatch": {
+        "FR": "Crée des lanceurs (.bat) pour vos jeux Windows/PC.",
+        "EN": "Creates launcher scripts (.bat) for your Windows/PC games.",
+        "ES": "Crea scripts de lanzamiento (.bat) para sus juegos de PC.",
+        "IT": "Crea script di avvio (.bat) per i tuoi giochi Windows/PC.",
+        "DE": "Erstellt Startskripte (.bat) für Ihre Windows-/PC-Spiele.",
+        "PT": "Cria scripts de inicialização (.bat) para seus jogos de PC."
+    },
+    "EmptyGen": {
+        "FR": "Crée des fichiers dummy (.scummvm, .singe...) pour la détection par les émulateurs.",
+        "EN": "Creates dummy files (.scummvm, .singe...) for emulator detection.",
+        "ES": "Crea archivos ficticios (.scummvm, .singe...) para la detección del emulador.",
+        "IT": "Crea file fittizi (.scummvm, .singe...) per il rilevamento dell'emulatore.",
+        "DE": "Erstellt Dummy-Dateien (.scummvm, .singe...) für die Emulatorerkennung.",
+        "PT": "Cria arquivos fictícios (.scummvm, .singe...) para detecção de emulador."
+    },
+    "GameRemoval": {
+        "FR": "(Core) Supprime proprement un jeu et tous ses médias associés.",
+        "EN": "(Core) Cleanly removes a game and all its associated media.",
+        "ES": "(Core) Elimina limpiamente un juego y todos sus medios asociados.",
+        "IT": "(Core) Rimuove pulitamente un gioco e tutti i suoi media associati.",
+        "DE": "Entfernt sauber ein Spiel und alle zugehörigen Medien.",
+        "PT": "(Core) Remove de forma limpa um jogo e todas as suas mídias associadas."
+    },
+    "GamelistHyperlist": {
+        "FR": "(Core) Transforme une Gamelist XML en base de données Hyperspin.",
+        "EN": "(Core) Transforms an XML Gamelist into an Hyperspin database.",
+        "ES": "(Core) Transforma una Gamelist XML en una base de datos Hyperspin.",
+        "IT": "(Core) Trasforma una Gamelist XML in un database Hyperspin.",
+        "DE": "(Core) Wandelt eine XML-Gamelist in eine Hyperspin-Datenbank um.",
+        "PT": "(Core) Transforma uma Gamelist XML em um banco de dados Hyperspin."
+    },
+    "HyperlistGamelist": {
+        "FR": "(Retrobat) Convertit une base Hyperspin en Gamelist pour Retrobat.",
+        "EN": "(Retrobat) Converts an Hyperspin DB into a Gamelist for Retrobat.",
+        "ES": "(Retrobat) Convierte una BD Hyperspin en una Gamelist para Retrobat.",
+        "IT": "(Retrobat) Converte un DB Hyperspin in una Gamelist per Retrobat.",
+        "DE": "(Retrobat) Konvertiert eine Hyperspin-DB in eine Gamelist für Retrobat.",
+        "PT": "(Retrobat) Converte um banco de dados Hyperspin em uma Gamelist para Retrobat."
+    },
+    "InstallDeps": {
+        "FR": "Installe les composants Windows manquants (DirectX, Visual C++).",
+        "EN": "Installs missing Windows components (DirectX, Visual C++).",
+        "ES": "Instala componentes de Windows faltantes (DirectX, Visual C++).",
+        "IT": "Installa componenti Windows mancanti (DirectX, Visual C++).",
+        "DE": "Installiert fehlende Windows-Komponenten (DirectX, Visual C++).",
+        "PT": "Instala componentes ausentes do Windows (DirectX, Visual C++)."
+    },
+    "ListFilesSimple": {
+        "FR": "Génère un inventaire simple des fichiers d'un dossier.",
+        "EN": "Generates a simple inventory of files in a folder.",
+        "ES": "Genera un inventario simple de archivos en una carpeta.",
+        "IT": "Genera un inventario semplice dei file in una cartella.",
+        "DE": "Erstellt ein einfaches Inventar der Dateien in einem Ordner.",
+        "PT": "Gera um inventário simples de arquivos em uma pasta."
+    },
+    "ListFilesWin": {
+        "FR": "Génère un inventaire détaillé (tailles, dates) type Windows.",
+        "EN": "Generates a detailed inventory (sizes, dates) like Windows.",
+        "ES": "Genera un inventario detallado (tamaños, fechas) tipo Windows.",
+        "IT": "Genera un inventario dettagliato (dimensioni, date) stile Windows.",
+        "DE": "Erstellt ein detailliertes Inventar (Größen, Daten) wie Windows.",
+        "PT": "Gera um inventário detalhado (tamanhos, datas) estilo Windows."
+    },
+    "MaxCSO": {
+        "FR": "Compresser vos ISOs en CSO pour gagner de la place (PSP/PS2).",
+        "EN": "Compress ISOs to CSO to save space (PSP/PS2).",
+        "ES": "Comprimir ISOs a CSO para ahorrar espacio (PSP/PS2).",
+        "IT": "Comprimi ISO in CSO per risparmiare spazio (PSP/PS2).",
+        "DE": "Komprimieren Sie ISOs in CSO, um Platz zu sparen (PSP/PS2).",
+        "PT": "Comprima ISOs para CSO para economizar espaço (PSP/PS2)."
+    },
+    "MediaOrphans": {
+        "FR": "(Core) Nettoie les images/vidéos qui ne correspondent à aucun jeu.",
+        "EN": "(Core) Cleans up images/videos that don't match any game.",
+        "ES": "(Core) Limpia imágenes/videos que no corresponden a ningún juego.",
+        "IT": "(Core) Pulisce immagini/video che non corrispondono a nessun gioco.",
+        "DE": "(Core) Bereinigt Bilder/Videos, die zu keinem Spiel passen.",
+        "PT": "(Core) Limpa imagens/vídeos que não correspondem a nenhum jogo."
+    },
+    "FolderCleaner": {
+        "FR": "Scanne et supprime tous les dossiers vides inutiles.",
+        "EN": "Scans and deletes all useless empty folders.",
+        "ES": "Escanea y elimina todas las carpetas vacías inútiles.",
+        "IT": "Scansiona ed elimina tutte le cartelle vuote inutili.",
+        "DE": "Scannt und löscht alle nutzlosen leeren Ordner.",
+        "PT": "Verifica e exclui todas as pastas vazias inúteis."
+    },
+    "StoryHyperlist": {
+        "FR": "(Core) Injecte des données 'Story' dans vos listes Hyperspin.",
+        "EN": "(Core) Injects 'Story' data into your Hyperspin lists.",
+        "ES": "(Core) Inyecta datos 'Story' en sus listas Hyperspin.",
+        "IT": "(Core) Inietta dati 'Story' nelle tue liste Hyperspin.",
+        "DE": "(Core) Fügt 'Story'-Daten in Ihre Hyperspin-Listen ein.",
+        "PT": "(Core) Insere dados 'Story' em suas listas Hyperspin."
+    },
+    "DolphinConvert": {
+        "FR": "Convertisseur spécialisé pour les jeux GameCube/Wii (ISO↔RVZ).",
+        "EN": "Specialized converter for GameCube/Wii games (ISO↔RVZ).",
+        "ES": "Convertidor especializado para juegos GameCube/Wii (ISO↔RVZ).",
+        "IT": "Convertitore specializzato per giochi GameCube/Wii (ISO↔RVZ).",
+        "DE": "Spezialisierter Konverter für GameCube/Wii-Spiele (ISO↔RVZ).",
+        "PT": "Conversor especializado para jogos GameCube/Wii (ISO↔RVZ)."
+    },
+    "StoryCleaner": {
+        "FR": "Nettoie les caractères spéciaux/non-ASCII des fichiers texte.",
+        "EN": "Cleans special/non-ASCII characters from text files.",
+        "ES": "Limpia caracteres especiales/no ASCII de archivos de texto.",
+        "IT": "Pulisce caratteri speciali/non ASCII dai file di testo.",
+        "DE": "Bereinigt Sonder-/Nicht-ASCII-Zeichen aus Textdateien.",
+        "PT": "Limpa caracteres especiais/não-ASCII de arquivos de texto."
+    },
+    "M3UCreator": {
+        "FR": "Crée des playlists (.m3u) pour vos jeux multi-disques.",
+        "EN": "Creates playlists (.m3u) for your multi-disc games.",
+        "ES": "Crea listas de reproducción (.m3u) para sus juegos multidisco.",
+        "IT": "Crea playlist (.m3u) per i tuoi giochi multidisco.",
+        "DE": "Erstellt Wiedergabelisten (.m3u) für Ihre Multi-Disc-Spiele.",
+        "PT": "Cria playlists (.m3u) para seus jogos multidisco."
+    },
+    "CoverExtractor": {
+        "FR": "Récupère la couverture des comics/livres (CBZ/PDF) pour l'affichage.",
+        "EN": "Retrieves covers from comics/books (CBZ/PDF) for display.",
+        "ES": "Recupera portadas de cómics/libros (CBZ/PDF) para visualización.",
+        "IT": "Recupera copertine da fumetti/libri (CBZ/PDF) per la visualizzazione.",
+        "DE": "Ruft Cover von Comics/Büchern (CBZ/PDF) zur Anzeige ab.",
+        "PT": "Recupera capas de quadrinhos/livros (CBZ/PDF) para exibição."
+    },
+    "CBZKiller": {
+        "FR": "Transforme vos PDF et dossiers d'images en format Comic Book (CBZ).",
+        "EN": "Transforms PDFs and image folders into Comic Book format (CBZ).",
+        "ES": "Transforma PDF y carpetas de imágenes al formato Comic Book (CBZ).",
+        "IT": "Trasforma PDF e cartelle di immagini in formato Comic Book (CBZ).",
+        "DE": "Wandelt PDFs und Bildordner in das Comic-Book-Format (CBZ) um.",
+        "PT": "Transforma PDFs e pastas de imagens no formato Comic Book (CBZ)."
+    },
+    "VideoConvert": {
+        "FR": "Outil puissant pour convertir, compresser ou rogner vos vidéos.",
+        "EN": "Powerful tool to convert, compress, or crop your videos.",
+        "ES": "Potente herramienta para convertir, comprimir o recortar sus videos.",
+        "IT": "Potente strumento per convertire, comprimere o ritagliare i tuoi video.",
+        "DE": "Leistungsstarkes Tool zum Konvertieren, Komprimieren oder Schneiden von Videos.",
+        "PT": "Ferramenta poderosa para converter, comprimir ou recortar seus vídeos."
+    },
+    "YTDownloader": {
+        "FR": "Téléchargez facilement des vidéos ou musiques depuis YouTube.",
+        "EN": "Easily download videos or music to YouTube.",
+        "ES": "Descargue fácilmente videos o música de YouTube.",
+        "IT": "Scarica facilmente video o musica da YouTube.",
+        "DE": "Laden Sie ganz einfach Videos oder Musik von YouTube herunter.",
+        "PT": "Baixe facilmente vídeos ou músicas do YouTube."
+    },
+    "ImageConvert": {
+        "FR": "Convertisseur d'images en masse (PNG, JPG, WebP...).",
+        "EN": "Bulk image converter (PNG, JPG, WebP...).",
+        "ES": "Convertidor de imágenes masivo (PNG, JPG, WebP...).",
+        "IT": "Convertitore di immagini di massa (PNG, JPG, WebP...).",
+        "DE": "Massenbildkonverter (PNG, JPG, WebP...).",
+        "PT": "Conversor de imagens em massa (PNG, JPG, WebP...)."
+    },
+    "SystemsExtractor": {
+        "FR": "Liste tous les systèmes configurés dans votre EmulationStation.",
+        "EN": "Lists all configured systems in your EmulationStation.",
+        "ES": "Lista todos los sistemas configurados en su EmulationStation.",
+        "IT": "Elenca tutti i sistemi configurati nella tua EmulationStation.",
+        "DE": "Listet alle konfigurierten Systeme in Ihrer EmulationStation auf.",
+        "PT": "Lista todos os sistemas configurados na sua EmulationStation."
+    },
+    "UniversalRomCleaner": {
+        "FR": "Nettoyeur ultime de ROMs : tri par région, version, doublons (1G1R).",
+        "EN": "Ultimate ROM cleaner: sort by region, version, duplicates (1G1R).",
+        "ES": "Limpiador definitivo de ROMs: ordenar por región, versión, duplicados.",
+        "IT": "Pulitore definitivo di ROM: ordina per regione, versione, duplicati.",
+        "DE": "Ultimativer ROM-Reiniger: Sortieren nach Region, Version, Duplikaten.",
+        "PT": "Limpador definitivo de ROMs: ordenar por região, versão, duplicatas."
+    },
+    "PatternCopier": {
+        "FR": "Copie complexe de fichiers préservant la structure des dossiers.",
+        "EN": "Complex file copying preserving directory structure.",
+        "ES": "Copia compleja de archivos preservando la estructura de directorios.",
+        "IT": "Copia complessa di file preservando la struttura delle directory.",
+        "DE": "Komplexes Dateikopieren unter Beibehaltung der Verzeichnisstruktur.",
+        "PT": "Cópia complexa de arquivos preservando a estrutura de diretórios."
+    },
+    "PackWrapper": {
+        "FR": "Créez des patchs/mises à jour en comparant deux dossiers.",
+        "EN": "Create patches/updates by comparing two folders.",
+        "ES": "Cree parches/actualizaciones comparando dos carpetas.",
+        "IT": "Crea patch/aggiornamenti confrontando due cartelle.",
+        "DE": "Erstellen Sie Patches/Updates durch Vergleich zweier Ordner.",
+        "PT": "Crie patches/atualizações comparando duas pastas."
+    }
+}
+
+# Liste des scripts avec descriptions (valeurs par défaut/clés pour la traduction)
 scripts = [
-    {"name": "AssistedGamelist", "description": "(Retrobat) Gère et enrichit les listes de jeux XML.", "icon": get_path(os.path.join("assets", "AssistedGamelist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "AssistedGamelist.txt"))},
-    {"name": "BGBackup", "description": "(Retrobat) Sauvegarde les fichiers gamelist.xml.", "icon": get_path(os.path.join("assets", "BGBackup.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "BGBackup.txt"))},
-    {"name": "CHDManager", "description": "Convertit et vérifie les fichiers CHD (MAME).", "icon": get_path(os.path.join("assets", "CHDManager.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CHDManager.txt"))},
-    {"name": "CollectionBuilder", "description": "(Core) Crée des collections de jeux par mots-clés.", "icon": get_path(os.path.join("assets", "CollectionBuilder.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CollectionBuilder.txt"))},
-    {"name": "CollectionExtractor", "description": "(Core) Extrait des collections de jeux spécifiques.", "icon": get_path(os.path.join("assets", "CollectionExtractor.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CollectionExtractor.txt"))},
-    {"name": "LongPaths", "description": "Active les chemins longs sur Windows (Registry).", "icon": get_path(os.path.join("assets", "LongPaths.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "LongPaths.txt"))},
-    {"name": "FolderToTxt", "description": "Crée des fichiers TXT à partir des noms de dossiers.", "icon": get_path(os.path.join("assets", "FolderToTxt.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "FolderToTxt.txt"))},
-    {"name": "FolderToZip", "description": "Compresse des fichiers de jeux en ZIP.", "icon": get_path(os.path.join("assets", "FolderToZip.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "FolderToZip.txt"))},
-    {"name": "GameBatch", "description": "Génère des fichiers batch pour lancer des jeux PC.", "icon": get_path(os.path.join("assets", "GameBatch.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "GameBatch.txt"))},
-    {"name": "EmptyGen", "description": "Génère des fichiers vides dans des sous-dossiers.", "icon": get_path(os.path.join("assets", "EmptyGen.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "EmptyGen.txt"))},
-    {"name": "GameRemoval", "description": "(Core) Supprime des jeux et leurs médias associés.", "icon": get_path(os.path.join("assets", "GameRemoval.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "GameRemoval.txt"))},
-    {"name": "GamelistHyperlist", "description": "(Core) Convertit gamelist.xml en hyperlist.xml.", "icon": get_path(os.path.join("assets", "GamelistHyperlist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "GamelistHyperlist.txt"))},
-    {"name": "HyperlistGamelist", "description": "(Retrobat) Convertit hyperlist.xml en gamelist.xml.", "icon": get_path(os.path.join("assets", "HyperlistGamelist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "HyperlistGamelist.txt"))},
-    {"name": "InstallDeps", "description": "Installe les dépendances système (DirectX, VC++).", "icon": get_path(os.path.join("assets", "InstallDeps.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "InstallDeps.txt"))},
-    {"name": "ListFilesSimple", "description": "Liste les fichiers d'un répertoire (Simple).", "icon": get_path(os.path.join("assets", "ListFilesSimple.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "ListFilesSimple.txt"))},
-    {"name": "ListFilesWin", "description": "Liste fichiers et dossiers (Détails Windows).", "icon": get_path(os.path.join("assets", "ListFilesWin.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "ListFilesWin.txt"))},
-    {"name": "MaxCSO", "description": "Compresse des fichiers ISO en CSO (MaxCSO).", "icon": get_path(os.path.join("assets", "MaxCSO.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "MaxCSO.txt"))},
-    {"name": "MediaOrphans", "description": "(Core) Détecte et déplace les médias orphelins.", "icon": get_path(os.path.join("assets", "MediaOrphans.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "MediaOrphans.txt"))},
-    {"name": "FolderCleaner", "description": "Supprime les dossiers vides récursivement.", "icon": get_path(os.path.join("assets", "FolderCleaner.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "FolderCleaner.txt"))},
-    {"name": "StoryHyperlist", "description": "(Core) Intègre des story dans des hyperlist.xml.", "icon": get_path(os.path.join("assets", "StoryHyperlist.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "StoryHyperlist.txt"))},
-    {"name": "DolphinConvert", "description": "Convertit entre formats RVZ et ISO (Dolphin).", "icon": get_path(os.path.join("assets", "DolphinConvert.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "DolphinConvert.txt"))},
-    {"name": "StoryCleaner", "description": "Nettoie les fichiers texte non ASCII.", "icon": get_path(os.path.join("assets", "StoryCleaner.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "StoryCleaner.txt"))},
-    {"name": "M3UCreator", "description": "Crée des playlists M3U pour le multi-disque.", "icon": get_path(os.path.join("assets", "M3UCreator.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "M3UCreator.txt"))},
-    {"name": "CoverExtractor", "description": "Extrait la première image des CBZ, CBR, PDF.", "icon": get_path(os.path.join("assets", "CoverExtractor.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CoverExtractor.txt"))},
-    {"name": "CBZKiller", "description": "Convertisseur PDF/CBR vers CBZ.", "icon": get_path(os.path.join("assets", "CBZKiller.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "CBZKiller.txt"))},
-    {"name": "VideoConvert", "description": "Convertit/Rogne des vidéos par lot (FFmpeg).", "icon": get_path(os.path.join("assets", "VideoConvert.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "VideoConvert.txt"))},
-    {"name": "YTDownloader", "description": "Télécharge des vidéos/audio Youtube (yt-dlp).", "icon": get_path(os.path.join("assets", "YTDownloader.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "YTDownloader.txt"))},
-    {"name": "ImageConvert", "description": "Convertit des images par lot.", "icon": get_path(os.path.join("assets", "ImageConvert.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "ImageConvert.txt"))},
-    {"name": "SystemsExtractor", "description": "Extrait les systèmes uniques (EmulationStation).", "icon": get_path(os.path.join("assets", "SystemsExtractor.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "SystemsExtractor.txt"))},
-    {"name": "UniversalRomCleaner", "description": "Nettoie et trie vos ROMs (1G1R, Régions).", "icon": get_path(os.path.join("assets", "UniversalRomCleaner.png")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "UniversalRomCleaner.txt"))},
-    {"name": "PatternCopier", "description": "Copie des fichiers selon un modèle et une structure relative.", "icon": get_path(os.path.join("assets", "PatternCopier.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "PatternCopier.txt"))},
-    {"name": "PackWrapper", "description": "Crée des packs de mise à jour (ZIP/SFX) par comparaison.", "icon": get_path(os.path.join("assets", "PackWrapper.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "PackWrapper.txt"))},
+    {"name": "AssistedGamelist", "icon": get_path(os.path.join("assets", "AssistedGamelist.ico"))},
+    {"name": "BGBackup", "icon": get_path(os.path.join("assets", "BGBackup.ico"))},
+    {"name": "CHDManager", "icon": get_path(os.path.join("assets", "CHDManager.ico"))},
+    {"name": "CollectionBuilder", "icon": get_path(os.path.join("assets", "CollectionBuilder.ico"))},
+    {"name": "CollectionExtractor", "icon": get_path(os.path.join("assets", "CollectionExtractor.ico"))},
+    {"name": "LongPaths", "icon": get_path(os.path.join("assets", "LongPaths.ico"))},
+    {"name": "FolderToTxt", "icon": get_path(os.path.join("assets", "FolderToTxt.ico"))},
+    {"name": "FolderToZip", "icon": get_path(os.path.join("assets", "FolderToZip.ico"))},
+    {"name": "GameBatch", "icon": get_path(os.path.join("assets", "GameBatch.ico"))},
+    {"name": "EmptyGen", "icon": get_path(os.path.join("assets", "EmptyGen.ico"))},
+    {"name": "GameRemoval", "icon": get_path(os.path.join("assets", "GameRemoval.ico"))},
+    {"name": "GamelistHyperlist", "icon": get_path(os.path.join("assets", "GamelistHyperlist.ico"))},
+    {"name": "HyperlistGamelist", "icon": get_path(os.path.join("assets", "HyperlistGamelist.ico"))},
+    {"name": "InstallDeps", "icon": get_path(os.path.join("assets", "InstallDeps.ico"))},
+    {"name": "ListFilesSimple", "icon": get_path(os.path.join("assets", "ListFilesSimple.ico"))},
+    {"name": "ListFilesWin", "icon": get_path(os.path.join("assets", "ListFilesWin.ico"))},
+    {"name": "MaxCSO", "icon": get_path(os.path.join("assets", "MaxCSO.ico"))},
+    {"name": "MediaOrphans", "icon": get_path(os.path.join("assets", "MediaOrphans.ico"))},
+    {"name": "FolderCleaner", "icon": get_path(os.path.join("assets", "FolderCleaner.ico"))},
+    {"name": "StoryHyperlist", "icon": get_path(os.path.join("assets", "StoryHyperlist.ico"))},
+    {"name": "DolphinConvert", "icon": get_path(os.path.join("assets", "DolphinConvert.ico"))},
+    {"name": "StoryCleaner", "icon": get_path(os.path.join("assets", "StoryCleaner.ico"))},
+    {"name": "M3UCreator", "icon": get_path(os.path.join("assets", "M3UCreator.ico"))},
+    {"name": "CoverExtractor", "icon": get_path(os.path.join("assets", "CoverExtractor.ico"))},
+    {"name": "CBZKiller", "icon": get_path(os.path.join("assets", "CBZKiller.ico"))},
+    {"name": "VideoConvert", "icon": get_path(os.path.join("assets", "VideoConvert.ico"))},
+    {"name": "YTDownloader", "icon": get_path(os.path.join("assets", "YTDownloader.ico"))},
+    {"name": "ImageConvert", "icon": get_path(os.path.join("assets", "ImageConvert.ico"))},
+    {"name": "SystemsExtractor", "icon": get_path(os.path.join("assets", "SystemsExtractor.ico"))},
+    {"name": "UniversalRomCleaner", "icon": get_path(os.path.join("assets", "UniversalRomCleaner.png"))},
+    {"name": "PatternCopier", "icon": get_path(os.path.join("assets", "PatternCopier.ico"))},
+    {"name": "PackWrapper", "icon": get_path(os.path.join("assets", "PackWrapper.ico"))},
 ]
 
 
@@ -157,15 +565,12 @@ def open_readme(readme_file):
         if os.path.exists(readme_file):
             with open(readme_file, "r", encoding="utf-8") as file:
                 content = file.read()
-            # Utiliser messagebox directement si le custom modal n'est pas dispo dans ce scope,
-            # mais ici on est dans main.py, donc on a accès à ReadmeWindow si on le déplace ou le rend global?
-            # En réalité, on appelle Application.open_custom_readme depuis l'instance. 
-            # Cette fonction open_readme est utilisée par legacy ou buttons ? 
-            # Dans Application.create_card, on utilise self.open_custom_readme.
-            # Cette fonction globale reste pour compatibilité ou fallback.
-            messagebox.showinfo("Lisez-moi", content)
+            # Utiliser messagebox directement si le custom modal n'est pas dispo dans ce scope
+            messagebox.showinfo(TRANSLATIONS.get(globals().get('CURRENT_LANG', 'FR'), TRANSLATIONS["FR"])["readme"], content)
         else:
-            messagebox.showwarning("Lisez-moi", f"Le fichier {readme_file} n'existe pas.")
+            lang = globals().get('CURRENT_LANG', 'FR')
+            msg = TRANSLATIONS.get(lang, TRANSLATIONS["FR"])["file_not_found"].format(readme_file)
+            messagebox.showwarning(TRANSLATIONS.get(lang, TRANSLATIONS["FR"])["readme"], msg)
     except Exception as e:
         messagebox.showerror("Erreur", f"Erreur lors de la lecture du fichier {readme_file} : {e}")
 
@@ -314,7 +719,7 @@ class Application(ctk.CTk):
 
         self.search_var = ctk.StringVar()
         self.search_var.trace("w", self.filter_scripts)
-        self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_var, width=300, placeholder_text="Nom ou description... (Ctrl+F)")
+        self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_var, width=300, placeholder_text=TRANSLATIONS["FR"]["search_placeholder"])
         self.search_entry.pack(side="left", padx=10, pady=10, fill="x", expand=True)
 
         self.clear_button = ctk.CTkButton(self.search_frame, text="✕", width=25, height=25, 
@@ -479,6 +884,27 @@ class Application(ctk.CTk):
         self.icon_cache = {}
         self.current_category = "Tout"
         self.search_query = ""
+        self.current_lang = "FR" # Langue par défaut
+        
+        # Injecter la variable globale pour les fonctions hors classe
+        global CURRENT_LANG
+        CURRENT_LANG = self.current_lang
+
+        # --- Initialization Safety ---
+        self.last_width = 1100
+        self.last_height = 720
+        self.visible_height = 720 # Default initialization to prevent AttributeError
+
+        # Load Readmes (Load early so descriptions are available)
+        self.readmes_data = {}
+        try:
+            readme_json_path = get_path(os.path.join("assets", "readmes.json"))
+            if os.path.exists(readme_json_path):
+                 with open(readme_json_path, "r", encoding="utf-8") as f:
+                     self.readmes_data = json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to load readmes.json: {e}")
+
 
         # --- Layout Principal ---
         self.grid_columnconfigure(1, weight=1)
@@ -504,9 +930,9 @@ class Application(ctk.CTk):
         
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
-        self.last_width = 1100
-        self.last_height = 720
-        
+    
+        # Select "Tout" category by default
+            
         # Select "Tout" category by default
         self.after(100, lambda: self.change_category("Tout"))
 
@@ -758,7 +1184,7 @@ class Application(ctk.CTk):
         self.content_container.grid_rowconfigure(1, weight=1)
         self.content_container.grid_columnconfigure(0, weight=1)
 
-        # --- Header : Recherche ---
+        # --- Header : Recherche & Language ---
         self.header_frame = ctk.CTkFrame(self.content_container, fg_color="transparent", height=50)
         self.header_frame.grid(row=0, column=0, sticky="ew", pady=(10, 10), padx=20)
         
@@ -766,54 +1192,166 @@ class Application(ctk.CTk):
         self.search_var.trace_add("write", self.on_search_change)
         
         self.search_entry = ctk.CTkEntry(self.header_frame, textvariable=self.search_var, 
-                                       placeholder_text="Rechercher...",
+                                       placeholder_text=TRANSLATIONS[self.current_lang]["search_placeholder"],
                                        border_color=self.COLOR_ACCENT_PRIMARY, border_width=1,
                                        fg_color="#1a1a1a")
         self.search_entry.pack(side="left", padx=(0, 10), fill="x", expand=True, ipady=5)
         
+        # Reset Button (X)
         self.clear_btn = ctk.CTkButton(self.header_frame, text="✕", width=40, fg_color="#1a1a1a", 
                                          border_width=1, border_color=self.COLOR_TEXT_SUB,
                                          hover_color="#333",
                                          command=self.clear_search)
-        self.clear_btn.pack(side="right")
+        self.clear_btn.pack(side="left", padx=(0, 10))
 
-        # --- Canvas ---
-        # bg="#1e1e1e" for the "Fond Opaque" requested
-        self.canvas = ctk.CTkCanvas(self.content_container, bg="#1e1e1e", highlightthickness=0)
+        # Language Selector
+        self.lang_var = ctk.StringVar(value="FR")
+        self.lang_menu = ctk.CTkOptionMenu(self.header_frame, values=["FR", "EN", "ES", "IT", "DE", "PT"],
+                                         command=self.change_language,
+                                         variable=self.lang_var,
+                                         width=70,
+                                         fg_color="#1a1a1a", button_color="#333",
+                                         button_hover_color="#444",
+                                         text_color="white")
+        self.lang_menu.pack(side="right")
+
+        # --- Canvas Area ---
+        # NOTE: bg color needs to be transparent-like or matching sidebar if needed, 
+        # but since we draw background image on canvas, it's fine.
+        # Actually in draw_background_on_canvas we assume self.canvas exists.
+        
+        self.canvas = ctk.CTkCanvas(self.content_container, bg="black", highlightthickness=0)
         self.canvas.grid(row=1, column=0, sticky="nsew")
         
-        self.scrollbar = ctk.CTkScrollbar(self.content_container, orientation="vertical", command=self.on_scrollbar_drag)
+        # Scrollbar with custom command to sync background
+        self.scrollbar = ctk.CTkScrollbar(self.content_container, orientation="vertical", command=self.scroll_yview)
         self.scrollbar.grid(row=1, column=1, sticky="ns")
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
         
-        # Scroll State
-        self.scroll_y = 0.0 # Current pixel offset (0 to -content_height)
-        self.content_height = 0
-        self.visible_height = 0
-        
-        # Bindings
         self.canvas.bind("<Configure>", self.on_canvas_configure)
+        
+        # Mousewheel binding
         self.canvas.bind_all("<MouseWheel>", self.on_mousewheel)
+
+    def scroll_yview(self, *args):
+        self.canvas.yview(*args)
+        self.update_background_position()
+
+    def update_background_position(self):
+        try:
+             # Reposition background to stay top-right relative to Viewport
+             y0 = self.canvas.canvasy(0)
+             canvas_width = self.last_width - 200
+             self.canvas.coords("bg", canvas_width, y0)
+        except: pass
+
+
 
     def on_canvas_configure(self, event):
         self.visible_height = event.height
         self.draw_background_on_canvas()
         self.update_scrollbar()
 
+    def change_language(self, new_lang):
+        """Change la langue de l'interface et rafraîchit l'affichage."""
+        logger.info(f"Changement de langue : {self.current_lang} -> {new_lang}")
+        self.current_lang = new_lang
+        global CURRENT_LANG
+        CURRENT_LANG = new_lang
+        
+        t = TRANSLATIONS[new_lang]
+        
+        # Mettre à jour les textes statiques
+        self.search_entry.configure(placeholder_text=t["search_placeholder"])
+        # Update search clear button ? No text there.
+        
+        # Update categories buttons
+        cat_keys = {
+            "Tout": "cat_all",
+            "Gestion des Jeux & ROMs": "cat_games",
+            "Métadonnées & Gamelists": "cat_metadata",
+            "Multimédia & Artworks": "cat_media",
+            "Organisation & Collections": "cat_org",
+            "Maintenance Système": "cat_sys"
+        }
+        
+        for original_cat, btn in self.category_buttons.items():
+            key = cat_keys.get(original_cat)
+            if key:
+                btn.configure(text=t[key])
+                
+        # Re-apply category selection to update button colors provided functionality remains same
+        # But we need to update self.current_category if it was a translated string?
+        # Actually logic uses original keys "Tout", etc. so we should KEEP original keys for logic
+        # and only update TEXT on buttons.
+        
+        # Rafraîchir la liste des scripts (descriptions)
+        self.filter_and_display()
+
+    # Removed misplaced header setup code from here
+        
+    def open_custom_readme(self, script):
+        """Ouvre le ReadME support multilingue via JSON."""
+        # Récupérer le contenu depuis le JSON chargé
+        script_readmes = self.readmes_data.get(script["name"], {})
+        
+        # Fallback priority: Current Lang -> EN -> FR -> First available -> Empty
+        content = script_readmes.get(self.current_lang)
+        if not content: content = script_readmes.get("EN")
+        if not content: content = script_readmes.get("FR")
+        
+        if not content:
+            # Fallback legacy file checking if JSON incomplete? 
+            # Or just show default message
+             content = "Readme non disponible / Readme not available."
+
+        # Titre de la fenêtre
+        readme_title = f"{script['name']} - ReadMe"
+        
+        # Couleurs du thème actuel
+        fg = self.COLOR_SIDEBAR_BG
+        txt = self.COLOR_TEXT_MAIN
+        acc = self.COLOR_ACCENT_PRIMARY
+        
+        # Icône du script
+        icon_path = None
+        possible_icon = get_path(os.path.join("assets", f"{script['name']}.ico"))
+        if os.path.exists(possible_icon):
+            icon_path = possible_icon
+            
+        # Créer la fenêtre
+        ReadmeWindow(self, readme_title, content, fg, txt, acc, icon_path)
+
+    def draw_card(self, script, x, y, w, h):
+        """Dessine une carte (mise à jour pour utiliser la traduction)."""
+        # Fond de carte
+        bg_color = self.COLOR_SIDEBAR_BG
+        border_color = self.COLOR_CARD_BORDER
+        
+        # Create a frame acting as the card
+        # Note: In a Canvas, we usually use create_window or draw primitives.
+        # But here logic was not fully shown in the view_file (it stopped at line 800).
+        # However, looking at the code I see `draw_card` logic was NOT in lines 1-800 usually?
+        # WAIT. The user code in `view_file` output stopped at line 800 but `draw_card` calls were inside `filter_and_display`.
+        # I need to know how `draw_card` is implemented currently or if I need to implement it.
+        # Since I can't see `draw_card` definition in the 1-800 lines (it was likely further down), 
+        # I MUST read the rest of the file first to properly override it or ensure I don't break it.
+        # BUT `filter_and_display` (lines 573-641) calls `self.draw_card(script, x, y, card_width, card_height)`.
+        # So `draw_card` must be defined after line 800.
+        pass # Placeholder logic for this chunk construction, see below explanation.
+
+
     def update_content_height(self, height):
         self.content_height = max(height, self.visible_height)
-        self.update_scrollbar()
-
+        # Update scrollregion to allow scrolling
+        self.canvas.configure(scrollregion=(0, 0, self.last_width, self.content_height))
+        # No need to manually call update_scrollbar if yscrollcommand is linked, 
+        # but CTkScrollbar might need it if not auto-updating.
+        # Actually standard tkinter canvas updates scrollbar automatically via yscrollcommand.
+        
     def update_scrollbar(self):
-        # Update scrollbar thumb based on self.scroll_y and self.content_height
-        if self.content_height <= self.visible_height:
-            self.scrollbar.set(0, 1)
-        else:
-            # Fraction visible
-            ratio = self.visible_height / self.content_height
-            # Start position (inverted logic because scroll_y is negative)
-            start = -self.scroll_y / self.content_height
-            end = start + ratio
-            self.scrollbar.set(start, end)
+        # Allow manual update if needed (e.g. on resize)
+        pass
 
     def on_scrollbar_drag(self, *args):
         # args can be ('moveto', 'float') or ('scroll', 'int', 'units')
@@ -832,27 +1370,11 @@ class Application(ctk.CTk):
             self.scroll_relative(step)
 
     def on_mousewheel(self, event):
-        # Windows: delta is usually +-120
-        delta = event.delta
-        self.scroll_relative(delta)
+        if self.content_height > self.visible_height:
+             self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+             self.update_background_position()
 
-    def scroll_relative(self, delta):
-        new_y = self.scroll_y + delta
-        self.scroll_absolute(new_y)
-        
-    def scroll_absolute(self, target_y):
-        # Clamp target_y
-        # Max scroll (negative) is visible_height - content_height
-        min_y = min(0, self.visible_height - self.content_height)
-        max_y = 0
-        
-        target_y = max(min_y, min(target_y, max_y))
-        
-        diff = target_y - self.scroll_y
-        if diff != 0:
-            self.canvas.move("content", 0, diff)
-            self.scroll_y = target_y
-            self.update_scrollbar()
+
 
     def draw_background_on_canvas(self):
         # Dessine le fond sur le Canvas, aligné à DROITE (NE)
@@ -866,8 +1388,9 @@ class Application(ctk.CTk):
                 # On veut que le bord droit de l'image (anchor=ne) soit au bord droit du Canvas.
                 
                 canvas_width = self.last_width - 200
+                y0 = self.canvas.canvasy(0) # Start at current top
                 if canvas_width > 0:
-                    self.canvas.create_image(canvas_width, 0, image=self.canvas_bg_photo, anchor="ne", tags="bg")
+                    self.canvas.create_image(canvas_width, y0, image=self.canvas_bg_photo, anchor="ne", tags="bg")
                     self.canvas.tag_lower("bg")
         except Exception as e:
             logger.error(f"Canvas BG Error: {e}")
@@ -892,30 +1415,24 @@ class Application(ctk.CTk):
         self.search_var.set("")
         self.search_entry.focus_set()
 
-    def open_custom_readme(self, title, readme_path, icon_path=None):
-        try:
-            content = "Fichier non trouvé."
-            if os.path.exists(readme_path):
-                with open(readme_path, "r", encoding="utf-8") as f:
-                    content = f.read()
-            ReadmeWindow(self, title, content, self.COLOR_SIDEBAR_BG, self.COLOR_TEXT_MAIN, self.COLOR_ACCENT_PRIMARY, icon_path=icon_path)
-        except Exception as e:
-            messagebox.showerror("Erreur", str(e))
-
+    # Removed duplicate open_custom_readme
+    
     def filter_and_display(self):
         self.canvas.delete("content") # Only delete scrollable content
-        # self.draw_background_on_canvas() # No need to redraw BG every filter
         
         # Reset Scroll
         self.scroll_y = 0
-        self.canvas.yview_moveto(0) # Reset native just in case
+        self.canvas.yview_moveto(0) 
+        self.update_background_position() 
         
         filtered = []
         for s in self.scripts:
             cat_match = (self.current_category == "Tout") or (s.get("category") == self.current_category)
             search_match = True
             if self.search_query:
-                tags = f"{s['name']} {s['description']} {s.get('category','')}".lower()
+                # Use translated description for search
+                desc = SCRIPT_DESCRIPTIONS.get(s["name"], {}).get(self.current_lang, "")
+                tags = f"{s['name']} {desc} {s.get('category','')}".lower()
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
@@ -942,7 +1459,7 @@ class Application(ctk.CTk):
         start_y = 20
         
         if not filtered:
-            msg = f"Aucun résultat pour '{self.search_query}'" if self.search_query else "Aucun outil dans cette catégorie."
+            msg = TRANSLATIONS[self.current_lang]["no_result"].format(self.search_query) if self.search_query else TRANSLATIONS[self.current_lang]["no_tool_cat"]
             self.canvas.create_text(400, 100, text=msg, fill="white", font=("Arial", 16), tags="content")
             return
 
@@ -991,7 +1508,8 @@ class Application(ctk.CTk):
                                 font=("Roboto Medium", 16), anchor="nw", tags="content")
         
         # Description
-        self.canvas.create_text(x + 70, y + 50, text=script["description"], fill=self.COLOR_TEXT_SUB,
+        desc = SCRIPT_DESCRIPTIONS.get(script["name"], {}).get(self.current_lang, "")
+        self.canvas.create_text(x + 70, y + 50, text=desc, fill=self.COLOR_TEXT_SUB,
                                 font=("Roboto", 12), anchor="nw", width=w-90, tags="content")
         
         # Buttons
@@ -1003,11 +1521,11 @@ class Application(ctk.CTk):
                                  fg_color="transparent", text_color=self.COLOR_ACCENT_PRIMARY, 
                                  border_width=1, border_color=self.COLOR_ACCENT_PRIMARY, 
                                  hover_color="#333",
-                                 command=lambda r=script.get("readme", ""), n=script["name"], i=script.get("icon", ""): self.open_custom_readme(f"Aide - {n}", r, icon_path=i))
+                                 command=lambda s=script: self.open_custom_readme(s))
         
         self.canvas.create_window(x + 20, y + h - 45, window=readme_btn, anchor="nw", tags="content")
         
-        launch_btn = ctk.CTkButton(self.canvas, text="Ouvrir", height=30, width=w-70,
+        launch_btn = ctk.CTkButton(self.canvas, text=TRANSLATIONS[self.current_lang]["open"], height=30, width=w-70,
                                  fg_color="transparent", text_color=self.COLOR_ACCENT_PRIMARY,
                                  border_width=1, border_color=self.COLOR_ACCENT_PRIMARY,
                                  hover_color="#333333",

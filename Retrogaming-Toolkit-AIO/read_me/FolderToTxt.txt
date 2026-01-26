@@ -1,2 +1,0 @@
-Ce module est conçu pour générer rapidement des fichiers texte vides basés sur le nom de vos fichiers existants. Il vous suffit d'entrer une extension spécifique (comme .mp4 ou .iso), et l'outil créera automatiquement un fichier .txt correspondant pour chaque élément trouvé.
-C'est l'utilitaire parfait pour préparer le terrain avant d'ajouter des descriptions manuelles ou pour satisfaire les besoins de certains frontends qui exigent des fichiers texte compagnons. Fini le copier-coller fastidieux : obtenez des noms de fichiers parfaitement identiques en quelques secondes.

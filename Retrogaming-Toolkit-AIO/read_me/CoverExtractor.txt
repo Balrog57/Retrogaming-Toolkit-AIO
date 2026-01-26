@@ -1,2 +1,0 @@
-Donnez instantanément un visage à vos collections de bandes dessinées et magazines numériques. Ce module parcourt vos dossiers pour générer automatiquement les jaquettes de vos fichiers PDF, CBZ et CBR.
-Il extrait intelligemment la première page ou image de chaque fichier pour créer une miniature PNG de haute qualité. C'est l'outil parfait pour illustrer visuellement vos listes de lecture dans votre interface de jeu ou votre explorateur de fichiers, sans avoir à chercher ou télécharger manuellement les couvertures une par une.

@@ -1,2 +1,0 @@
-Besoin d'un inventaire rapide de votre bibliothèque ? Ce module génère instantanément une liste textuelle claire et lisible de tous les fichiers présents dans un dossier et ses sous-répertoires.
-Idéal pour partager la liste de vos ROMs, vérifier une arborescence ou archiver le contenu d'un disque dur, il crée un fichier Liste.txt propre en filtrant automatiquement les fichiers parasites (comme le script lui-même). C'est l'outil de référencement minimaliste et efficace pour garder une trace écrite de votre collection en un seul clic.

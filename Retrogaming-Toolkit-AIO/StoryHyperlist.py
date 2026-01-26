@@ -34,7 +34,8 @@ def merge(xml_path, story_dir):
                     se.text = content
                     count += 1
         
-        out = f"Updated_{os.path.basename(xml_path)}"
+        out = os.path.join(os.path.dirname(xml_path), f"Updated_{os.path.basename(xml_path)}")
+        ET.indent(tree, space="    ", level=0)
         tree.write(out, encoding="utf-8", xml_declaration=True)
         messagebox.showinfo("Succès", f"{count} mis à jour.\nSauvé: {out}")
         

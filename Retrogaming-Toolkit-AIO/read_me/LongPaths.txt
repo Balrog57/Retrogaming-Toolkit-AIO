@@ -1,2 +1,0 @@
-Fini les erreurs bloquantes lors de la copie ou de l'extraction de fichiers à cause de noms "trop longs" ! Par défaut, Windows limite les chemins d'accès à 260 caractères, ce qui pose souvent problème avec les arborescences complexes des packs de ROMs.
-Ce petit utilitaire lève cette restriction système en un instant. Il détecte automatiquement les droits nécessaires et modifie la configuration de Windows pour autoriser les chemins étendus sans intervention manuelle complexe. Une solution "clic et oublie" indispensable pour manipuler vos bibliothèques géantes sans contrainte.

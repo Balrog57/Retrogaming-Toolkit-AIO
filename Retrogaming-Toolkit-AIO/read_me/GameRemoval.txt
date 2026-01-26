@@ -1,2 +1,0 @@
-Faites un régime minceur à votre collection en toute sécurité. Ce module permet de supprimer proprement les jeux dont vous ne voulez plus, mais il va bien plus loin qu'un simple clic droit "Supprimer".
-L'outil scanne et élimine non seulement le fichier du jeu (ROM), mais traque également tous les médias associés (images, logos, vidéos) dispersés dans vos dossiers d'artworks. C'est la garantie d'une désinstallation propre qui ne laisse aucun "fichier orphelin" inutile derrière elle, tout en demandant toujours une confirmation pour éviter les accidents.

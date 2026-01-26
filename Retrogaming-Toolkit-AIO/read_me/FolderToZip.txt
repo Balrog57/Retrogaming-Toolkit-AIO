@@ -1,2 +1,0 @@
-Optimisez drastiquement l'espace de stockage de votre collection en un clin d'œil. Ce module parcourt vos dossiers de ROMs (NES, BIN, ISO, etc.) et compresse chaque jeu individuellement au format ZIP standard, lisible par la majorité des émulateurs.
-Le processus est entièrement automatisé : l'outil archive le fichier et supprime l'original volumineux dans la foulée pour faire place nette. C'est la solution la plus rapide pour "zipper" des dossiers entiers de jeux décompressés sans avoir à répéter la manipulation fichier par fichier.

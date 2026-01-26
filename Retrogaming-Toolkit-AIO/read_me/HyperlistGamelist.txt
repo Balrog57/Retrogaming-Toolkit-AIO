@@ -1,2 +1,0 @@
-Faites le chemin inverse et migrez vos bases de données Hyperspin vers RetroBat ou EmulationStation sans effort. Ce module convertit vos fichiers hyperlist.xml en gamelist.xml standards, rendant vos anciennes listes compatibles avec les interfaces modernes.
-Il ne se contente pas de copier les données : il reformate les dates, recalcule les notes et génère les chemins d'accès corrects en vous laissant définir l'extension de vos ROMs (zip, 7z, iso...). C'est la clé pour récupérer vos métadonnées existantes sans devoir tout "rescraper" depuis zéro.
