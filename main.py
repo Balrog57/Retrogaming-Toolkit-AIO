@@ -499,6 +499,14 @@ class Application(ctk.CTk):
         # Shortcuts
         self.bind("<Control-f>", lambda event: self.search_entry.focus_set())
         self.bind("<Escape>", lambda event: self.clear_search())
+
+        # Scrolling Shortcuts
+        self.bind("<Up>", self.on_arrow_up)
+        self.bind("<Down>", self.on_arrow_down)
+        self.bind("<Prior>", lambda event: self.scroll_relative(360)) # Page Up
+        self.bind("<Next>", lambda event: self.scroll_relative(-360)) # Page Down
+        self.bind("<Home>", lambda event: self.scroll_absolute(0))
+        self.bind("<End>", lambda event: self.scroll_absolute(-self.content_height))
         
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
@@ -764,7 +772,7 @@ class Application(ctk.CTk):
         self.search_var.trace_add("write", self.on_search_change)
         
         self.search_entry = ctk.CTkEntry(self.header_frame, textvariable=self.search_var, 
-                                       placeholder_text="Rechercher...",
+                                       placeholder_text="Rechercher... (Ctrl+F)",
                                        border_color=self.COLOR_ACCENT_PRIMARY, border_width=1,
                                        fg_color="#1a1a1a")
         self.search_entry.pack(side="left", padx=(0, 10), fill="x", expand=True, ipady=5)
@@ -851,6 +859,14 @@ class Application(ctk.CTk):
             self.canvas.move("content", 0, diff)
             self.scroll_y = target_y
             self.update_scrollbar()
+
+    def on_arrow_up(self, event):
+        if event.widget.winfo_class() != "Entry":
+            self.scroll_relative(120)
+
+    def on_arrow_down(self, event):
+        if event.widget.winfo_class() != "Entry":
+            self.scroll_relative(-120)
 
     def draw_background_on_canvas(self):
         # Dessine le fond sur le Canvas, aligné à DROITE (NE)
