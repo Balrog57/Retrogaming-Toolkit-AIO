@@ -111,7 +111,8 @@ TRANSLATIONS = {
         "no_tool_cat": "Aucun outil dans cette catégorie.",
         "launch_module": "Lancement du module : {}",
         "error_exec": "Erreur lors de l'exécution du module {}: {}",
-        "open": "Ouvrir"
+        "open": "Ouvrir",
+        "cat_fav": "Favoris"
     },
     "EN": {
         "search_label": "Search:",
@@ -135,7 +136,8 @@ TRANSLATIONS = {
         "no_tool_cat": "No tools in this category.",
         "launch_module": "Launching module: {}",
         "error_exec": "Error executing module {}: {}",
-        "open": "Open"
+        "open": "Open",
+        "cat_fav": "Favorites"
     },
     "ES": {
         "search_label": "Buscar:",
@@ -159,7 +161,8 @@ TRANSLATIONS = {
         "no_tool_cat": "No hay herramientas en esta categoría.",
         "launch_module": "Lanzando módulo: {}",
         "error_exec": "Error al ejecutar el módulo {}: {}",
-        "open": "Abrir"
+        "open": "Abrir",
+        "cat_fav": "Favoritos"
     },
     "IT": {
         "search_label": "Cerca:",
@@ -183,7 +186,8 @@ TRANSLATIONS = {
         "no_tool_cat": "Nessuno strumento in questa categoria.",
         "launch_module": "Avvio modulo: {}",
         "error_exec": "Errore durante l'esecuzione del modulo {}: {}",
-        "open": "Apri"
+        "open": "Apri",
+        "cat_fav": "Preferiti"
     },
     "DE": {
         "search_label": "Suchen:",
@@ -207,7 +211,8 @@ TRANSLATIONS = {
         "no_tool_cat": "Keine Werkzeuge in dieser Kategorie.",
         "launch_module": "Modul wird gestartet: {}",
         "error_exec": "Fehler beim Ausführen des Moduls {}: {}",
-        "open": "Öffnen"
+        "open": "Öffnen",
+        "cat_fav": "Favoriten"
     },
     "PT": {
         "search_label": "Pesquisar:",
@@ -231,7 +236,8 @@ TRANSLATIONS = {
         "no_tool_cat": "Nenhuma ferramenta nesta categoria.",
         "launch_module": "Iniciando módulo: {}",
         "error_exec": "Erro ao executar o módulo {}: {}",
-        "open": "Abrir"
+        "open": "Abrir",
+        "cat_fav": "Favoritos"
     }
 }
 
@@ -689,44 +695,6 @@ def launch_update():
             logger.error(f"Erreur lors du lancement de la mise à jour : {e}")
             messagebox.showerror("Erreur", f"Erreur lors du lancement de la mise à jour : {e}")
 
-class Application(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        self.title("Lanceur de Modules - Retrogaming-Toolkit-AIO")
-        try:
-            icon_path = get_path(os.path.join("assets", "Retrogaming-Toolkit-AIO.ico"))
-            self.iconbitmap(icon_path)
-        except Exception as e:
-            logger.error(f"Erreur lors de la définition de l'icône de l'application : {e}")
-        self.geometry("800x400")  # Taille initiale
-
-        self.scripts = scripts
-        self.filtered_scripts = list(self.scripts)  # Initialiser avec tous les scripts
-        self.page = 0
-        self.scripts_per_page = 10
-        self.min_window_height = 400
-        self.preferred_width = 800
-
-        self.icon_cache = {}
-        self.favorites = self.load_favorites()
-
-        # Barre de recherche
-        self.search_frame = ctk.CTkFrame(self, corner_radius=10)
-        self.search_frame.pack(fill="x", padx=10, pady=(10, 0))
-
-        self.search_label = ctk.CTkLabel(self.search_frame, text="Rechercher :", font=("Arial", 14))
-        self.search_label.pack(side="left", padx=10)
-
-        self.search_var = ctk.StringVar()
-        self.search_var.trace("w", self.filter_scripts)
-        self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_var, width=300, placeholder_text=TRANSLATIONS["FR"]["search_placeholder"])
-        self.search_entry.pack(side="left", padx=10, pady=10, fill="x", expand=True)
-
-        self.clear_button = ctk.CTkButton(self.search_frame, text="✕", width=25, height=25, 
-                                          command=self.clear_search, 
-                                          fg_color="transparent", hover_color=("gray70", "gray30"), text_color="gray")
-
-
 # Mapping des scripts par catégorie (Nouvelle classification)
 # Mapping des scripts par catégorie (Nouvelle classification complète)
 # Mapping des scripts par catégorie (Refonte Complète)
@@ -881,6 +849,7 @@ class Application(ctk.CTk):
             # Sécurité
             s["category"] = SCRIPT_CATEGORIES.get(s["name"], "Organisation & Collections")
             
+        self.favorites = self.load_favorites()
         self.icon_cache = {}
         self.current_category = "Tout"
         self.search_query = ""
@@ -935,6 +904,32 @@ class Application(ctk.CTk):
             
         # Select "Tout" category by default
         self.after(100, lambda: self.change_category("Tout"))
+
+    def load_favorites(self):
+        try:
+            fav_file = os.path.join(app_data_dir, 'favorites.json')
+            if os.path.exists(fav_file):
+                with open(fav_file, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading favorites: {e}")
+        return []
+
+    def save_favorites(self):
+        try:
+            fav_file = os.path.join(app_data_dir, 'favorites.json')
+            with open(fav_file, 'w') as f:
+                json.dump(self.favorites, f)
+        except Exception as e:
+            logger.error(f"Error saving favorites: {e}")
+
+    def toggle_favorite(self, script_name):
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.append(script_name)
+        self.save_favorites()
+        self.filter_and_display()
 
     def on_closing(self):
         """Arrêter proprement l'application (radio incluse)."""
@@ -996,74 +991,6 @@ class Application(ctk.CTk):
 
     # ... setup_background ...
 
-    def filter_and_display(self):
-        self.canvas.delete("content") # Only delete scrollable content
-        
-        # Reset Scroll
-        self.scroll_y = 0
-        self.canvas.yview_moveto(0) 
-        
-        filtered = []
-        for s in self.scripts:
-            cat_match = (self.current_category == "Tout") or (s.get("category") == self.current_category)
-            search_match = True
-            if self.search_query:
-                tags = f"{s['name']} {s['description']} {s.get('category','')}".lower()
-                if self.search_query not in tags: search_match = False
-            if cat_match and search_match: filtered.append(s)
-        
-        filtered.sort(key=lambda x: x["name"])
-
-        # Layout sorting - FLUID 2 COLUMNS
-        # Force 2 columns always
-        col_count = 2
-        
-        # Determine available width
-        pad_x = 20
-        pad_y = 20
-        start_y = 20
-        
-        # Width available for content is Window Width - Sidebar (200)
-        # OR self.canvas.winfo_width()
-        canvas_w = self.canvas.winfo_width()
-        if canvas_w < 100: canvas_w = self.last_width - 200 # Fallback
-        
-        # Adjust calculations
-        # content_width = canvas_w
-        # margins (left/right) = pad_x
-        # gap between cols = pad_x
-        # total_width = 2 * card_width + 1 * pad_x + 2 * pad_x (margins)
-        # card_width = (canvas_w - 3 * pad_x) / 2
-        
-        available_w = canvas_w - (3 * pad_x) # 2 outer margins + 1 inner gap
-        card_width = int(available_w // 2)
-        
-        # Safety min width
-        if card_width < 200: card_width = 200
-        
-        card_height = 140 # Keep height fixed for consistency
-
-        # Centrage / Padding
-        start_x = pad_x # Left margin
-        
-        if not filtered:
-            msg = f"Aucun résultat pour '{self.search_query}'" if self.search_query else "Aucun outil dans cette catégorie."
-            self.canvas.create_text(canvas_w // 2, 100, text=msg, fill="white", font=("Arial", 16), tags="content")
-            return
-
-        for idx, script in enumerate(filtered):
-            row = idx // col_count
-            col = idx % col_count
-            
-            x = start_x + col * (card_width + pad_x)
-            y = start_y + row * (card_height + pad_y)
-            
-            self.draw_card(script, x, y, card_width, card_height)
-
-        # Calculate Total Height
-        total_rows = (len(filtered) + col_count - 1) // col_count
-        content_total_h = start_y + total_rows * (card_height + pad_y) + 50 # padding bottom
-        self.update_content_height(content_total_h)
 
     def setup_background(self):
         """Configure l'image de fond Sakura (Globale)."""
@@ -1110,6 +1037,7 @@ class Application(ctk.CTk):
         self.category_buttons = {}
         categories = [
             "Tout",
+            "Favoris",
             "Gestion des Jeux & ROMs",
             "Métadonnées & Gamelists",
             "Multimédia & Artworks",
@@ -1268,6 +1196,7 @@ class Application(ctk.CTk):
         # Update categories buttons
         cat_keys = {
             "Tout": "cat_all",
+            "Favoris": "cat_fav",
             "Gestion des Jeux & ROMs": "cat_games",
             "Métadonnées & Gamelists": "cat_metadata",
             "Multimédia & Artworks": "cat_media",
@@ -1322,23 +1251,6 @@ class Application(ctk.CTk):
         # Créer la fenêtre
         ReadmeWindow(self, readme_title, content, fg, txt, acc, icon_path)
 
-    def draw_card(self, script, x, y, w, h):
-        """Dessine une carte (mise à jour pour utiliser la traduction)."""
-        # Fond de carte
-        bg_color = self.COLOR_SIDEBAR_BG
-        border_color = self.COLOR_CARD_BORDER
-        
-        # Create a frame acting as the card
-        # Note: In a Canvas, we usually use create_window or draw primitives.
-        # But here logic was not fully shown in the view_file (it stopped at line 800).
-        # However, looking at the code I see `draw_card` logic was NOT in lines 1-800 usually?
-        # WAIT. The user code in `view_file` output stopped at line 800 but `draw_card` calls were inside `filter_and_display`.
-        # I need to know how `draw_card` is implemented currently or if I need to implement it.
-        # Since I can't see `draw_card` definition in the 1-800 lines (it was likely further down), 
-        # I MUST read the rest of the file first to properly override it or ensure I don't break it.
-        # BUT `filter_and_display` (lines 573-641) calls `self.draw_card(script, x, y, card_width, card_height)`.
-        # So `draw_card` must be defined after line 800.
-        pass # Placeholder logic for this chunk construction, see below explanation.
 
 
     def update_content_height(self, height):
@@ -1428,6 +1340,9 @@ class Application(ctk.CTk):
         filtered = []
         for s in self.scripts:
             cat_match = (self.current_category == "Tout") or (s.get("category") == self.current_category)
+            if self.current_category == "Favoris":
+                cat_match = s["name"] in self.favorites
+
             search_match = True
             if self.search_query:
                 # Use translated description for search
@@ -1436,7 +1351,8 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        # Sort favorites first, then by name
+        filtered.sort(key=lambda x: (x["name"] not in self.favorites, x["name"]))
 
         # Layout sorting
         col_count = 2
@@ -1512,6 +1428,19 @@ class Application(ctk.CTk):
         self.canvas.create_text(x + 70, y + 50, text=desc, fill=self.COLOR_TEXT_SUB,
                                 font=("Roboto", 12), anchor="nw", width=w-90, tags="content")
         
+        # Favorite Button
+        is_fav = script["name"] in self.favorites
+        fav_char = "★" if is_fav else "☆"
+        fav_color = "#FFD700" if is_fav else "gray" # Gold if fav
+
+        fav_btn = ctk.CTkButton(self.canvas, text=fav_char, width=30, height=30,
+                                 fg_color="transparent", text_color=fav_color,
+                                 font=("Arial", 20),
+                                 hover_color="#333",
+                                 command=lambda s=script["name"]: self.toggle_favorite(s))
+
+        self.canvas.create_window(x + w - 40, y + 20, window=fav_btn, anchor="ne", tags="content")
+
         # Buttons
         # Note: Canvas windows move with canvas.move if they are on the canvas!
         # But we need to make sure we create_window with tags="content"? 
