@@ -53,7 +53,7 @@ except ImportError:
     utils = None
     theme = None
 
-VERSION = "3.0.9"
+VERSION = "3.0.10"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')
@@ -119,6 +119,7 @@ scripts = [
     {"name": "ImageConvert", "description": "Convertit des images par lot.", "icon": get_path(os.path.join("assets", "ImageConvert.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "ImageConvert.txt"))},
     {"name": "SystemsExtractor", "description": "Extrait les systèmes uniques (EmulationStation).", "icon": get_path(os.path.join("assets", "SystemsExtractor.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "SystemsExtractor.txt"))},
     {"name": "UniversalRomCleaner", "description": "Nettoie et trie vos ROMs (1G1R, Régions).", "icon": get_path(os.path.join("assets", "UniversalRomCleaner.png")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "UniversalRomCleaner.txt"))},
+    {"name": "PatternCopier", "description": "Copie des fichiers selon un modèle et une structure relative.", "icon": get_path(os.path.join("assets", "PatternCopier.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "PatternCopier.txt"))},
     {"name": "PackWrapper", "description": "Crée des packs de mise à jour (ZIP/SFX) par comparaison.", "icon": get_path(os.path.join("assets", "PackWrapper.ico")), "readme": get_path(os.path.join("Retrogaming-Toolkit-AIO", "read_me", "PackWrapper.txt"))},
 ]
 
@@ -358,6 +359,7 @@ SCRIPT_CATEGORIES = {
     "FolderCleaner": "Organisation & Collections",
     "FolderToTxt": "Organisation & Collections",
     "EmptyGen": "Organisation & Collections",
+    "PatternCopier": "Organisation & Collections",
     "PackWrapper": "Organisation & Collections",
 
     # Maintenance Système

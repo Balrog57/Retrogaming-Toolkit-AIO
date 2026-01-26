@@ -139,6 +139,10 @@ Structurez votre ludothèque et créez des compilations thématiques.
     * Crée des packs de mise à jour/différence (ZIP ou EXE SFX) en comparant votre version modifiée à l'originale.
     * Gère intelligemment les structures Retrobat et RetroFE (séparation système/contenu).
     * Idéal pour partager vos thèmes ou configurations sans redistribuer tout le système.
+* **📋 PatternCopier :**
+    * Copie intelligente de fichiers basée sur un modèle (fichier témoin).
+    * Préserve l'arborescence relative (idéal pour extraire des assets spécifiques comme les artworks).
+    * Interface graphique avec suivi de progression.
 
 ### 🛠️ Maintenance Système
 Outils essentiels pour un environnement Windows sain.

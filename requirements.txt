@@ -8,7 +8,6 @@ lxml
 pygame-ce
 pyperclip
 
-pytubefix
 pymupdf
 openai
 pyinstaller
@@ -17,5 +16,4 @@ imageio-ffmpeg
 
 certifi
 
-urllib3<2.3
 python-vlc

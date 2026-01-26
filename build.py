@@ -34,7 +34,6 @@ def build():
 
     hidden_imports.append("yt_dlp")
     hidden_imports.append("imageio_ffmpeg")
-    hidden_imports.append("pytubefix")
     hidden_imports.append("openai")
     hidden_imports.append("fitz") # PyMuPDF
     hidden_imports.append("lxml")
