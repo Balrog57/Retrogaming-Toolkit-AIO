@@ -1,0 +1,1 @@
+## 2026-01-26 - [Thread Safety / Temp Files] **Erreur :** Race Condition sur fichiers temporaires **Cause :** Utilisation de chemins relatifs hardcodés ("temp_ext_cbr") dans des threads concurrents. **Prévention :** Toujours utiliser `tempfile.TemporaryDirectory()` ou `tempfile.NamedTemporaryFile()` pour garantir l'unicité des chemins dans un contexte multi-thread.

@@ -139,15 +139,12 @@ class PDFCBRtoCBZConverter(ctk.CTk):
     def convert_cbr(self, cbr, cbz):
         try:
              import utils
-             tmp = "temp_ext_cbr"
-             if os.path.exists(tmp): shutil.rmtree(tmp)
-             
-             utils.extract_with_7za(cbr, tmp, root=self)
-             manager = utils.DependencyManager(self)
-             cmd = [manager.seven_za_path, 'a', '-tzip', cbz, f'.{os.sep}{tmp}{os.sep}*']
-             si=subprocess.STARTUPINFO(); si.dwFlags|=subprocess.STARTF_USESHOWWINDOW
-             subprocess.run(cmd, check=True, startupinfo=si, capture_output=True)
-             shutil.rmtree(tmp)
+             with tempfile.TemporaryDirectory() as tmp:
+                 utils.extract_with_7za(cbr, tmp, root=self)
+                 manager = utils.DependencyManager(self)
+                 cmd = [manager.seven_za_path, 'a', '-tzip', cbz, os.path.join(tmp, "*")]
+                 si=subprocess.STARTUPINFO(); si.dwFlags|=subprocess.STARTF_USESHOWWINDOW
+                 subprocess.run(cmd, check=True, startupinfo=si, capture_output=True)
         except Exception as e: raise e
 
     def update_prog(self, v):
