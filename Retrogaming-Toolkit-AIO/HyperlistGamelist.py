@@ -1,4 +1,4 @@
-import xml.etree.ElementTree as ET
+from lxml import etree as ET
 import os
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
@@ -10,7 +10,9 @@ ctk.set_appearance_mode("dark")
 
 def convert(src, ext, out_dir):
     try:
-        tree = ET.parse(src)
+        # 🛡️ Sentinel: Secure XML parsing to prevent XXE
+        parser = ET.XMLParser(recover=True, resolve_entities=False, no_network=True)
+        tree = ET.parse(src, parser)
         root = tree.getroot()
         
         gr = ET.Element('gameList')
@@ -33,7 +35,7 @@ def convert(src, ext, out_dir):
             ET.SubElement(ng, 'releasedate').text = (yr+"0101" if yr and len(yr)==4 else "")
 
         out_xml = os.path.join(out_dir, f"gamelist_{os.path.basename(src)}")
-        ET.ElementTree(gr).write(out_xml, encoding="utf-8", xml_declaration=True)
+        ET.ElementTree(gr).write(out_xml, encoding="utf-8", xml_declaration=True, pretty_print=True)
         messagebox.showinfo("Succès", f"Créé: {out_xml}")
         
     except Exception as e: messagebox.showerror("Err", str(e))
