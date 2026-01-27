@@ -927,6 +927,7 @@ class Application(ctk.CTk):
         # Shortcuts
         self.bind("<Control-f>", lambda event: self.search_entry.focus_set())
         self.bind("<Escape>", lambda event: self.clear_search())
+        self.setup_keyboard_scroll()
         
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
@@ -1853,6 +1854,38 @@ class Application(ctk.CTk):
                     label.configure(text=text)
         except: pass
         self.after(200, self.marquee_step)
+
+    def setup_keyboard_scroll(self):
+        """Configure les raccourcis clavier pour le défilement."""
+        self.bind("<Up>", lambda e: self.keyboard_scroll(e, -1, "units"))
+        self.bind("<Down>", lambda e: self.keyboard_scroll(e, 1, "units"))
+        self.bind("<Prior>", lambda e: self.keyboard_scroll(e, -1, "pages")) # PageUp
+        self.bind("<Next>", lambda e: self.keyboard_scroll(e, 1, "pages"))   # PageDown
+        self.bind("<Home>", lambda e: self.keyboard_scroll(e, 0, "home"))
+        self.bind("<End>", lambda e: self.keyboard_scroll(e, 0, "end"))
+
+    def keyboard_scroll(self, event, amount, unit="units"):
+        """Gère le défilement au clavier avec protection pour les champs de saisie."""
+        # Ne pas défiler si le focus est dans un champ texte (Entry ou autre)
+        # On vérifie la classe du widget ou si c'est un widget CTkEntry
+        try:
+            widget_class = event.widget.winfo_class()
+            # CustomTkinter Entry contient un widget Tkinter Entry interne
+            if widget_class == 'Entry' or isinstance(event.widget, ctk.CTkEntry):
+                return
+        except:
+            pass
+
+        if unit == "home":
+             self.canvas.yview_moveto(0)
+        elif unit == "end":
+             self.canvas.yview_moveto(1)
+        elif unit == "pages":
+             self.canvas.yview_scroll(int(amount), "pages")
+        else:
+             self.canvas.yview_scroll(int(amount), "units")
+
+        self.update_background_position()
 
 def main():
     """Point d'entrée principal de l'application"""
