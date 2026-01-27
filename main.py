@@ -967,8 +967,12 @@ class Application(ctk.CTk):
                 # Utiliser la HAUTEUR actuelle de la fenêtre comme référence
                 target_h = self.last_height
                 
-                # Ouvrir l'image originale
-                original_img = Image.open(bg_path)
+                # Ouvrir l'image originale (ou utiliser le cache)
+                if hasattr(self, 'original_bg_image'):
+                    original_img = self.original_bg_image
+                else:
+                    original_img = Image.open(bg_path)
+                    self.original_bg_image = original_img
                 
                 # Calculer le ratio basé sur la HAUTEUR pour ne pas déborder
                 ratio = target_h / original_img.height
@@ -1080,6 +1084,9 @@ class Application(ctk.CTk):
                 
                 new_w = int(original_img.width * ratio)
                 new_h = target_h
+
+                # Cache original image for future resizes
+                self.original_bg_image = original_img
 
                 pil_image = original_img.resize((new_w, new_h), Image.LANCZOS)
                 
