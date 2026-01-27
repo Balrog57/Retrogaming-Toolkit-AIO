@@ -100,6 +100,7 @@ TRANSLATIONS = {
         "update_confirm": "Une nouvelle version est disponible. Voulez-vous la télécharger et l'installer maintenant ?",
         "no_installer": "Aucun fichier d'installation trouvé dans la dernière release.",
         "update_bat_missing": "Le fichier update.bat n'existe pas.",
+        "cat_fav": "Favoris",
         "cat_all": "Tout",
         "cat_games": "Gestion des Jeux & ROMs",
         "cat_metadata": "Métadonnées & Gamelists",
@@ -124,6 +125,7 @@ TRANSLATIONS = {
         "update_confirm": "A new version is available. Do you want to download and install it now?",
         "no_installer": "No installer file found in the latest release.",
         "update_bat_missing": "The update.bat file does not exist.",
+        "cat_fav": "Favorites",
         "cat_all": "All",
         "cat_games": "Games & ROMs Management",
         "cat_metadata": "Metadata & Gamelists",
@@ -148,6 +150,7 @@ TRANSLATIONS = {
         "update_confirm": "¿Hay una nueva versión disponible. Quieres descargarla e instalarla ahora?",
         "no_installer": "No se encontró ningún archivo de instalación en la última versión.",
         "update_bat_missing": "El archivo update.bat no existe.",
+        "cat_fav": "Favoritos",
         "cat_all": "Todo",
         "cat_games": "Gestión de Juegos y ROMs",
         "cat_metadata": "Metadatos y Listas de Juegos",
@@ -172,6 +175,7 @@ TRANSLATIONS = {
         "update_confirm": "È disponibile una nuova versione. Vuoi scaricarla e installarla ora?",
         "no_installer": "Nessun file di installazione trovato nell'ultima versione.",
         "update_bat_missing": "Il file update.bat non esiste.",
+        "cat_fav": "Preferiti",
         "cat_all": "Tutto",
         "cat_games": "Gestione Giochi e ROM",
         "cat_metadata": "Metadati e Gamelist",
@@ -196,6 +200,7 @@ TRANSLATIONS = {
         "update_confirm": "Eine neue Version ist verfügbar. Möchten Sie sie jetzt herunterladen und installieren?",
         "no_installer": "Keine Installationsdatei in der neuesten Version gefunden.",
         "update_bat_missing": "Die Datei update.bat existiert nicht.",
+        "cat_fav": "Favoriten",
         "cat_all": "Alle",
         "cat_games": "Spiele & ROMs Verwaltung",
         "cat_metadata": "Metadaten & Spielelisten",
@@ -220,6 +225,7 @@ TRANSLATIONS = {
         "update_confirm": "Uma nova versão está disponível. Deseja baixar e instalar agora?",
         "no_installer": "Nenhum arquivo de instalação encontrado na última versão.",
         "update_bat_missing": "O arquivo update.bat não existe.",
+        "cat_fav": "Favoritos",
         "cat_all": "Tudo",
         "cat_games": "Gestão de Jogos e ROMs",
         "cat_metadata": "Metadados e GameLists",
@@ -914,6 +920,7 @@ class Application(ctk.CTk):
         self.setup_background()
 
         # --- Logic ---
+        self.favorites = self.load_favorites()
         self.init_music()
         self.setup_sidebar()
         self.setup_content_area()
@@ -935,6 +942,32 @@ class Application(ctk.CTk):
             
         # Select "Tout" category by default
         self.after(100, lambda: self.change_category("Tout"))
+
+    def load_favorites(self):
+        try:
+            path = os.path.join(app_data_dir, 'favorites.json')
+            if os.path.exists(path):
+                with open(path, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading favorites: {e}")
+        return []
+
+    def save_favorites(self):
+        try:
+            path = os.path.join(app_data_dir, 'favorites.json')
+            with open(path, 'w') as f:
+                json.dump(self.favorites, f)
+        except Exception as e:
+            logger.error(f"Error saving favorites: {e}")
+
+    def toggle_favorite(self, script_name):
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.append(script_name)
+        self.save_favorites()
+        self.filter_and_display()
 
     def on_closing(self):
         """Arrêter proprement l'application (radio incluse)."""
@@ -1109,6 +1142,7 @@ class Application(ctk.CTk):
         
         self.category_buttons = {}
         categories = [
+            "Favoris",
             "Tout",
             "Gestion des Jeux & ROMs",
             "Métadonnées & Gamelists",
@@ -1267,6 +1301,7 @@ class Application(ctk.CTk):
         
         # Update categories buttons
         cat_keys = {
+            "Favoris": "cat_fav",
             "Tout": "cat_all",
             "Gestion des Jeux & ROMs": "cat_games",
             "Métadonnées & Gamelists": "cat_metadata",
@@ -1427,7 +1462,11 @@ class Application(ctk.CTk):
         
         filtered = []
         for s in self.scripts:
-            cat_match = (self.current_category == "Tout") or (s.get("category") == self.current_category)
+            if self.current_category == "Favoris":
+                cat_match = s["name"] in self.favorites
+            else:
+                cat_match = (self.current_category == "Tout") or (s.get("category") == self.current_category)
+
             search_match = True
             if self.search_query:
                 # Use translated description for search
@@ -1436,7 +1475,7 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        filtered.sort(key=lambda x: (x["name"] not in self.favorites, x["name"]))
 
         # Layout sorting
         col_count = 2
@@ -1492,6 +1531,19 @@ class Application(ctk.CTk):
         # Border
         self.canvas.create_rectangle(x, y, x+w, y+h, outline=self.COLOR_CARD_BORDER, width=1, tags="content")
         
+        # Favorite Button
+        is_fav = script["name"] in self.favorites
+        fav_text = "★" if is_fav else "☆"
+        fav_color = "#FFD700" if is_fav else "gray"
+
+        fav_btn = ctk.CTkButton(self.canvas, text=fav_text, width=30, height=30,
+                                 fg_color="transparent", text_color=fav_color,
+                                 font=("Arial", 20),
+                                 hover_color="#333",
+                                 command=lambda n=script["name"]: self.toggle_favorite(n))
+
+        self.canvas.create_window(x + w - 10, y + 10, window=fav_btn, anchor="ne", tags="content")
+
         # Icon
         icon_path = script.get("icon", "")
         if icon_path not in self.icon_cache:
