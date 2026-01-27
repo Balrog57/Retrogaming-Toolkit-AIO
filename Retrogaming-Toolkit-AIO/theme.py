@@ -63,3 +63,63 @@ def apply_theme(app, title_prefix="Retrogaming Toolkit"):
             app.iconbitmap(icon_path)
     except Exception:
         pass
+
+
+class CTkToolTip:
+    """
+    Custom tooltip class for CustomTkinter widgets.
+    Shows a tooltip with the given text when hovering over the widget.
+    """
+    def __init__(self, widget, text, delay=500, bg_color=COLOR_CARD_BG, text_color=COLOR_TEXT_MAIN):
+        self.widget = widget
+        self.text = text
+        self.delay = delay
+        self.bg_color = bg_color
+        self.text_color = text_color
+        self.tooltip_window = None
+        self.scheduled_id = None
+        
+        self.widget.bind("<Enter>", self._schedule_tooltip)
+        self.widget.bind("<Leave>", self._hide_tooltip)
+        self.widget.bind("<Button-1>", self._hide_tooltip)
+    
+    def _schedule_tooltip(self, event=None):
+        self._hide_tooltip()
+        self.scheduled_id = self.widget.after(self.delay, self._show_tooltip)
+    
+    def _show_tooltip(self):
+        if self.tooltip_window:
+            return
+        
+        x = self.widget.winfo_rootx() + self.widget.winfo_width() // 2
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+        
+        self.tooltip_window = ctk.CTkToplevel(self.widget)
+        self.tooltip_window.wm_overrideredirect(True)
+        self.tooltip_window.wm_geometry(f"+{x}+{y}")
+        self.tooltip_window.configure(fg_color=self.bg_color)
+        
+        # Make sure tooltip appears on top
+        self.tooltip_window.attributes("-topmost", True)
+        
+        label = ctk.CTkLabel(
+            self.tooltip_window,
+            text=self.text,
+            fg_color=self.bg_color,
+            text_color=self.text_color,
+            corner_radius=6,
+            font=get_font_main(11)
+        )
+        label.pack(padx=8, pady=4)
+    
+    def _hide_tooltip(self, event=None):
+        if self.scheduled_id:
+            self.widget.after_cancel(self.scheduled_id)
+            self.scheduled_id = None
+        if self.tooltip_window:
+            self.tooltip_window.destroy()
+            self.tooltip_window = None
+    
+    def update_text(self, new_text):
+        """Update the tooltip text."""
+        self.text = new_text

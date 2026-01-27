@@ -1210,6 +1210,8 @@ class Application(ctk.CTk):
                                          hover_color="#333",
                                          command=self.clear_search)
         self.clear_btn.pack(side="left", padx=(0, 10))
+        if theme:
+            theme.CTkToolTip(self.clear_btn, "Effacer la recherche")
 
         # Language Selector
         self.lang_var = ctk.StringVar(value="FR")
@@ -1529,6 +1531,8 @@ class Application(ctk.CTk):
                                  border_width=1, border_color=self.COLOR_ACCENT_PRIMARY, 
                                  hover_color="#333",
                                  command=lambda s=script: self.open_custom_readme(s))
+        if theme:
+            theme.CTkToolTip(readme_btn, TRANSLATIONS[self.current_lang]["readme"])
         
         self.canvas.create_window(x + 20, y + h - 45, window=readme_btn, anchor="nw", tags="content")
         
@@ -1684,6 +1688,8 @@ class Application(ctk.CTk):
                                       hover_color=self.COLOR_SIDEBAR_HOVER,
                                       command=self.toggle_music)
         self.play_btn.pack(side="left", padx=(15, 5))
+        if theme:
+            self.play_btn_tooltip = theme.CTkToolTip(self.play_btn, "Play / Pause")
         
         # Mute Button
         self.mute_btn = ctk.CTkButton(self.bottom_frame, text="🔊", width=30, height=30,
@@ -1693,6 +1699,8 @@ class Application(ctk.CTk):
                                       hover_color=self.COLOR_SIDEBAR_HOVER,
                                       command=self.toggle_mute)
         self.mute_btn.pack(side="left", padx=5)
+        if theme:
+            self.mute_btn_tooltip = theme.CTkToolTip(self.mute_btn, "Mute / Unmute")
 
     def toggle_music(self):
         if self.music_playing:
