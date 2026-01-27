@@ -303,6 +303,12 @@ class VideoConvertApp(ctk.CTk, TkinterDnD.DnDWrapper):
                          shutil.move(tmp, os.path.splitext(f)[0] + ext)
                      else:
                          shutil.move(tmp, f)
+                else:
+                    try:
+                        if os.path.exists(tmp):
+                            os.remove(tmp)
+                    except Exception:
+                        pass
             
             # Captures
             cap_dir = os.path.join(os.getcwd(), "captures")
