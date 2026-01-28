@@ -680,7 +680,10 @@ def launch_update():
             update_script = os.path.join(current_dir, "update.bat")
             if os.path.exists(update_script):
                 logger.info(f"Fichier update.bat trouvé : {update_script}")
-                subprocess.Popen(["start", "cmd.exe", "/c", update_script], shell=True)
+                creationflags = 0
+                if os.name == 'nt':
+                    creationflags = getattr(subprocess, 'CREATE_NEW_CONSOLE', 0x00000010)
+                subprocess.Popen(["cmd.exe", "/c", update_script], creationflags=creationflags)
                 logger.info("update.bat lancé dans une nouvelle fenêtre")
             else:
                 logger.error("Le fichier update.bat n'existe pas.")
