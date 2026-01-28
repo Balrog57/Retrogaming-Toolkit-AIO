@@ -928,6 +928,14 @@ class Application(ctk.CTk):
         self.bind("<Control-f>", lambda event: self.search_entry.focus_set())
         self.bind("<Escape>", lambda event: self.clear_search())
         
+        # Navigation Clavier
+        self.bind("<Up>", self.on_arrow_key)
+        self.bind("<Down>", self.on_arrow_key)
+        self.bind("<Prior>", self.on_arrow_key) # PageUp
+        self.bind("<Next>", self.on_arrow_key)  # PageDown
+        self.bind("<Home>", self.on_arrow_key)
+        self.bind("<End>", self.on_arrow_key)
+
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
     
@@ -935,6 +943,35 @@ class Application(ctk.CTk):
             
         # Select "Tout" category by default
         self.after(100, lambda: self.change_category("Tout"))
+
+    def on_arrow_key(self, event):
+        """Gère la navigation au clavier (scroll) si le focus n'est pas sur une entrée."""
+        try:
+            # Vérifier si le focus est sur un widget d'entrée texte
+            # On vérifie la classe du widget qui a reçu l'événement
+            widget_class = event.widget.winfo_class()
+            # Les widgets d'entrée Tkinter standard s'appellent 'Entry' ou 'Text'
+            # Les widgets ttk s'appellent 'TEntry', etc.
+            if widget_class in ['Entry', 'TEntry', 'Text', 'CTkEntry']:
+                return
+        except:
+            pass
+
+        key = event.keysym
+        if key == "Up":
+            self.canvas.yview_scroll(-1, "units")
+        elif key == "Down":
+            self.canvas.yview_scroll(1, "units")
+        elif key == "Prior": # PageUp
+            self.canvas.yview_scroll(-1, "pages")
+        elif key == "Next": # PageDown
+            self.canvas.yview_scroll(1, "pages")
+        elif key == "Home":
+            self.canvas.yview_moveto(0)
+        elif key == "End":
+            self.canvas.yview_moveto(1)
+
+        self.update_background_position()
 
     def on_closing(self):
         """Arrêter proprement l'application (radio incluse)."""
