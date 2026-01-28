@@ -101,6 +101,7 @@ TRANSLATIONS = {
         "no_installer": "Aucun fichier d'installation trouvé dans la dernière release.",
         "update_bat_missing": "Le fichier update.bat n'existe pas.",
         "cat_all": "Tout",
+        "cat_favorites": "Favoris",
         "cat_games": "Gestion des Jeux & ROMs",
         "cat_metadata": "Métadonnées & Gamelists",
         "cat_media": "Multimédia & Artworks",
@@ -125,6 +126,7 @@ TRANSLATIONS = {
         "no_installer": "No installer file found in the latest release.",
         "update_bat_missing": "The update.bat file does not exist.",
         "cat_all": "All",
+        "cat_favorites": "Favorites",
         "cat_games": "Games & ROMs Management",
         "cat_metadata": "Metadata & Gamelists",
         "cat_media": "Multimedia & Artworks",
@@ -149,6 +151,7 @@ TRANSLATIONS = {
         "no_installer": "No se encontró ningún archivo de instalación en la última versión.",
         "update_bat_missing": "El archivo update.bat no existe.",
         "cat_all": "Todo",
+        "cat_favorites": "Favoritos",
         "cat_games": "Gestión de Juegos y ROMs",
         "cat_metadata": "Metadatos y Listas de Juegos",
         "cat_media": "Multimedia y Arte",
@@ -173,6 +176,7 @@ TRANSLATIONS = {
         "no_installer": "Nessun file di installazione trovato nell'ultima versione.",
         "update_bat_missing": "Il file update.bat non esiste.",
         "cat_all": "Tutto",
+        "cat_favorites": "Preferiti",
         "cat_games": "Gestione Giochi e ROM",
         "cat_metadata": "Metadati e Gamelist",
         "cat_media": "Multimedia e Artwork",
@@ -197,6 +201,7 @@ TRANSLATIONS = {
         "no_installer": "Keine Installationsdatei in der neuesten Version gefunden.",
         "update_bat_missing": "Die Datei update.bat existiert nicht.",
         "cat_all": "Alle",
+        "cat_favorites": "Favoriten",
         "cat_games": "Spiele & ROMs Verwaltung",
         "cat_metadata": "Metadaten & Spielelisten",
         "cat_media": "Multimedia & Kunstwerke",
@@ -221,6 +226,7 @@ TRANSLATIONS = {
         "no_installer": "Nenhum arquivo de instalação encontrado na última versão.",
         "update_bat_missing": "O arquivo update.bat não existe.",
         "cat_all": "Tudo",
+        "cat_favorites": "Favoritos",
         "cat_games": "Gestão de Jogos e ROMs",
         "cat_metadata": "Metadados e GameLists",
         "cat_media": "Multimídia e Artes",
@@ -689,42 +695,6 @@ def launch_update():
             logger.error(f"Erreur lors du lancement de la mise à jour : {e}")
             messagebox.showerror("Erreur", f"Erreur lors du lancement de la mise à jour : {e}")
 
-class Application(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        self.title("Lanceur de Modules - Retrogaming-Toolkit-AIO")
-        try:
-            icon_path = get_path(os.path.join("assets", "Retrogaming-Toolkit-AIO.ico"))
-            self.iconbitmap(icon_path)
-        except Exception as e:
-            logger.error(f"Erreur lors de la définition de l'icône de l'application : {e}")
-        self.geometry("800x400")  # Taille initiale
-
-        self.scripts = scripts
-        self.filtered_scripts = list(self.scripts)  # Initialiser avec tous les scripts
-        self.page = 0
-        self.scripts_per_page = 10
-        self.min_window_height = 400
-        self.preferred_width = 800
-
-        self.icon_cache = {}
-        self.favorites = self.load_favorites()
-
-        # Barre de recherche
-        self.search_frame = ctk.CTkFrame(self, corner_radius=10)
-        self.search_frame.pack(fill="x", padx=10, pady=(10, 0))
-
-        self.search_label = ctk.CTkLabel(self.search_frame, text="Rechercher :", font=("Arial", 14))
-        self.search_label.pack(side="left", padx=10)
-
-        self.search_var = ctk.StringVar()
-        self.search_var.trace("w", self.filter_scripts)
-        self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_var, width=300, placeholder_text=TRANSLATIONS["FR"]["search_placeholder"])
-        self.search_entry.pack(side="left", padx=10, pady=10, fill="x", expand=True)
-
-        self.clear_button = ctk.CTkButton(self.search_frame, text="✕", width=25, height=25, 
-                                          command=self.clear_search, 
-                                          fg_color="transparent", hover_color=("gray70", "gray30"), text_color="gray")
 
 
 # Mapping des scripts par catégorie (Nouvelle classification)
@@ -905,6 +875,7 @@ class Application(ctk.CTk):
         except Exception as e:
             logger.error(f"Failed to load readmes.json: {e}")
 
+        self.favorites = self.load_favorites()
 
         # --- Layout Principal ---
         self.grid_columnconfigure(1, weight=1)
@@ -995,8 +966,32 @@ class Application(ctk.CTk):
                 self.draw_background_on_canvas()
         except Exception as e:
             logger.error(f"BG Resize Error: {e}")
+
+    def load_favorites(self):
+        try:
+            fav_path = os.path.join(app_data_dir, "favorites.json")
+            if os.path.exists(fav_path):
+                with open(fav_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
         except Exception as e:
-            logger.error(f"BG Resize Error: {e}")
+            logger.error(f"Failed to load favorites: {e}")
+        return []
+
+    def save_favorites(self):
+        try:
+            fav_path = os.path.join(app_data_dir, "favorites.json")
+            with open(fav_path, "w", encoding="utf-8") as f:
+                json.dump(self.favorites, f)
+        except Exception as e:
+            logger.error(f"Failed to save favorites: {e}")
+
+    def toggle_favorite(self, script_name):
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.append(script_name)
+        self.save_favorites()
+        self.filter_and_display()
 
     # ... setup_background ...
 
@@ -1009,7 +1004,13 @@ class Application(ctk.CTk):
         
         filtered = []
         for s in self.scripts:
-            cat_match = (self.current_category == "Tout") or (s.get("category") == self.current_category)
+            if self.current_category == "Tout":
+                cat_match = True
+            elif self.current_category == "Favoris":
+                cat_match = s["name"] in self.favorites
+            else:
+                cat_match = (s.get("category") == self.current_category)
+
             search_match = True
             if self.search_query:
                 tags = f"{s['name']} {s['description']} {s.get('category','')}".lower()
@@ -1117,6 +1118,7 @@ class Application(ctk.CTk):
         self.category_buttons = {}
         categories = [
             "Tout",
+            "Favoris",
             "Gestion des Jeux & ROMs",
             "Métadonnées & Gamelists",
             "Multimédia & Artworks",
@@ -1277,6 +1279,7 @@ class Application(ctk.CTk):
         # Update categories buttons
         cat_keys = {
             "Tout": "cat_all",
+            "Favoris": "cat_favorites",
             "Gestion des Jeux & ROMs": "cat_games",
             "Métadonnées & Gamelists": "cat_metadata",
             "Multimédia & Artworks": "cat_media",
@@ -1535,15 +1538,29 @@ class Application(ctk.CTk):
             theme.CTkToolTip(readme_btn, TRANSLATIONS[self.current_lang]["readme"])
         
         self.canvas.create_window(x + 20, y + h - 45, window=readme_btn, anchor="nw", tags="content")
+
+        # Favorite Button
+        is_fav = script["name"] in self.favorites
+        fav_text = "★" if is_fav else "☆"
+        fav_color = "#FFD700" if is_fav else self.COLOR_ACCENT_PRIMARY
+
+        fav_btn = ctk.CTkButton(self.canvas, text=fav_text, width=30, height=30,
+                                 fg_color="transparent", text_color=fav_color,
+                                 border_width=1, border_color=fav_color,
+                                 hover_color="#333",
+                                 font=("Arial", 18),
+                                 command=lambda n=script["name"]: self.toggle_favorite(n))
+
+        self.canvas.create_window(x + 60, y + h - 45, window=fav_btn, anchor="nw", tags="content")
         
-        launch_btn = ctk.CTkButton(self.canvas, text=TRANSLATIONS[self.current_lang]["open"], height=30, width=w-70,
+        launch_btn = ctk.CTkButton(self.canvas, text=TRANSLATIONS[self.current_lang]["open"], height=30, width=w-110,
                                  fg_color="transparent", text_color=self.COLOR_ACCENT_PRIMARY,
                                  border_width=1, border_color=self.COLOR_ACCENT_PRIMARY,
                                  hover_color="#333333",
                                  font=("Roboto Medium", 13),
                                  command=lambda n=script["name"]: self.execute_module(n))
         
-        self.canvas.create_window(x + 60, y + h - 45, window=launch_btn, anchor="nw", tags="content")
+        self.canvas.create_window(x + 100, y + h - 45, window=launch_btn, anchor="nw", tags="content")
 
     def get_icon(self, path):
         if path in self.icon_cache:
