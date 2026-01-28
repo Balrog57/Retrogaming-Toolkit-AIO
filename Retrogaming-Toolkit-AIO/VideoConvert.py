@@ -306,14 +306,18 @@ class VideoConvertApp(ctk.CTk, TkinterDnD.DnDWrapper):
             else:
                 # Replace logic
                 tmp = tempfile.NamedTemporaryFile(delete=False, suffix=ext).name
-                if convert_video(f, start, end, tmp, v_bit, a_bit, fps, res, self, ff_path):
-                     if ext != os.path.splitext(f)[1]:
-                         try: os.remove(f) 
-                         except: pass
-                         shutil.move(tmp, os.path.splitext(f)[0] + ext)
-                     else:
-                         shutil.move(tmp, f)
-                else:
+                try:
+                    if convert_video(f, start, end, tmp, v_bit, a_bit, fps, res, self, ff_path):
+                        if ext != os.path.splitext(f)[1]:
+                            # Safe replace: Move first, then delete original
+                            shutil.move(tmp, os.path.splitext(f)[0] + ext)
+                            try: os.remove(f)
+                            except: pass
+                        else:
+                            shutil.move(tmp, f)
+                except Exception as e:
+                    messagebox.showerror("Erreur", f"Erreur lors du remplacement du fichier :\n{e}")
+                finally:
                     try:
                         if os.path.exists(tmp):
                             os.remove(tmp)
