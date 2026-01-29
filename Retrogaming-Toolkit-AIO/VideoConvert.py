@@ -119,10 +119,12 @@ def convert_video(input_file, start_time, end_time, output_file, video_bitrate, 
         else: ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
             
     try:
+        # Correct resolution format for ffmpeg filter (WxH -> W:H)
+        safe_resolution = resolution.replace('x', ':')
         command = [
             ffmpeg_path, "-i", input_file, "-ss", start_time, "-to", end_time,
             "-c:v", "libx264", "-preset", "fast",
-            f"-b:v", video_bitrate, f"-r", fps, f"-vf", f"scale={resolution}",
+            f"-b:v", video_bitrate, f"-r", fps, f"-vf", f"scale={safe_resolution}",
             "-c:a", "aac", f"-b:a", audio_bitrate, "-y", output_file
         ]
         result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
