@@ -3,6 +3,7 @@ import customtkinter as ctk
 from tkinter import filedialog, messagebox
 import subprocess
 import concurrent.futures
+import zipfile
 
 try: import theme
 except: theme=None
@@ -11,50 +12,41 @@ ctk.set_appearance_mode("dark")
 
 def compress_file(args):
     """
-    Helper function to compress a single file.
-    args: tuple (filename, source_dir, seven_za_path)
+    Helper function to compress a single file using native zipfile.
+    args: tuple (filename, source_dir)
     """
-    filename, source_dir, seven_za_path = args
+    filename, source_dir = args
     fp = os.path.join(source_dir, filename)
     zip_path = os.path.join(source_dir, os.path.splitext(filename)[0] + ".zip")
 
-    cmd = [seven_za_path, 'a', '-tzip', zip_path, fp]
-
-    # Cross-platform STARTUPINFO
-    startupinfo = None
-    if os.name == 'nt':
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-
     try:
-        res = subprocess.run(cmd, startupinfo=startupinfo, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        if res.returncode == 0:
-            os.remove(fp)
-            print(f"Compressed & Deleted: {filename}")
-            return True
-        else:
-            print(f"Err {filename}: {res.stderr}")
-            return False
+        # Optimization: Use native zipfile instead of spawning subprocess
+        with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+            zf.write(fp, arcname=filename)
+
+        os.remove(fp)
+        print(f"Compressed & Deleted: {filename}")
+        return True
     except Exception as e:
         print(f"Exception compressing {filename}: {e}")
+        # Cleanup partial zip if exists
+        if os.path.exists(zip_path):
+            try: os.remove(zip_path)
+            except: pass
         return False
 
 def compress_and_delete_roms(source_dir):
     try:
         if not os.path.exists(source_dir): return messagebox.showerror("Err", "Dossier source invalide")
         
-        try: import utils
-        except ImportError: return messagebox.showerror("Err", "Utils manquant")
+        # Optimization: No need for utils/7za dependency here anymore
         
-        manager = utils.DependencyManager()
-        if not manager.bootstrap_7za(): return messagebox.showerror("Err", "7za manquant")
-
         # Gather files to process
         files_to_process = []
         for filename in os.listdir(source_dir):
             fp = os.path.join(source_dir, filename)
             if os.path.isfile(fp) and not filename.endswith('.zip'):
-                files_to_process.append((filename, source_dir, manager.seven_za_path))
+                files_to_process.append((filename, source_dir))
 
         count = 0
         # Parallel execution
