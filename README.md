@@ -4,9 +4,9 @@
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)
 
-**La boîte à outils ultime pour les passionnés d'émulation et de retrogaming.**
+**Retrogaming Toolkit : Ma boîte à outils complète.**
 
-**Retrogaming Toolkit AIO** est une suite logicielle centralisée et modulaire regroupant plus de 25 outils puissants pour automatiser, nettoyer, optimiser et organiser votre collection de jeux. Conçu pour s'intégrer parfaitement avec des frontends populaires comme **RetroBat**, **EmulationStation**, **Batocera** ou **HyperSpin**, ce programme vous fait gagner un temps précieux dans la gestion de vos ROMs, de vos médias et de vos fichiers de configuration.
+C'est le logiciel central qui réunit toutes les fonctions utilitaires pour gérer ses projets de création de pack retrogaming en un seul endroit.
 
 ---
 
