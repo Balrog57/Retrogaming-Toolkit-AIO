@@ -111,7 +111,8 @@ TRANSLATIONS = {
         "no_tool_cat": "Aucun outil dans cette catégorie.",
         "launch_module": "Lancement du module : {}",
         "error_exec": "Erreur lors de l'exécution du module {}: {}",
-        "open": "Ouvrir"
+        "open": "Ouvrir",
+        "cat_favorites": "Favoris"
     },
     "EN": {
         "search_label": "Search:",
@@ -135,7 +136,8 @@ TRANSLATIONS = {
         "no_tool_cat": "No tools in this category.",
         "launch_module": "Launching module: {}",
         "error_exec": "Error executing module {}: {}",
-        "open": "Open"
+        "open": "Open",
+        "cat_favorites": "Favorites"
     },
     "ES": {
         "search_label": "Buscar:",
@@ -159,7 +161,8 @@ TRANSLATIONS = {
         "no_tool_cat": "No hay herramientas en esta categoría.",
         "launch_module": "Lanzando módulo: {}",
         "error_exec": "Error al ejecutar el módulo {}: {}",
-        "open": "Abrir"
+        "open": "Abrir",
+        "cat_favorites": "Favoritos"
     },
     "IT": {
         "search_label": "Cerca:",
@@ -183,7 +186,8 @@ TRANSLATIONS = {
         "no_tool_cat": "Nessuno strumento in questa categoria.",
         "launch_module": "Avvio modulo: {}",
         "error_exec": "Errore durante l'esecuzione del modulo {}: {}",
-        "open": "Apri"
+        "open": "Apri",
+        "cat_favorites": "Preferiti"
     },
     "DE": {
         "search_label": "Suchen:",
@@ -207,7 +211,8 @@ TRANSLATIONS = {
         "no_tool_cat": "Keine Werkzeuge in dieser Kategorie.",
         "launch_module": "Modul wird gestartet: {}",
         "error_exec": "Fehler beim Ausführen des Moduls {}: {}",
-        "open": "Öffnen"
+        "open": "Öffnen",
+        "cat_favorites": "Favoriten"
     },
     "PT": {
         "search_label": "Pesquisar:",
@@ -231,7 +236,8 @@ TRANSLATIONS = {
         "no_tool_cat": "Nenhuma ferramenta nesta categoria.",
         "launch_module": "Iniciando módulo: {}",
         "error_exec": "Erro ao executar o módulo {}: {}",
-        "open": "Abrir"
+        "open": "Abrir",
+        "cat_favorites": "Favoritos"
     }
 }
 
@@ -882,6 +888,7 @@ class Application(ctk.CTk):
             s["category"] = SCRIPT_CATEGORIES.get(s["name"], "Organisation & Collections")
             
         self.icon_cache = {}
+        self.favorites = self.load_favorites()
         self.current_category = "Tout"
         self.search_query = ""
         self.current_lang = "FR" # Langue par défaut
@@ -935,6 +942,32 @@ class Application(ctk.CTk):
             
         # Select "Tout" category by default
         self.after(100, lambda: self.change_category("Tout"))
+
+    def load_favorites(self):
+        try:
+            fav_file = os.path.join(app_data_dir, "favorites.json")
+            if os.path.exists(fav_file):
+                with open(fav_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"Erreur chargement favoris: {e}")
+        return []
+
+    def save_favorites(self):
+        try:
+            fav_file = os.path.join(app_data_dir, "favorites.json")
+            with open(fav_file, "w", encoding="utf-8") as f:
+                json.dump(self.favorites, f)
+        except Exception as e:
+            logger.error(f"Erreur sauvegarde favoris: {e}")
+
+    def toggle_favorite(self, script_name):
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.append(script_name)
+        self.save_favorites()
+        self.filter_and_display()
 
     def on_closing(self):
         """Arrêter proprement l'application (radio incluse)."""
@@ -1016,7 +1049,8 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        # Sort by Favorites first, then Name
+        filtered.sort(key=lambda x: (x["name"] not in self.favorites, x["name"]))
 
         # Layout sorting - FLUID 2 COLUMNS
         # Force 2 columns always
@@ -1516,6 +1550,22 @@ class Application(ctk.CTk):
         self.canvas.create_text(x + 70, y + 20, text=script["name"], fill=self.COLOR_TEXT_MAIN, 
                                 font=("Roboto Medium", 16), anchor="nw", tags="content")
         
+        # Favorite Button
+        is_fav = script["name"] in self.favorites
+        fav_icon = "★" if is_fav else "☆"
+        fav_color = "#FFD700" if is_fav else "gray50"
+
+        fav_btn = ctk.CTkButton(self.canvas, text=fav_icon, width=30, height=30,
+                                fg_color="transparent", text_color=fav_color,
+                                font=("Arial", 20),
+                                hover_color="#333",
+                                command=lambda s=script["name"]: self.toggle_favorite(s))
+
+        if theme:
+            theme.CTkToolTip(fav_btn, TRANSLATIONS[self.current_lang]["cat_favorites"])
+
+        self.canvas.create_window(x + w - 40, y + 10, window=fav_btn, anchor="nw", tags="content")
+
         # Description
         desc = SCRIPT_DESCRIPTIONS.get(script["name"], {}).get(self.current_lang, "")
         self.canvas.create_text(x + 70, y + 50, text=desc, fill=self.COLOR_TEXT_SUB,
