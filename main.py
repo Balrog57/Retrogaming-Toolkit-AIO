@@ -21,8 +21,6 @@ import json
 import atexit
 import ctypes
 import radio # Import our new module
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "1"
-import pygame
 
 # Fix sys.path for bundled modules and data directory
 if getattr(sys, 'frozen', False):
@@ -939,9 +937,6 @@ class Application(ctk.CTk):
     def on_closing(self):
         """Arrêter proprement l'application (radio incluse)."""
         self.stop_radio()
-        try:
-            pygame.quit()
-        except: pass
         self.destroy()
 
     def on_window_resize(self, event):
@@ -1657,9 +1652,6 @@ class Application(ctk.CTk):
         try:
             if hasattr(self, 'mute_flag_path') and os.path.exists(self.mute_flag_path):
                 os.remove(self.mute_flag_path) # Legacy cleanup just in case
-        except: pass
-        try:
-            pygame.quit()
         except: pass
 
     def setup_music_controls(self):

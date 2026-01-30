@@ -43,8 +43,6 @@ except Exception as e:
     print(f"Warning: Failed to setup local VLC path: {e}")
 # -----------------------------
 
-import vlc
-
 # --- VLC LOCAL PATH SETUP ---
 
 
@@ -68,6 +66,7 @@ class VLCPlayer:
     Implémentation légère et robuste pour le streaming.
     """
     def __init__(self):
+        import vlc
         self.instance = vlc.Instance('--quiet', '--no-video')
         self.player = self.instance.media_player_new()
         self._volume = 100 # VLC uses 0-100 normally
