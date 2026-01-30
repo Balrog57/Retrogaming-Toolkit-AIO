@@ -111,7 +111,9 @@ TRANSLATIONS = {
         "no_tool_cat": "Aucun outil dans cette catégorie.",
         "launch_module": "Lancement du module : {}",
         "error_exec": "Erreur lors de l'exécution du module {}: {}",
-        "open": "Ouvrir"
+        "open": "Ouvrir",
+        "cat_favorites": "Favoris",
+        "favorites_title": "Ajouter/Retirer des favoris"
     },
     "EN": {
         "search_label": "Search:",
@@ -135,7 +137,9 @@ TRANSLATIONS = {
         "no_tool_cat": "No tools in this category.",
         "launch_module": "Launching module: {}",
         "error_exec": "Error executing module {}: {}",
-        "open": "Open"
+        "open": "Open",
+        "cat_favorites": "Favorites",
+        "favorites_title": "Add/Remove from favorites"
     },
     "ES": {
         "search_label": "Buscar:",
@@ -159,7 +163,9 @@ TRANSLATIONS = {
         "no_tool_cat": "No hay herramientas en esta categoría.",
         "launch_module": "Lanzando módulo: {}",
         "error_exec": "Error al ejecutar el módulo {}: {}",
-        "open": "Abrir"
+        "open": "Abrir",
+        "cat_favorites": "Favoritos",
+        "favorites_title": "Añadir/Quitar de favoritos"
     },
     "IT": {
         "search_label": "Cerca:",
@@ -183,7 +189,9 @@ TRANSLATIONS = {
         "no_tool_cat": "Nessuno strumento in questa categoria.",
         "launch_module": "Avvio modulo: {}",
         "error_exec": "Errore durante l'esecuzione del modulo {}: {}",
-        "open": "Apri"
+        "open": "Apri",
+        "cat_favorites": "Preferiti",
+        "favorites_title": "Aggiungi/Rimuovi dai preferiti"
     },
     "DE": {
         "search_label": "Suchen:",
@@ -207,7 +215,9 @@ TRANSLATIONS = {
         "no_tool_cat": "Keine Werkzeuge in dieser Kategorie.",
         "launch_module": "Modul wird gestartet: {}",
         "error_exec": "Fehler beim Ausführen des Moduls {}: {}",
-        "open": "Öffnen"
+        "open": "Öffnen",
+        "cat_favorites": "Favoriten",
+        "favorites_title": "Zu Favoriten hinzufügen/entfernen"
     },
     "PT": {
         "search_label": "Pesquisar:",
@@ -231,7 +241,9 @@ TRANSLATIONS = {
         "no_tool_cat": "Nenhuma ferramenta nesta categoria.",
         "launch_module": "Iniciando módulo: {}",
         "error_exec": "Erro ao executar o módulo {}: {}",
-        "open": "Abrir"
+        "open": "Abrir",
+        "cat_favorites": "Favoritos",
+        "favorites_title": "Adicionar/Remover dos favoritos"
     }
 }
 
@@ -881,6 +893,7 @@ class Application(ctk.CTk):
             # Sécurité
             s["category"] = SCRIPT_CATEGORIES.get(s["name"], "Organisation & Collections")
             
+        self.favorites = self.load_favorites()
         self.icon_cache = {}
         self.current_category = "Tout"
         self.search_query = ""
@@ -943,6 +956,32 @@ class Application(ctk.CTk):
             pygame.quit()
         except: pass
         self.destroy()
+
+    def load_favorites(self):
+        try:
+            fav_path = os.path.join(app_data_dir, 'favorites.json')
+            if os.path.exists(fav_path):
+                with open(fav_path, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading favorites: {e}")
+        return []
+
+    def save_favorites(self):
+        try:
+            fav_path = os.path.join(app_data_dir, 'favorites.json')
+            with open(fav_path, 'w') as f:
+                json.dump(self.favorites, f)
+        except Exception as e:
+            logger.error(f"Error saving favorites: {e}")
+
+    def toggle_favorite(self, script_name):
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.append(script_name)
+        self.save_favorites()
+        self.filter_and_display()
 
     def on_window_resize(self, event):
         if event.widget == self:
@@ -1009,7 +1048,11 @@ class Application(ctk.CTk):
         
         filtered = []
         for s in self.scripts:
-            cat_match = (self.current_category == "Tout") or (s.get("category") == self.current_category)
+            if self.current_category == "Favoris":
+                cat_match = (s["name"] in self.favorites)
+            else:
+                cat_match = (self.current_category == "Tout") or (s.get("category") == self.current_category)
+
             search_match = True
             if self.search_query:
                 tags = f"{s['name']} {s['description']} {s.get('category','')}".lower()
@@ -1117,6 +1160,7 @@ class Application(ctk.CTk):
         self.category_buttons = {}
         categories = [
             "Tout",
+            "Favoris",
             "Gestion des Jeux & ROMs",
             "Métadonnées & Gamelists",
             "Multimédia & Artworks",
@@ -1277,6 +1321,7 @@ class Application(ctk.CTk):
         # Update categories buttons
         cat_keys = {
             "Tout": "cat_all",
+            "Favoris": "cat_favorites",
             "Gestion des Jeux & ROMs": "cat_games",
             "Métadonnées & Gamelists": "cat_metadata",
             "Multimédia & Artworks": "cat_media",
@@ -1436,7 +1481,11 @@ class Application(ctk.CTk):
         
         filtered = []
         for s in self.scripts:
-            cat_match = (self.current_category == "Tout") or (s.get("category") == self.current_category)
+            if self.current_category == "Favoris":
+                cat_match = (s["name"] in self.favorites)
+            else:
+                cat_match = (self.current_category == "Tout") or (s.get("category") == self.current_category)
+
             search_match = True
             if self.search_query:
                 # Use translated description for search
@@ -1544,6 +1593,22 @@ class Application(ctk.CTk):
                                  command=lambda n=script["name"]: self.execute_module(n))
         
         self.canvas.create_window(x + 60, y + h - 45, window=launch_btn, anchor="nw", tags="content")
+
+        # Favorite Button
+        is_fav = script["name"] in self.favorites
+        fav_text = "★" if is_fav else "☆"
+        fav_color = "#FFD700" if is_fav else "gray" # Gold vs Gray
+
+        fav_btn = ctk.CTkButton(self.canvas, text=fav_text, width=30, height=30,
+                                fg_color="transparent", text_color=fav_color,
+                                font=("Arial", 20),
+                                hover_color="#333",
+                                command=lambda s=script["name"]: self.toggle_favorite(s))
+
+        if theme:
+             theme.CTkToolTip(fav_btn, TRANSLATIONS[self.current_lang].get("favorites_title", "Favorites"))
+
+        self.canvas.create_window(x + w - 40, y + 10, window=fav_btn, anchor="nw", tags="content")
 
     def get_icon(self, path):
         if path in self.icon_cache:

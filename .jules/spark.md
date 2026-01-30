@@ -1,0 +1,1 @@
+## 2024-05-22 - [Refonte Main.py] **Extension :** [Favoris] **Obstacle :** [Classes et méthodes dupliquées dans main.py] **Solution :** [Identification de la classe active (la dernière définie) et application des patchs sur les méthodes actives. Note: Code à nettoyer par Glitch.]
