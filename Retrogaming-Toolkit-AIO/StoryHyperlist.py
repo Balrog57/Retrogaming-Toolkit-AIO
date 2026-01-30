@@ -1,5 +1,5 @@
 import os
-import xml.etree.ElementTree as ET
+from lxml import etree
 import customtkinter as ctk
 from tkinter import messagebox, filedialog
 import time
@@ -18,7 +18,8 @@ def read_safe(fp):
 
 def merge(xml_path, story_dir):
     try:
-        tree = ET.parse(xml_path)
+        parser = etree.XMLParser(resolve_entities=False, no_network=True)
+        tree = etree.parse(xml_path, parser)
         root = tree.getroot()
         
         stories = {os.path.splitext(f)[0]: os.path.join(story_dir, f) for f in os.listdir(story_dir) if f.endswith(".txt")}
@@ -30,13 +31,12 @@ def merge(xml_path, story_dir):
                 content = read_safe(stories[gn])
                 if content:
                     se = g.find("story")
-                    if se is None: se = ET.SubElement(g, "story")
+                    if se is None: se = etree.SubElement(g, "story")
                     se.text = content
                     count += 1
         
         out = os.path.join(os.path.dirname(xml_path), f"Updated_{os.path.basename(xml_path)}")
-        ET.indent(tree, space="    ", level=0)
-        tree.write(out, encoding="utf-8", xml_declaration=True)
+        tree.write(out, encoding="utf-8", xml_declaration=True, pretty_print=True)
         messagebox.showinfo("Succès", f"{count} mis à jour.\nSauvé: {out}")
         
     except Exception as e: messagebox.showerror("Err", str(e))
