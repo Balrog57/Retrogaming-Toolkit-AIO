@@ -1,4 +1,4 @@
-import xml.etree.ElementTree as ET
+from lxml import etree
 import os
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
@@ -10,10 +10,11 @@ ctk.set_appearance_mode("dark")
 
 def convert(src, out_dir):
     try:
-        tree = ET.parse(src)
+        parser = etree.XMLParser(resolve_entities=False, no_network=True)
+        tree = etree.parse(src, parser)
         root = tree.getroot()
         
-        menu = ET.Element('menu')
+        menu = etree.Element('menu')
         hyper_name = os.path.splitext(os.path.basename(src))[0]
         desc_dir = os.path.join(out_dir, hyper_name)
         os.makedirs(desc_dir, exist_ok=True)
@@ -24,17 +25,17 @@ def convert(src, out_dir):
                 return n.text if n is not None else ""
             
             nm = t('name')
-            ge = ET.SubElement(menu, 'game', name=nm)
-            ET.SubElement(ge, 'manufacturer').text = t('developer')
-            ET.SubElement(ge, 'year').text = (t('releasedate')[:4] if len(t('releasedate'))>=4 else "")
-            ET.SubElement(ge, 'description').text = nm
+            ge = etree.SubElement(menu, 'game', name=nm)
+            etree.SubElement(ge, 'manufacturer').text = t('developer')
+            etree.SubElement(ge, 'year').text = (t('releasedate')[:4] if len(t('releasedate'))>=4 else "")
+            etree.SubElement(ge, 'description').text = nm
             
             dtxt = t('desc')
             if dtxt:
                 with open(os.path.join(desc_dir, f"{nm}.txt"), "w", encoding="utf-8") as f: f.write(dtxt)
 
         out_xml = os.path.join(out_dir, f"{hyper_name}_hyperlist.xml")
-        ET.ElementTree(menu).write(out_xml, encoding="utf-8", xml_declaration=True)
+        etree.ElementTree(menu).write(out_xml, encoding="utf-8", xml_declaration=True, pretty_print=True)
         messagebox.showinfo("Succès", f"Créé: {out_xml}")
         
     except Exception as e: messagebox.showerror("Err", str(e))
