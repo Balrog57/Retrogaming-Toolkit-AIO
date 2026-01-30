@@ -876,6 +876,7 @@ class Application(ctk.CTk):
 
         # --- Données ---
         self.scripts = scripts
+        self.favorites = self.load_favorites()
         # Enrichir les scripts avec leur catégorie
         for s in self.scripts:
             # Sécurité
@@ -935,6 +936,35 @@ class Application(ctk.CTk):
             
         # Select "Tout" category by default
         self.after(100, lambda: self.change_category("Tout"))
+
+    def load_favorites(self):
+        """Charge les favoris depuis le fichier JSON."""
+        fav_file = os.path.join(app_data_dir, "favorites.json")
+        try:
+            if os.path.exists(fav_file):
+                with open(fav_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"Erreur lors du chargement des favoris: {e}")
+        return []
+
+    def save_favorites(self):
+        """Sauvegarde les favoris dans le fichier JSON."""
+        fav_file = os.path.join(app_data_dir, "favorites.json")
+        try:
+            with open(fav_file, "w", encoding="utf-8") as f:
+                json.dump(self.favorites, f)
+        except Exception as e:
+            logger.error(f"Erreur lors de la sauvegarde des favoris: {e}")
+
+    def toggle_favorite(self, script_name):
+        """Ajoute ou retire un script des favoris."""
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.append(script_name)
+        self.save_favorites()
+        self.filter_and_display()
 
     def on_closing(self):
         """Arrêter proprement l'application (radio incluse)."""
@@ -1016,7 +1046,7 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        filtered.sort(key=lambda x: (not (x["name"] in self.favorites), x["name"]))
 
         # Layout sorting - FLUID 2 COLUMNS
         # Force 2 columns always
@@ -1445,7 +1475,7 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        filtered.sort(key=lambda x: (not (x["name"] in self.favorites), x["name"]))
 
         # Layout sorting
         col_count = 2
@@ -1511,6 +1541,23 @@ class Application(ctk.CTk):
              except: pass
         if icon_path in self.icon_cache:
             self.canvas.create_image(x + 20, y + 20, image=self.icon_cache[icon_path], anchor="nw", tags="content")
+
+        # Favorite Button
+        is_fav = script["name"] in self.favorites
+        fav_char = "★" if is_fav else "☆"
+        fav_color = "#FFD700" if is_fav else "gray"
+
+        fav_btn = ctk.CTkButton(self.canvas, text=fav_char, width=30, height=30,
+                                fg_color="transparent", text_color=fav_color,
+                                font=("Arial", 20),
+                                hover_color="#333",
+                                command=lambda s=script["name"]: self.toggle_favorite(s))
+
+        if theme:
+            msg = "Retirer des favoris" if is_fav else "Ajouter aux favoris"
+            theme.CTkToolTip(fav_btn, msg)
+
+        self.canvas.create_window(x + w - 40, y + 10, window=fav_btn, anchor="nw", tags="content")
 
         # Title
         self.canvas.create_text(x + 70, y + 20, text=script["name"], fill=self.COLOR_TEXT_MAIN, 
