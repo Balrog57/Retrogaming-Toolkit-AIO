@@ -141,12 +141,17 @@ class PDFCBRtoCBZConverter(ctk.CTk):
              with tempfile.TemporaryDirectory() as tmp:
                  utils.extract_with_7za(cbr, tmp, root=self)
                  
+                 file_count = 0
                  with zipfile.ZipFile(cbz, 'w', zipfile.ZIP_DEFLATED) as zf:
                      for root, _, files in os.walk(tmp):
                          for file in files:
                              file_path = os.path.join(root, file)
                              arcname = os.path.relpath(file_path, tmp)
                              zf.write(file_path, arcname)
+                             file_count += 1
+
+                 if file_count == 0:
+                     raise Exception("Extraction produced no files (empty archive or error)")
         except Exception as e: raise e
 
     def update_prog(self, v):
