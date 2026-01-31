@@ -882,6 +882,7 @@ class Application(ctk.CTk):
             s["category"] = SCRIPT_CATEGORIES.get(s["name"], "Organisation & Collections")
             
         self.icon_cache = {}
+        self.favorites = self.load_favorites()
         self.current_category = "Tout"
         self.search_query = ""
         self.current_lang = "FR" # Langue par défaut
@@ -935,6 +936,36 @@ class Application(ctk.CTk):
             
         # Select "Tout" category by default
         self.after(100, lambda: self.change_category("Tout"))
+
+    def load_favorites(self):
+        """Charge la liste des favoris."""
+        fav_path = os.path.join(app_data_dir, 'favorites.json')
+        if os.path.exists(fav_path):
+            try:
+                with open(fav_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.error(f"Erreur chargement favoris: {e}")
+                return []
+        return []
+
+    def save_favorites(self):
+        """Sauvegarde la liste des favoris."""
+        fav_path = os.path.join(app_data_dir, 'favorites.json')
+        try:
+            with open(fav_path, 'w', encoding='utf-8') as f:
+                json.dump(self.favorites, f)
+        except Exception as e:
+            logger.error(f"Erreur sauvegarde favoris: {e}")
+
+    def toggle_favorite(self, script_name):
+        """Ajoute ou retire un script des favoris."""
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.append(script_name)
+        self.save_favorites()
+        self.filter_and_display()
 
     def on_closing(self):
         """Arrêter proprement l'application (radio incluse)."""
@@ -1016,7 +1047,7 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        filtered.sort(key=lambda x: (0 if x["name"] not in self.favorites else -1, x["name"]))
 
         # Layout sorting - FLUID 2 COLUMNS
         # Force 2 columns always
@@ -1445,7 +1476,7 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        filtered.sort(key=lambda x: (0 if x["name"] not in self.favorites else -1, x["name"]))
 
         # Layout sorting
         col_count = 2
@@ -1535,6 +1566,20 @@ class Application(ctk.CTk):
             theme.CTkToolTip(readme_btn, TRANSLATIONS[self.current_lang]["readme"])
         
         self.canvas.create_window(x + 20, y + h - 45, window=readme_btn, anchor="nw", tags="content")
+
+        # Favorite Button
+        is_fav = script["name"] in self.favorites
+        fav_text = "★" if is_fav else "☆"
+        fav_color = "Gold" if is_fav else "gray"
+
+        fav_btn = ctk.CTkButton(self.canvas, text=fav_text, width=30, height=30,
+                                fg_color="transparent", text_color=fav_color,
+                                font=("Arial", 20),
+                                hover_color="#333",
+                                command=lambda n=script["name"]: self.toggle_favorite(n))
+
+        # Position top-right
+        self.canvas.create_window(x + w - 40, y + 20, window=fav_btn, anchor="nw", tags="content")
         
         launch_btn = ctk.CTkButton(self.canvas, text=TRANSLATIONS[self.current_lang]["open"], height=30, width=w-70,
                                  fg_color="transparent", text_color=self.COLOR_ACCENT_PRIMARY,
