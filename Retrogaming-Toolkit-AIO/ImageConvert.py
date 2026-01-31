@@ -2,39 +2,30 @@ import tkinter as tk
 from tkinter import ttk, filedialog, messagebox
 import customtkinter as ctk
 import os
-import subprocess
 import concurrent.futures
 import sys
+from PIL import Image
 
 try: import theme
 except: theme=None
 
 ctk.set_appearance_mode("dark")
 
-def process_single_image(ffmpeg_exe, input_path, output_path, delete_originals):
+def process_single_image(input_path, output_path, delete_originals):
     try:
-        cmd = [ffmpeg_exe, "-i", input_path, "-frames:v", "1", "-update", "1", output_path]
-        si = subprocess.STARTUPINFO(); si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, startupinfo=si)
+        with Image.open(input_path) as img:
+            # Handle RGBA conversion for formats that don't support alpha
+            output_ext = os.path.splitext(output_path)[1].lower()
+            if output_ext in ['.jpg', '.jpeg', '.bmp', '.ppm'] and img.mode in ('RGBA', 'LA'):
+                img = img.convert('RGB')
+            img.save(output_path)
+
         if delete_originals: os.remove(input_path)
         return True, input_path, None
-    except subprocess.CalledProcessError as e: return False, input_path, f"FFmpeg Error: {e.stderr.decode('utf-8', errors='ignore')}"
     except Exception as e: return False, input_path, str(e)
-
-def check_and_download_ffmpeg(root):
-    try: import utils; return utils.get_binary_path("ffmpeg.exe")
-    except: 
-         # Fallback logic simplified for brevity in this modernized script
-         # In a real scenario, use DependencyManager
-         return "ffmpeg.exe" 
 
 def convert_images(root, input_dir, output_dir, input_fmt, output_fmt, delete_originals):
     if not os.path.exists(output_dir): os.makedirs(output_dir)
-    
-    ffmpeg_exe = check_and_download_ffmpeg(root)
-    # Check if we actually have ffmpeg, or rely on PATH
-    # If utils returns path that doesn't exist, we might fail. 
-    # For now assume user has it or utils handles it.
     
     input_exts = [input_fmt.lower()]
     if input_fmt.lower() == "jpeg": input_exts = ["jpeg", "jpg"]
@@ -45,7 +36,7 @@ def convert_images(root, input_dir, output_dir, input_fmt, output_fmt, delete_or
         if any(f.lower().endswith(f".{ext}") for ext in input_exts):
             ip = os.path.join(input_dir, f)
             op = os.path.join(output_dir, os.path.splitext(f)[0] + f".{output_fmt.lower()}")
-            files_to_process.append((ffmpeg_exe, ip, op, delete_originals))
+            files_to_process.append((ip, op, delete_originals))
 
     if not files_to_process: return messagebox.showinfo("Info", "Aucune image trouvée.")
 
@@ -53,7 +44,7 @@ def convert_images(root, input_dir, output_dir, input_fmt, output_fmt, delete_or
     failed = []
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as exe:
-        future_map = {exe.submit(process_single_image, *args): args[1] for args in files_to_process}
+        future_map = {exe.submit(process_single_image, *args): args[0] for args in files_to_process}
         for future in concurrent.futures.as_completed(future_map):
             ip = future_map[future]
             try:
