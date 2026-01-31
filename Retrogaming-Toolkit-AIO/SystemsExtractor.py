@@ -2,8 +2,7 @@ import customtkinter as ctk
 from tkinter import messagebox, filedialog
 import os
 import requests
-import xml.etree.ElementTree as ET
-from xml.dom import minidom
+from lxml import etree as ET
 
 try: import theme
 except: theme=None
@@ -18,9 +17,12 @@ def dl_official(path):
         return True
     except: return False
 
+def get_safe_parser():
+    return ET.XMLParser(recover=True, resolve_entities=False, no_network=True)
+
 def parse(path):
     if not os.path.exists(path): return []
-    try: return [{c.tag: c.text for c in s} for s in ET.parse(path).findall('./system')]
+    try: return [{c.tag: c.text for c in s} for s in ET.parse(path, parser=get_safe_parser()).findall('./system')]
     except: return []
 
 def process(cust_path, out_dir):
@@ -43,8 +45,8 @@ def process(cust_path, out_dir):
             sys_el = ET.SubElement(root, "system")
             for k,v in s.items(): ET.SubElement(sys_el, k).text = v
             
-            with open(os.path.join(out_dir, f"es_systems_{name}.cfg"), "w", encoding="utf-8") as f:
-                f.write(minidom.parseString(ET.tostring(root)).toprettyxml(indent="  "))
+            out_file = os.path.join(out_dir, f"es_systems_{name}.cfg")
+            ET.ElementTree(root).write(out_file, pretty_print=True, xml_declaration=True, encoding='utf-8')
     
     messagebox.showinfo("Succès", f"{len(unique)} systèmes extraits.")
 
