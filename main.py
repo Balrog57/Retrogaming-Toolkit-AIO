@@ -927,6 +927,7 @@ class Application(ctk.CTk):
         # Shortcuts
         self.bind("<Control-f>", lambda event: self.search_entry.focus_set())
         self.bind("<Escape>", lambda event: self.clear_search())
+        self.setup_keyboard_shortcuts()
         
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
@@ -935,6 +936,37 @@ class Application(ctk.CTk):
             
         # Select "Tout" category by default
         self.after(100, lambda: self.change_category("Tout"))
+
+    def setup_keyboard_shortcuts(self):
+        # Navigation Clavier
+        self.bind("<Up>", lambda e: self.scroll_canvas("up"))
+        self.bind("<Down>", lambda e: self.scroll_canvas("down"))
+        self.bind("<Prior>", lambda e: self.scroll_canvas("page_up")) # PageUp
+        self.bind("<Next>", lambda e: self.scroll_canvas("page_down")) # PageDown
+        self.bind("<Home>", lambda e: self.scroll_canvas("home"))
+        self.bind("<End>", lambda e: self.scroll_canvas("end"))
+
+    def scroll_canvas(self, direction):
+        # Ignore if focus is on an Entry widget
+        try:
+            if self.focus_get() and self.focus_get().winfo_class() == 'Entry':
+                 return
+        except: pass
+
+        if direction == "up":
+            self.canvas.yview_scroll(-1, "units")
+        elif direction == "down":
+            self.canvas.yview_scroll(1, "units")
+        elif direction == "page_up":
+            self.canvas.yview_scroll(-1, "pages")
+        elif direction == "page_down":
+            self.canvas.yview_scroll(1, "pages")
+        elif direction == "home":
+            self.canvas.yview_moveto(0)
+        elif direction == "end":
+            self.canvas.yview_moveto(1)
+
+        self.update_background_position()
 
     def on_closing(self):
         """Arrêter proprement l'application (radio incluse)."""
