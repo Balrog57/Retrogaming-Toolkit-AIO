@@ -708,6 +708,7 @@ class Application(ctk.CTk):
         self.preferred_width = 800
 
         self.icon_cache = {}
+        self.card_widgets = []
         self.favorites = self.load_favorites()
 
         # Barre de recherche
@@ -882,6 +883,7 @@ class Application(ctk.CTk):
             s["category"] = SCRIPT_CATEGORIES.get(s["name"], "Organisation & Collections")
             
         self.icon_cache = {}
+        self.card_widgets = []
         self.current_category = "Tout"
         self.search_query = ""
         self.current_lang = "FR" # Langue par défaut
@@ -1001,6 +1003,14 @@ class Application(ctk.CTk):
     # ... setup_background ...
 
     def filter_and_display(self):
+        # Clean up old widgets to prevent memory leak
+        if hasattr(self, 'card_widgets'):
+            for widget in self.card_widgets:
+                try:
+                    widget.destroy()
+                except: pass
+            self.card_widgets.clear()
+
         self.canvas.delete("content") # Only delete scrollable content
         
         # Reset Scroll
@@ -1544,6 +1554,10 @@ class Application(ctk.CTk):
                                  command=lambda n=script["name"]: self.execute_module(n))
         
         self.canvas.create_window(x + 60, y + h - 45, window=launch_btn, anchor="nw", tags="content")
+
+        # Track widgets for cleanup
+        if hasattr(self, 'card_widgets'):
+            self.card_widgets.extend([readme_btn, launch_btn])
 
     def get_icon(self, path):
         if path in self.icon_cache:
