@@ -689,42 +689,6 @@ def launch_update():
             logger.error(f"Erreur lors du lancement de la mise à jour : {e}")
             messagebox.showerror("Erreur", f"Erreur lors du lancement de la mise à jour : {e}")
 
-class Application(ctk.CTk):
-    def __init__(self):
-        super().__init__()
-        self.title("Lanceur de Modules - Retrogaming-Toolkit-AIO")
-        try:
-            icon_path = get_path(os.path.join("assets", "Retrogaming-Toolkit-AIO.ico"))
-            self.iconbitmap(icon_path)
-        except Exception as e:
-            logger.error(f"Erreur lors de la définition de l'icône de l'application : {e}")
-        self.geometry("800x400")  # Taille initiale
-
-        self.scripts = scripts
-        self.filtered_scripts = list(self.scripts)  # Initialiser avec tous les scripts
-        self.page = 0
-        self.scripts_per_page = 10
-        self.min_window_height = 400
-        self.preferred_width = 800
-
-        self.icon_cache = {}
-        self.favorites = self.load_favorites()
-
-        # Barre de recherche
-        self.search_frame = ctk.CTkFrame(self, corner_radius=10)
-        self.search_frame.pack(fill="x", padx=10, pady=(10, 0))
-
-        self.search_label = ctk.CTkLabel(self.search_frame, text="Rechercher :", font=("Arial", 14))
-        self.search_label.pack(side="left", padx=10)
-
-        self.search_var = ctk.StringVar()
-        self.search_var.trace("w", self.filter_scripts)
-        self.search_entry = ctk.CTkEntry(self.search_frame, textvariable=self.search_var, width=300, placeholder_text=TRANSLATIONS["FR"]["search_placeholder"])
-        self.search_entry.pack(side="left", padx=10, pady=10, fill="x", expand=True)
-
-        self.clear_button = ctk.CTkButton(self.search_frame, text="✕", width=25, height=25, 
-                                          command=self.clear_search, 
-                                          fg_color="transparent", hover_color=("gray70", "gray30"), text_color="gray")
 
 
 # Mapping des scripts par catégorie (Nouvelle classification)
@@ -876,6 +840,7 @@ class Application(ctk.CTk):
 
         # --- Données ---
         self.scripts = scripts
+        self.favorites = self.load_favorites()
         # Enrichir les scripts avec leur catégorie
         for s in self.scripts:
             # Sécurité
@@ -935,6 +900,35 @@ class Application(ctk.CTk):
             
         # Select "Tout" category by default
         self.after(100, lambda: self.change_category("Tout"))
+
+    def load_favorites(self):
+        """Charge la liste des favoris depuis le fichier JSON."""
+        favorites_file = os.path.join(app_data_dir, 'favorites.json')
+        try:
+            if os.path.exists(favorites_file):
+                with open(favorites_file, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"Erreur chargement favoris: {e}")
+        return []
+
+    def save_favorites(self):
+        """Sauvegarde la liste des favoris."""
+        favorites_file = os.path.join(app_data_dir, 'favorites.json')
+        try:
+            with open(favorites_file, 'w') as f:
+                json.dump(self.favorites, f)
+        except Exception as e:
+            logger.error(f"Erreur sauvegarde favoris: {e}")
+
+    def toggle_favorite(self, script_name):
+        """Bascule l'état favori d'un script."""
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.append(script_name)
+        self.save_favorites()
+        self.filter_and_display()
 
     def on_closing(self):
         """Arrêter proprement l'application (radio incluse)."""
@@ -1445,7 +1439,7 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        filtered.sort(key=lambda x: (x["name"] not in self.favorites, x["name"]))
 
         # Layout sorting
         col_count = 2
@@ -1511,6 +1505,15 @@ class Application(ctk.CTk):
              except: pass
         if icon_path in self.icon_cache:
             self.canvas.create_image(x + 20, y + 20, image=self.icon_cache[icon_path], anchor="nw", tags="content")
+
+        # Favorite Button
+        is_fav = script["name"] in self.favorites
+        star_color = "gold" if is_fav else "gray"
+        fav_btn = ctk.CTkButton(self.canvas, text="★", width=30, height=30,
+                                fg_color="transparent", text_color=star_color,
+                                font=("Arial", 20), hover_color="#333",
+                                command=lambda s=script["name"]: self.toggle_favorite(s))
+        self.canvas.create_window(x + w - 10, y + 10, window=fav_btn, anchor="ne", tags="content")
 
         # Title
         self.canvas.create_text(x + 70, y + 20, text=script["name"], fill=self.COLOR_TEXT_MAIN, 
