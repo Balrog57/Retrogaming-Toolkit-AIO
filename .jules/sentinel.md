@@ -7,3 +7,8 @@
 **Vulnerability:** Python's standard `xml.etree.ElementTree` is vulnerable to Billion Laughs attacks (DoS) and potentially XXE in older environments.
 **Learning:** While `xml.etree` is convenient, it lacks robust security controls for untrusted input. `lxml` allows explicit disabling of network and entity resolution.
 **Prevention:** Replace `xml.etree.ElementTree` with `lxml.etree` using a configured `XMLParser(resolve_entities=False, no_network=True)` when handling external/untrusted XML.
+
+## 2025-02-23 - Argument Injection in Subprocess
+**Vulnerability:** Argument Injection (CWE-88) where user-controlled filenames starting with `-` are interpreted as command-line switches by the invoked tool (e.g., `7za`), even when using `subprocess.run` with a list of arguments.
+**Learning:** `subprocess` protects against Shell Injection but not Argument Injection. Tools often have ambiguous parsing for arguments starting with `-`.
+**Prevention:** Always use the `--` delimiter (end of options) before positional arguments (filenames) in command-line invocations, or ensure paths are absolute/prefixed with `./` if the tool doesn't support `--`.
