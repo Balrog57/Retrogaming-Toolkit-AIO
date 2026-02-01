@@ -882,6 +882,8 @@ class Application(ctk.CTk):
             s["category"] = SCRIPT_CATEGORIES.get(s["name"], "Organisation & Collections")
             
         self.icon_cache = {}
+        self.card_widgets = [] # Track widgets for cleanup
+        self.favorites = self.load_favorites()
         self.current_category = "Tout"
         self.search_query = ""
         self.current_lang = "FR" # Langue par défaut
@@ -935,6 +937,33 @@ class Application(ctk.CTk):
             
         # Select "Tout" category by default
         self.after(100, lambda: self.change_category("Tout"))
+
+    def load_favorites(self):
+        fav_file = os.path.join(app_data_dir, 'favorites.json')
+        if os.path.exists(fav_file):
+            try:
+                with open(fav_file, 'r') as f:
+                    return json.load(f)
+            except:
+                return []
+        return []
+
+    def save_favorites(self):
+        fav_file = os.path.join(app_data_dir, 'favorites.json')
+        try:
+            with open(fav_file, 'w') as f:
+                json.dump(self.favorites, f)
+        except Exception as e:
+            logger.error(f"Error saving favorites: {e}")
+
+    def toggle_favorite(self, script):
+        name = script["name"]
+        if name in self.favorites:
+            self.favorites.remove(name)
+        else:
+            self.favorites.append(name)
+        self.save_favorites()
+        self.filter_and_display()
 
     def on_closing(self):
         """Arrêter proprement l'application (radio incluse)."""
@@ -1001,6 +1030,15 @@ class Application(ctk.CTk):
     # ... setup_background ...
 
     def filter_and_display(self):
+        # Cleanup existing widgets to prevent memory leaks
+        if hasattr(self, 'card_widgets'):
+            for w in self.card_widgets:
+                try:
+                    w.destroy()
+                except:
+                    pass
+            self.card_widgets.clear()
+
         self.canvas.delete("content") # Only delete scrollable content
         
         # Reset Scroll
@@ -1427,6 +1465,15 @@ class Application(ctk.CTk):
     # Removed duplicate open_custom_readme
     
     def filter_and_display(self):
+        # Cleanup existing widgets to prevent memory leaks
+        if hasattr(self, 'card_widgets'):
+            for w in self.card_widgets:
+                try:
+                    w.destroy()
+                except:
+                    pass
+            self.card_widgets.clear()
+
         self.canvas.delete("content") # Only delete scrollable content
         
         # Reset Scroll
@@ -1445,7 +1492,8 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        # Sort: Favorites first, then Name
+        filtered.sort(key=lambda x: (x["name"] not in self.favorites, x["name"]))
 
         # Layout sorting
         col_count = 2
@@ -1534,6 +1582,7 @@ class Application(ctk.CTk):
         if theme:
             theme.CTkToolTip(readme_btn, TRANSLATIONS[self.current_lang]["readme"])
         
+        self.card_widgets.append(readme_btn)
         self.canvas.create_window(x + 20, y + h - 45, window=readme_btn, anchor="nw", tags="content")
         
         launch_btn = ctk.CTkButton(self.canvas, text=TRANSLATIONS[self.current_lang]["open"], height=30, width=w-70,
@@ -1543,7 +1592,30 @@ class Application(ctk.CTk):
                                  font=("Roboto Medium", 13),
                                  command=lambda n=script["name"]: self.execute_module(n))
         
+        self.card_widgets.append(launch_btn)
         self.canvas.create_window(x + 60, y + h - 45, window=launch_btn, anchor="nw", tags="content")
+
+        # Favorite Button
+        is_fav = script["name"] in self.favorites
+        fav_text = "★" if is_fav else "☆"
+        # Use simple colors: Gold for favorite, Gray for not
+        fav_color = "#FFD700" if is_fav else "#555555"
+
+        fav_btn = ctk.CTkButton(self.canvas, text=fav_text, width=30, height=30,
+                                 fg_color="transparent", text_color=fav_color,
+                                 border_width=0,
+                                 font=("Arial", 20),
+                                 hover_color="#333",
+                                 command=lambda s=script: self.toggle_favorite(s))
+
+        if theme:
+             tooltip_text = "Retirer des favoris" if is_fav else "Ajouter aux favoris"
+             if self.current_lang == "EN":
+                 tooltip_text = "Remove from favorites" if is_fav else "Add to favorites"
+             theme.CTkToolTip(fav_btn, tooltip_text)
+
+        self.card_widgets.append(fav_btn)
+        self.canvas.create_window(x + w - 40, y + 15, window=fav_btn, anchor="nw", tags="content")
 
     def get_icon(self, path):
         if path in self.icon_cache:
