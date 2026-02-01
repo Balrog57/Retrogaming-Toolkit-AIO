@@ -142,11 +142,16 @@ class PDFCBRtoCBZConverter(ctk.CTk):
                  utils.extract_with_7za(cbr, tmp, root=self)
                  
                  with zipfile.ZipFile(cbz, 'w', zipfile.ZIP_DEFLATED) as zf:
+                     files_added = 0
                      for root, _, files in os.walk(tmp):
                          for file in files:
                              file_path = os.path.join(root, file)
                              arcname = os.path.relpath(file_path, tmp)
                              zf.write(file_path, arcname)
+                             files_added += 1
+
+                     if files_added == 0:
+                         raise Exception("Conversion produced empty archive (no files found in source)")
         except Exception as e: raise e
 
     def update_prog(self, v):
