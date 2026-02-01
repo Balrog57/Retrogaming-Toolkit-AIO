@@ -359,7 +359,7 @@ class DependencyManager:
              
              # Command construction
              # 7za x archive -o{dir} -y
-             cmd = [self.seven_za_path, 'x' if archive_type != 'exe_sfx' else 'e', temp_download, f'-o{extract_dir}', '-y']
+             cmd = [self.seven_za_path, 'x' if archive_type != 'exe_sfx' else 'e', f'-o{extract_dir}', '-y', '--', temp_download]
              
              if extract_file_in_archive:
                  cmd.append(extract_file_in_archive)
@@ -408,7 +408,7 @@ def extract_with_7za(archive_path, output_dir, file_to_extract=None, root=None):
     if not manager.bootstrap_7za():
         raise Exception("Impossible d'installer 7za.exe pour l'extraction.")
     
-    cmd = [manager.seven_za_path, 'x', archive_path, f'-o{output_dir}', '-y']
+    cmd = [manager.seven_za_path, 'x', f'-o{output_dir}', '-y', '--', archive_path]
     
     if file_to_extract:
          cmd.append(file_to_extract)
