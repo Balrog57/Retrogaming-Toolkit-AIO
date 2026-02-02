@@ -885,6 +885,7 @@ class Application(ctk.CTk):
         self.current_category = "Tout"
         self.search_query = ""
         self.current_lang = "FR" # Langue par défaut
+        self.favorites = self.load_favorites()
         
         # Injecter la variable globale pour les fonctions hors classe
         global CURRENT_LANG
@@ -1016,7 +1017,7 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        filtered.sort(key=lambda x: (x["name"] not in self.favorites, x["name"]))
 
         # Layout sorting - FLUID 2 COLUMNS
         # Force 2 columns always
@@ -1425,6 +1426,32 @@ class Application(ctk.CTk):
         self.search_entry.focus_set()
 
     # Removed duplicate open_custom_readme
+
+    def load_favorites(self):
+        try:
+            fav_file = os.path.join(app_data_dir, 'favorites.json')
+            if os.path.exists(fav_file):
+                with open(fav_file, 'r') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading favorites: {e}")
+        return []
+
+    def save_favorites(self):
+        try:
+            fav_file = os.path.join(app_data_dir, 'favorites.json')
+            with open(fav_file, 'w') as f:
+                json.dump(self.favorites, f)
+        except Exception as e:
+            logger.error(f"Error saving favorites: {e}")
+
+    def toggle_favorite(self, script_name):
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.append(script_name)
+        self.save_favorites()
+        self.filter_and_display()
     
     def filter_and_display(self):
         self.canvas.delete("content") # Only delete scrollable content
@@ -1445,7 +1472,7 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        filtered.sort(key=lambda x: (x["name"] not in self.favorites, x["name"]))
 
         # Layout sorting
         col_count = 2
@@ -1526,6 +1553,25 @@ class Application(ctk.CTk):
         # But we need to make sure we create_window with tags="content"? 
         # Tkinter create_window accepts tags!
         
+        # Favorites Button
+        is_fav = script["name"] in self.favorites
+        fav_text = "★" if is_fav else "☆"
+        fav_color = "gold" if is_fav else "gray"
+
+        fav_btn = ctk.CTkButton(self.canvas, text=fav_text, width=30, height=30,
+                                fg_color="transparent", text_color=fav_color,
+                                font=("Arial", 20),
+                                hover_color="#333",
+                                command=lambda s=script["name"]: self.toggle_favorite(s))
+
+        if theme:
+             fav_tooltip = "Retirer des favoris" if is_fav else "Ajouter aux favoris"
+             if self.current_lang != "FR":
+                  fav_tooltip = "Remove from favorites" if is_fav else "Add to favorites"
+             theme.CTkToolTip(fav_btn, fav_tooltip)
+
+        self.canvas.create_window(x + w - 40, y + 10, window=fav_btn, anchor="nw", tags="content")
+
         readme_btn = ctk.CTkButton(self.canvas, text="?", width=30, height=30,
                                  fg_color="transparent", text_color=self.COLOR_ACCENT_PRIMARY, 
                                  border_width=1, border_color=self.COLOR_ACCENT_PRIMARY, 
