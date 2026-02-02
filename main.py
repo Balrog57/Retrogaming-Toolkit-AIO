@@ -882,6 +882,7 @@ class Application(ctk.CTk):
             s["category"] = SCRIPT_CATEGORIES.get(s["name"], "Organisation & Collections")
             
         self.icon_cache = {}
+        self.favorites = self.load_favorites()
         self.current_category = "Tout"
         self.search_query = ""
         self.current_lang = "FR" # Langue par défaut
@@ -935,6 +936,35 @@ class Application(ctk.CTk):
             
         # Select "Tout" category by default
         self.after(100, lambda: self.change_category("Tout"))
+
+    def load_favorites(self):
+        """Charge les favoris depuis le JSON."""
+        fav_file = os.path.join(app_data_dir, "favorites.json")
+        if os.path.exists(fav_file):
+            try:
+                with open(fav_file, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception:
+                return []
+        return []
+
+    def save_favorites(self):
+        """Sauvegarde les favoris."""
+        fav_file = os.path.join(app_data_dir, "favorites.json")
+        try:
+            with open(fav_file, "w", encoding="utf-8") as f:
+                json.dump(self.favorites, f)
+        except Exception:
+            pass
+
+    def toggle_favorite(self, script_name):
+        """Basculer l'état favori d'un script."""
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.append(script_name)
+        self.save_favorites()
+        self.filter_and_display()
 
     def on_closing(self):
         """Arrêter proprement l'application (radio incluse)."""
@@ -1016,7 +1046,8 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        # Sort: Favorites first, then Name
+        filtered.sort(key=lambda x: (x["name"] not in self.favorites, x["name"]))
 
         # Layout sorting - FLUID 2 COLUMNS
         # Force 2 columns always
@@ -1536,6 +1567,19 @@ class Application(ctk.CTk):
         
         self.canvas.create_window(x + 20, y + h - 45, window=readme_btn, anchor="nw", tags="content")
         
+        # Favorite Button
+        is_fav = script["name"] in self.favorites
+        fav_char = "★" if is_fav else "☆"
+        fav_color = "gold" if is_fav else "gray"
+
+        fav_btn = ctk.CTkButton(self.canvas, text=fav_char, width=30, height=30,
+                                 fg_color="transparent", text_color=fav_color,
+                                 font=("Arial", 20),
+                                 hover_color="#333",
+                                 command=lambda n=script["name"]: self.toggle_favorite(n))
+
+        self.canvas.create_window(x + w - 40, y + 10, window=fav_btn, anchor="nw", tags="content")
+
         launch_btn = ctk.CTkButton(self.canvas, text=TRANSLATIONS[self.current_lang]["open"], height=30, width=w-70,
                                  fg_color="transparent", text_color=self.COLOR_ACCENT_PRIMARY,
                                  border_width=1, border_color=self.COLOR_ACCENT_PRIMARY,
