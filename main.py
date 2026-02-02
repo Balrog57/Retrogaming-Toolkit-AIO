@@ -882,6 +882,7 @@ class Application(ctk.CTk):
             s["category"] = SCRIPT_CATEGORIES.get(s["name"], "Organisation & Collections")
             
         self.icon_cache = {}
+        self.card_widgets = []
         self.current_category = "Tout"
         self.search_query = ""
         self.current_lang = "FR" # Langue par défaut
@@ -1001,6 +1002,16 @@ class Application(ctk.CTk):
     # ... setup_background ...
 
     def filter_and_display(self):
+        # Cleanup widgets from previous display to prevent memory leak
+        if hasattr(self, 'card_widgets'):
+            for widget in self.card_widgets:
+                try:
+                    widget.destroy()
+                except: pass
+            self.card_widgets.clear()
+        else:
+            self.card_widgets = []
+
         self.canvas.delete("content") # Only delete scrollable content
         
         # Reset Scroll
@@ -1427,6 +1438,16 @@ class Application(ctk.CTk):
     # Removed duplicate open_custom_readme
     
     def filter_and_display(self):
+        # Cleanup widgets from previous display to prevent memory leak
+        if hasattr(self, 'card_widgets'):
+            for widget in self.card_widgets:
+                try:
+                    widget.destroy()
+                except: pass
+            self.card_widgets.clear()
+        else:
+            self.card_widgets = []
+
         self.canvas.delete("content") # Only delete scrollable content
         
         # Reset Scroll
@@ -1535,6 +1556,7 @@ class Application(ctk.CTk):
             theme.CTkToolTip(readme_btn, TRANSLATIONS[self.current_lang]["readme"])
         
         self.canvas.create_window(x + 20, y + h - 45, window=readme_btn, anchor="nw", tags="content")
+        self.card_widgets.append(readme_btn)
         
         launch_btn = ctk.CTkButton(self.canvas, text=TRANSLATIONS[self.current_lang]["open"], height=30, width=w-70,
                                  fg_color="transparent", text_color=self.COLOR_ACCENT_PRIMARY,
@@ -1544,6 +1566,7 @@ class Application(ctk.CTk):
                                  command=lambda n=script["name"]: self.execute_module(n))
         
         self.canvas.create_window(x + 60, y + h - 45, window=launch_btn, anchor="nw", tags="content")
+        self.card_widgets.append(launch_btn)
 
     def get_icon(self, path):
         if path in self.icon_cache:
