@@ -119,6 +119,9 @@ def convert_video(input_file, start_time, end_time, output_file, video_bitrate, 
         else: ffmpeg_path = os.path.join(os.getcwd(), "ffmpeg.exe")
             
     try:
+        # Normalize resolution separator from 'x' to ':' for FFmpeg scale filter
+        resolution = resolution.replace('x', ':')
+
         command = [
             ffmpeg_path, "-i", input_file, "-ss", start_time, "-to", end_time,
             "-c:v", "libx264", "-preset", "fast",
