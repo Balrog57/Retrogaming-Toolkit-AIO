@@ -1348,6 +1348,25 @@ class Application(ctk.CTk):
         # Créer la fenêtre
         ReadmeWindow(self, readme_title, content, fg, txt, acc, icon_path)
 
+    def on_launch_click(self, script_name, btn):
+        # Save original text
+        original_text = btn.cget("text")
+
+        # Feedback
+        btn.configure(text="⏳", state="disabled")
+
+        # Launch
+        self.execute_module(script_name)
+
+        # Restore after 3 seconds
+        def restore():
+            try:
+                if btn.winfo_exists():
+                    btn.configure(text=original_text, state="normal")
+            except: pass
+
+        self.after(3000, restore)
+
     def draw_card(self, script, x, y, w, h):
         """Dessine une carte (mise à jour pour utiliser la traduction)."""
         # Fond de carte
@@ -1568,8 +1587,9 @@ class Application(ctk.CTk):
                                  fg_color="transparent", text_color=self.COLOR_ACCENT_PRIMARY,
                                  border_width=1, border_color=self.COLOR_ACCENT_PRIMARY,
                                  hover_color="#333333",
-                                 font=("Roboto Medium", 13),
-                                 command=lambda n=script["name"]: self.execute_module(n))
+                                 font=("Roboto Medium", 13))
+
+        launch_btn.configure(command=lambda n=script["name"], b=launch_btn: self.on_launch_click(n, b))
         
         self.canvas.create_window(x + 60, y + h - 45, window=launch_btn, anchor="nw", tags="content")
         self.card_widgets.append(launch_btn)
