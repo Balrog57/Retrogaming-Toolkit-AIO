@@ -876,6 +876,7 @@ class Application(ctk.CTk):
 
         # --- Données ---
         self.scripts = scripts
+        self.favorites = self.load_favorites()
         # Enrichir les scripts avec leur catégorie
         for s in self.scripts:
             # Sécurité
@@ -955,6 +956,32 @@ class Application(ctk.CTk):
                 if hasattr(self, '_resize_job'):
                     self.after_cancel(self._resize_job)
                 self._resize_job = self.after(100, self.perform_resize_updates)
+
+    def load_favorites(self):
+        try:
+            path = os.path.join(app_data_dir, 'favorites.json')
+            if os.path.exists(path):
+                with open(path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading favorites: {e}")
+        return []
+
+    def save_favorites(self):
+        try:
+            path = os.path.join(app_data_dir, 'favorites.json')
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump(self.favorites, f, indent=4)
+        except Exception as e:
+            logger.error(f"Error saving favorites: {e}")
+
+    def toggle_favorite(self, script_name):
+        if script_name in self.favorites:
+            self.favorites.remove(script_name)
+        else:
+            self.favorites.append(script_name)
+        self.save_favorites()
+        self.filter_and_display()
 
     def perform_resize_updates(self):
         self.update_background_size()
@@ -1445,7 +1472,7 @@ class Application(ctk.CTk):
                 if self.search_query not in tags: search_match = False
             if cat_match and search_match: filtered.append(s)
         
-        filtered.sort(key=lambda x: x["name"])
+        filtered.sort(key=lambda x: (x["name"] not in self.favorites, x["name"]))
 
         # Layout sorting
         col_count = 2
@@ -1521,6 +1548,18 @@ class Application(ctk.CTk):
         self.canvas.create_text(x + 70, y + 50, text=desc, fill=self.COLOR_TEXT_SUB,
                                 font=("Roboto", 12), anchor="nw", width=w-90, tags="content")
         
+        # Favorite Button
+        is_fav = script["name"] in self.favorites
+        fav_char = "★" if is_fav else "☆"
+        fav_color = "gold" if is_fav else "gray"
+
+        fav_btn = ctk.CTkButton(self.canvas, text=fav_char, width=30, height=30,
+                                fg_color="transparent", text_color=fav_color,
+                                font=("Arial", 20), hover_color="#333",
+                                command=lambda s=script["name"]: self.toggle_favorite(s))
+
+        self.canvas.create_window(x + w - 10, y + 10, window=fav_btn, anchor="ne", tags="content")
+
         # Buttons
         # Note: Canvas windows move with canvas.move if they are on the canvas!
         # But we need to make sure we create_window with tags="content"? 
