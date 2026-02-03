@@ -1,4 +1,4 @@
-import xml.etree.ElementTree as ET
+from lxml import etree as ET
 import os
 import customtkinter as ctk
 from tkinter import filedialog, messagebox
@@ -10,7 +10,8 @@ ctk.set_appearance_mode("dark")
 
 def convert(src, out_dir):
     try:
-        tree = ET.parse(src)
+        parser = ET.XMLParser(resolve_entities=False, no_network=True)
+        tree = ET.parse(src, parser=parser)
         root = tree.getroot()
         
         menu = ET.Element('menu')
@@ -34,7 +35,7 @@ def convert(src, out_dir):
                 with open(os.path.join(desc_dir, f"{nm}.txt"), "w", encoding="utf-8") as f: f.write(dtxt)
 
         out_xml = os.path.join(out_dir, f"{hyper_name}_hyperlist.xml")
-        ET.ElementTree(menu).write(out_xml, encoding="utf-8", xml_declaration=True)
+        ET.ElementTree(menu).write(out_xml, encoding="utf-8", xml_declaration=True, pretty_print=True)
         messagebox.showinfo("Succès", f"Créé: {out_xml}")
         
     except Exception as e: messagebox.showerror("Err", str(e))
