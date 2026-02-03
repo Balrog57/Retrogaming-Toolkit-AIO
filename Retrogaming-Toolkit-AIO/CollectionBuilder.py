@@ -2,7 +2,7 @@
 import os
 import re
 import logging
-import xml.etree.ElementTree as ET
+from lxml import etree as ET
 import customtkinter as ctk
 from tkinter import filedialog
 from typing import List
@@ -90,7 +90,8 @@ def generate_collection(collection_name: str, keywords_list: List[str], hyperlis
             sys_name = os.path.splitext(filename)[0]
             xml_path = os.path.join(hyperlist_dir, filename)
             try:
-                root = ET.fromstring(fix_xml_ampersands(read_xml_file(xml_path)))
+                parser = ET.XMLParser(resolve_entities=False, no_network=True, recover=True)
+                root = ET.fromstring(fix_xml_ampersands(read_xml_file(xml_path)), parser=parser)
                 matched = []
                 for game in root.findall(".//game"):
                     desc = game.find("description")
