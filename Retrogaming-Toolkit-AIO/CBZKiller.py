@@ -18,6 +18,10 @@ ctk.set_appearance_mode("dark")
 def process_pdf_to_cbz(pdf_path, cbz_path):
     try:
         doc = fitz.open(pdf_path)
+        if len(doc) == 0:
+            doc.close()
+            return False, f"Err PDF Empty: {pdf_path}"
+
         with zipfile.ZipFile(cbz_path, 'w') as cbz:
             for i in range(len(doc)):
                 page = doc.load_page(i)
@@ -26,7 +30,11 @@ def process_pdf_to_cbz(pdf_path, cbz_path):
                 cbz.writestr(f"p_{i+1:03d}.jpg", img_bytes)
         doc.close()
         return True, f"OK: {pdf_path}"
-    except Exception as e: return False, f"Err PDF {pdf_path}: {e}"
+    except Exception as e:
+        if os.path.exists(cbz_path):
+            try: os.remove(cbz_path)
+            except: pass
+        return False, f"Err PDF {pdf_path}: {e}"
 
 class PDFCBRtoCBZConverter(ctk.CTk):
     def __init__(self):
@@ -141,12 +149,21 @@ class PDFCBRtoCBZConverter(ctk.CTk):
              with tempfile.TemporaryDirectory() as tmp:
                  utils.extract_with_7za(cbr, tmp, root=self)
                  
+                 file_count = 0
                  with zipfile.ZipFile(cbz, 'w', zipfile.ZIP_DEFLATED) as zf:
                      for root, _, files in os.walk(tmp):
                          for file in files:
                              file_path = os.path.join(root, file)
                              arcname = os.path.relpath(file_path, tmp)
                              zf.write(file_path, arcname)
+                             file_count += 1
+
+                 if file_count == 0:
+                     if os.path.exists(cbz):
+                        try: os.remove(cbz)
+                        except: pass
+                     raise Exception("Archive vide ou extraction échouée")
+
         except Exception as e: raise e
 
     def update_prog(self, v):
