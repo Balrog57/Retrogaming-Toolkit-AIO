@@ -53,7 +53,7 @@ except ImportError:
     utils = None
     theme = None
 
-VERSION = "3.0.14"
+VERSION = "3.0.15"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')
@@ -1921,6 +1921,20 @@ class Application(ctk.CTk):
 def main():
     """Point d'entrée principal de l'application"""
     multiprocessing.freeze_support()
+
+    # Support pour lancer un module spécifique via la ligne de commande
+    # Utile pour la relance en mode administrateur (ex: InstallDeps)
+    if len(sys.argv) > 1 and sys.argv[1] == "--module":
+        module_name = sys.argv[2]
+        icon_path = sys.argv[3] if len(sys.argv) > 3 else None
+        
+        # S'assurer que le module_runner est disponible
+        try:
+            import module_runner
+            module_runner.run_module_process(module_name, icon_path)
+        except Exception as e:
+            print(f"Erreur lors du lancement du module {module_name} : {e}")
+        return
 
     global app
     app = Application()

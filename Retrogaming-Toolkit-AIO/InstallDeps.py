@@ -36,7 +36,21 @@ def relaunch_as_admin():
 
     if getattr(sys, "frozen", False):
         executable = sys.executable
-        arguments = sys.argv[1:]
+        # Utilise le nouveau support --module dans main.py pour relancer uniquement ce module
+        # On tente de passer l'icône également
+        icon_path = ""
+        try:
+            # On cherche l'icône dans les ressources
+            if os.path.exists(os.path.join(os.path.dirname(sys.executable), "assets", "InstallDeps.ico")):
+                icon_path = os.path.join(os.path.dirname(sys.executable), "assets", "InstallDeps.ico")
+            elif hasattr(sys, "_MEIPASS"):
+                icon_path = os.path.join(sys._MEIPASS, "assets", "InstallDeps.ico")
+        except:
+            pass
+            
+        arguments = ["--module", "InstallDeps"]
+        if icon_path:
+            arguments.append(icon_path)
     else:
         executable = sys.executable
         arguments = [os.path.abspath(__file__), *sys.argv[1:]]
