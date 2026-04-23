@@ -53,6 +53,33 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import VideoConvert
 
 class TestVideoConvertCrash(unittest.TestCase):
+    def test_profile_preset_updates_quality_fields(self):
+        app = VideoConvert.VideoConvertApp()
+
+        app.entry_v_bitrate = MagicMock()
+        app.entry_a_bitrate = MagicMock()
+        app.entry_fps = MagicMock()
+        app.entry_res = MagicMock()
+
+        app.apply_profile("1280x720 - 4000 kbps / 128k / 30 fps")
+
+        app.entry_v_bitrate.delete.assert_called_with(0, "end")
+        app.entry_v_bitrate.insert.assert_called_with(0, "4000k")
+        app.entry_a_bitrate.insert.assert_called_with(0, "128k")
+        app.entry_fps.insert.assert_called_with(0, "30")
+        app.entry_res.insert.assert_called_with(0, "1280x720")
+
+    def test_manual_edit_switches_profile_back_to_custom(self):
+        app = VideoConvert.VideoConvertApp()
+
+        app.combo_profile = MagicMock()
+        app.combo_profile.get.return_value = "1920x1080 - 8000 kbps / 128k / 30 fps"
+        app._profile_update_in_progress = False
+
+        app._switch_to_custom_profile()
+
+        app.combo_profile.set.assert_called_with(VideoConvert.CUSTOM_PROFILE)
+
     @patch('VideoConvert.convert_video')
     @patch('VideoConvert.shutil.move')
     @patch('VideoConvert.tempfile.NamedTemporaryFile')

@@ -10,6 +10,28 @@ from tkinter import filedialog, messagebox, BooleanVar
 import sys
 from tkinterdnd2 import TkinterDnD, DND_FILES
 
+CUSTOM_PROFILE = "Custom"
+VIDEO_PROFILES = {
+    "640x480 - 2500 kbps / 128k / 30 fps": {
+        "video_bitrate": "2500k",
+        "audio_bitrate": "128k",
+        "fps": "30",
+        "resolution": "640x480",
+    },
+    "1280x720 - 4000 kbps / 128k / 30 fps": {
+        "video_bitrate": "4000k",
+        "audio_bitrate": "128k",
+        "fps": "30",
+        "resolution": "1280x720",
+    },
+    "1920x1080 - 8000 kbps / 128k / 30 fps": {
+        "video_bitrate": "8000k",
+        "audio_bitrate": "128k",
+        "fps": "30",
+        "resolution": "1920x1080",
+    },
+}
+
 # --- Import Theme ---
 try:
     import theme
@@ -160,6 +182,8 @@ class VideoConvertApp(ctk.CTk, TkinterDnD.DnDWrapper):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.TkdndVersion = TkinterDnD._require(self)
+        self.profile_names = [CUSTOM_PROFILE, *VIDEO_PROFILES.keys()]
+        self._profile_update_in_progress = False
         
         # Theme
         if theme:
@@ -195,6 +219,19 @@ class VideoConvertApp(ctk.CTk, TkinterDnD.DnDWrapper):
                       
         ctk.CTkButton(btn_row, text="Tout effacer", command=lambda: self.file_list.clear(), width=100,
                       fg_color="transparent", border_width=1, border_color=theme.COLOR_ACCENT_PRIMARY if theme else "gray").pack(side="left")
+
+        profile_frame = ctk.CTkFrame(btn_row, fg_color="transparent")
+        profile_frame.pack(side="right")
+
+        ctk.CTkLabel(profile_frame, text="Profil:").pack(side="left", padx=(0, 6))
+        self.combo_profile = ctk.CTkComboBox(
+            profile_frame,
+            values=self.profile_names,
+            width=260,
+            command=self.apply_profile,
+        )
+        self.combo_profile.pack(side="left")
+        self.combo_profile.set(CUSTOM_PROFILE)
 
         # List
         self.file_list = FileListFrame(self, height=150)
@@ -233,6 +270,7 @@ class VideoConvertApp(ctk.CTk, TkinterDnD.DnDWrapper):
         
         ctk.CTkLabel(row_qual, text="Res:").pack(side="left", padx=(10,0))
         self.entry_res = ctk.CTkEntry(row_qual, width=100); self.entry_res.insert(0, "1920x1080"); self.entry_res.pack(side="left", padx=5)
+        self._bind_profile_fields()
         
         # 3. Output Options
         opt_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -255,6 +293,35 @@ class VideoConvertApp(ctk.CTk, TkinterDnD.DnDWrapper):
                       font=theme.get_font_title() if theme else ("Arial", 16, "bold"),
                       fg_color=theme.COLOR_SUCCESS if theme else "green", 
                       hover_color="#27ae60").pack(pady=20)
+
+    def _bind_profile_fields(self):
+        for entry in (self.entry_v_bitrate, self.entry_a_bitrate, self.entry_fps, self.entry_res):
+            entry.bind("<KeyRelease>", self._switch_to_custom_profile)
+            entry.bind("<FocusOut>", self._switch_to_custom_profile)
+
+    def _set_entry_value(self, entry, value):
+        entry.delete(0, "end")
+        entry.insert(0, value)
+
+    def _switch_to_custom_profile(self, _event=None):
+        if self._profile_update_in_progress:
+            return
+        if hasattr(self, "combo_profile") and self.combo_profile.get() != CUSTOM_PROFILE:
+            self.combo_profile.set(CUSTOM_PROFILE)
+
+    def apply_profile(self, choice):
+        profile = VIDEO_PROFILES.get(choice)
+        if not profile:
+            return
+
+        self._profile_update_in_progress = True
+        try:
+            self._set_entry_value(self.entry_v_bitrate, profile["video_bitrate"])
+            self._set_entry_value(self.entry_a_bitrate, profile["audio_bitrate"])
+            self._set_entry_value(self.entry_fps, profile["fps"])
+            self._set_entry_value(self.entry_res, profile["resolution"])
+        finally:
+            self._profile_update_in_progress = False
 
     def browse_files(self):
         paths = filedialog.askopenfilenames(filetypes=[("Vidéo", "*.*")])
