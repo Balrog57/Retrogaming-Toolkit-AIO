@@ -246,11 +246,13 @@ class VideoConvertApp(ctk.CTk, TkinterDnD.DnDWrapper):
         row_time = ctk.CTkFrame(settings_frame, fg_color="transparent")
         row_time.pack(fill="x", padx=10, pady=10)
         
+        time_validate_cmd = (self.register(self._validate_time_input), "%P")
+
         ctk.CTkLabel(row_time, text="Début:", width=60).pack(side="left")
-        self.entry_start = ctk.CTkEntry(row_time, width=80); self.entry_start.insert(0, "00:00:00"); self.entry_start.pack(side="left", padx=5)
+        self.entry_start = ctk.CTkEntry(row_time, width=80, validate="key", validatecommand=time_validate_cmd); self.entry_start.insert(0, "00:00:00"); self.entry_start.pack(side="left", padx=5)
         
         ctk.CTkLabel(row_time, text="Fin:", width=50).pack(side="left")
-        self.entry_end = ctk.CTkEntry(row_time, width=80); self.entry_end.insert(0, "00:01:30"); self.entry_end.pack(side="left", padx=5)
+        self.entry_end = ctk.CTkEntry(row_time, width=80, validate="key", validatecommand=time_validate_cmd); self.entry_end.insert(0, "00:01:30"); self.entry_end.pack(side="left", padx=5)
         
         ctk.CTkLabel(row_time, text="Format:", width=60).pack(side="left", padx=(10,0))
         self.combo_format = ctk.CTkComboBox(row_time, values=["Source", "MP4", "MKV"], width=80)
@@ -294,6 +296,19 @@ class VideoConvertApp(ctk.CTk, TkinterDnD.DnDWrapper):
                       font=theme.get_font_title() if theme else ("Arial", 16, "bold"),
                       fg_color=theme.COLOR_SUCCESS if theme else "green", 
                       hover_color="#27ae60").pack(pady=20)
+
+    def _validate_time_input(self, proposed_value):
+        if len(proposed_value) > 8:
+            return False
+
+        for index, char in enumerate(proposed_value):
+            if index in (2, 5):
+                if char != ":":
+                    return False
+            elif not char.isdigit():
+                return False
+
+        return True
 
     def _bind_profile_fields(self):
         for entry in (self.entry_v_bitrate, self.entry_a_bitrate, self.entry_fps, self.entry_res):
