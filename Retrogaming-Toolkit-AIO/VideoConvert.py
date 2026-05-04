@@ -11,6 +11,7 @@ import sys
 from tkinterdnd2 import TkinterDnD, DND_FILES
 
 CUSTOM_PROFILE = "Custom"
+TIME_DIGIT_POSITIONS = (0, 1, 3, 4, 6, 7)
 VIDEO_PROFILES = {
     "640x480 - 2500 kbps / 128k / 30 fps": {
         "video_bitrate": "2500k",
@@ -246,13 +247,11 @@ class VideoConvertApp(ctk.CTk, TkinterDnD.DnDWrapper):
         row_time = ctk.CTkFrame(settings_frame, fg_color="transparent")
         row_time.pack(fill="x", padx=10, pady=10)
         
-        time_validate_cmd = (self.register(self._validate_time_input), "%P")
-
         ctk.CTkLabel(row_time, text="Début:", width=60).pack(side="left")
-        self.entry_start = ctk.CTkEntry(row_time, width=80, validate="key", validatecommand=time_validate_cmd); self.entry_start.insert(0, "00:00:00"); self.entry_start.pack(side="left", padx=5)
+        self.entry_start = ctk.CTkEntry(row_time, width=80); self._setup_time_entry(self.entry_start, "00:00:00"); self.entry_start.pack(side="left", padx=5)
         
         ctk.CTkLabel(row_time, text="Fin:", width=50).pack(side="left")
-        self.entry_end = ctk.CTkEntry(row_time, width=80, validate="key", validatecommand=time_validate_cmd); self.entry_end.insert(0, "00:01:30"); self.entry_end.pack(side="left", padx=5)
+        self.entry_end = ctk.CTkEntry(row_time, width=80); self._setup_time_entry(self.entry_end, "00:01:30"); self.entry_end.pack(side="left", padx=5)
         
         ctk.CTkLabel(row_time, text="Format:", width=60).pack(side="left", padx=(10,0))
         self.combo_format = ctk.CTkComboBox(row_time, values=["Source", "MP4", "MKV"], width=80)
@@ -297,18 +296,133 @@ class VideoConvertApp(ctk.CTk, TkinterDnD.DnDWrapper):
                       fg_color=theme.COLOR_SUCCESS if theme else "green", 
                       hover_color="#27ae60").pack(pady=20)
 
-    def _validate_time_input(self, proposed_value):
-        if len(proposed_value) > 8:
-            return False
+    def _setup_time_entry(self, entry, initial_value):
+        self._set_time_entry_text(entry, self._normalize_time_value(initial_value))
+        entry.bind("<KeyPress>", lambda event, widget=entry: self._handle_time_keypress(widget, event))
+        entry.bind("<<Paste>>", lambda event, widget=entry: self._handle_time_paste(widget))
+        entry.bind("<FocusOut>", lambda event, widget=entry: self._set_time_entry_text(widget, self._normalize_time_value(widget.get())))
+        entry.bind("<ButtonRelease-1>", lambda event, widget=entry: self.after(0, lambda: self._move_time_cursor_to_digit(widget)))
 
-        for index, char in enumerate(proposed_value):
-            if index in (2, 5):
-                if char != ":":
-                    return False
-            elif not char.isdigit():
-                return False
+    def _normalize_time_value(self, value):
+        digits = [char for char in value if char.isdigit()][:6]
+        digits.extend(["0"] * (6 - len(digits)))
+        return f"{digits[0]}{digits[1]}:{digits[2]}{digits[3]}:{digits[4]}{digits[5]}"
 
-        return True
+    def _set_time_entry_text(self, entry, value):
+        entry.delete(0, "end")
+        entry.insert(0, value)
+
+    def _time_selection_bounds(self, entry):
+        try:
+            if entry.selection_present():
+                return int(entry.index("sel.first")), int(entry.index("sel.last"))
+        except tk.TclError:
+            pass
+
+        cursor = int(entry.index("insert"))
+        return cursor, cursor
+
+    def _time_positions_in_range(self, start, end):
+        return [pos for pos in TIME_DIGIT_POSITIONS if start <= pos < end]
+
+    def _nearest_time_digit_position(self, index, backward=False):
+        if backward:
+            for pos in reversed(TIME_DIGIT_POSITIONS):
+                if pos < index:
+                    return pos
+            return TIME_DIGIT_POSITIONS[0]
+
+        for pos in TIME_DIGIT_POSITIONS:
+            if pos >= index:
+                return pos
+        return TIME_DIGIT_POSITIONS[-1]
+
+    def _next_time_digit_cursor(self, position):
+        for pos in TIME_DIGIT_POSITIONS:
+            if pos > position:
+                return pos
+        return 8
+
+    def _move_time_cursor_to_digit(self, entry):
+        cursor = int(entry.index("insert"))
+        if cursor in (2, 5):
+            entry.icursor(cursor + 1)
+
+    def _replace_time_digits(self, entry, replacements, cursor_position):
+        chars = list(self._normalize_time_value(entry.get()))
+        for position, value in replacements.items():
+            if position in TIME_DIGIT_POSITIONS:
+                chars[position] = value
+
+        self._set_time_entry_text(entry, "".join(chars))
+        entry.icursor(cursor_position)
+
+    def _handle_time_keypress(self, entry, event):
+        if event.state & 0x4:
+            if event.keysym.lower() == "v":
+                return self._handle_time_paste(entry)
+            if event.keysym.lower() in ("a", "c"):
+                return None
+            return "break"
+
+        if event.keysym in ("Left", "Right", "Home", "End", "Tab", "Shift_L", "Shift_R", "Control_L", "Control_R"):
+            return None
+
+        start, end = self._time_selection_bounds(entry)
+        selected_positions = self._time_positions_in_range(start, end)
+
+        if event.char and event.char.isdigit():
+            target = selected_positions[0] if selected_positions else self._nearest_time_digit_position(start)
+            replacements = {pos: "0" for pos in selected_positions}
+            replacements[target] = event.char
+            self._replace_time_digits(entry, replacements, self._next_time_digit_cursor(target))
+            return "break"
+
+        if event.keysym == "BackSpace":
+            if selected_positions:
+                target = selected_positions[0]
+                replacements = {pos: "0" for pos in selected_positions}
+            else:
+                target = self._nearest_time_digit_position(start, backward=True)
+                replacements = {target: "0"}
+            self._replace_time_digits(entry, replacements, target)
+            return "break"
+
+        if event.keysym == "Delete":
+            if selected_positions:
+                target = selected_positions[0]
+                replacements = {pos: "0" for pos in selected_positions}
+            else:
+                target = self._nearest_time_digit_position(start)
+                replacements = {target: "0"}
+            self._replace_time_digits(entry, replacements, target)
+            return "break"
+
+        return "break"
+
+    def _handle_time_paste(self, entry):
+        try:
+            digits = [char for char in self.clipboard_get() if char.isdigit()]
+        except tk.TclError:
+            return "break"
+
+        if not digits:
+            return "break"
+
+        start, end = self._time_selection_bounds(entry)
+        selected_positions = self._time_positions_in_range(start, end)
+        positions = selected_positions or [pos for pos in TIME_DIGIT_POSITIONS if pos >= start]
+        replacements = {pos: "0" for pos in selected_positions}
+        if not positions:
+            return "break"
+
+        last_position = positions[0]
+        for position, digit in zip(positions, digits):
+            replacements[position] = digit
+            last_position = position
+
+        self._replace_time_digits(entry, replacements, self._next_time_digit_cursor(last_position))
+        return "break"
 
     def _bind_profile_fields(self):
         for entry in (self.entry_v_bitrate, self.entry_a_bitrate, self.entry_fps, self.entry_res):
