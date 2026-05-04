@@ -1,12 +1,14 @@
 import os
 import subprocess
 import multiprocessing
+import concurrent.futures
 import urllib.request
 import shutil
 import zipfile
 import tempfile
 import threading
 import time
+import re
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, StringVar, IntVar, BooleanVar
 import sys
@@ -145,6 +147,8 @@ class CHDmanGUI:
         self.is_running = False
         self.is_paused = False
         self.current_process = None
+        self.current_processes = set()
+        self.processes_lock = threading.Lock()
         
         self.verifier_chdman()
 
@@ -180,8 +184,14 @@ class CHDmanGUI:
             self.root.destroy()
 
     def update_progress(self, val):
-        self.progress_bar.set(val)
-        self.percent_label.configure(text=f"{int(val*100)}%")
+        val = max(0, min(1, val))
+        self.root.after(0, lambda: (
+            self.progress_bar.set(val),
+            self.percent_label.configure(text=f"{int(val*100)}%")
+        ))
+
+    def update_status(self, text):
+        self.root.after(0, lambda: self.status_label.configure(text=text))
 
     def start_conversion(self):
         if self.is_running: return
@@ -194,8 +204,10 @@ class CHDmanGUI:
     def stop_conversion(self):
         if not self.is_running: return
         self.is_running = False
-        if self.current_process:
-            try: self.current_process.terminate()
+        with self.processes_lock:
+            processes = list(self.current_processes)
+        for process in processes:
+            try: process.terminate()
             except: pass
         
         # Cleanup logic (same as original simplified)
@@ -213,67 +225,228 @@ class CHDmanGUI:
         self.btn_pause.configure(state="disabled", text="⏸ Pause")
         self.is_running = False
 
+    def create_startupinfo(self):
+        startupinfo = None
+        if os.name == 'nt':
+            startupinfo = subprocess.STARTUPINFO()
+            startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        return startupinfo
+
+    def wait_if_paused(self):
+        while self.is_running and self.is_paused:
+            time.sleep(0.1)
+
+    def run_tracked_process(self, cmd):
+        if not self.is_running:
+            return "", "Arrêt demandé avant lancement.", -1
+
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            startupinfo=self.create_startupinfo()
+        )
+        with self.processes_lock:
+            self.current_process = process
+            self.current_processes.add(process)
+        try:
+            out, err = process.communicate()
+            return out, err, process.returncode
+        finally:
+            with self.processes_lock:
+                self.current_processes.discard(process)
+                if self.current_process is process:
+                    self.current_process = None
+
+    def find_disc_inputs(self, folder, mode):
+        if mode == "Convert":
+            exts = (".gdi", ".cue", ".iso")
+        elif mode == "Extract":
+            exts = (".chd",)
+        else:
+            exts = (".chd", ".gdi", ".cue", ".iso")
+
+        files = []
+        for root_dir, _, names in os.walk(folder):
+            for name in names:
+                if name.lower().endswith(exts):
+                    files.append(os.path.join(root_dir, name))
+
+        priority = {".gdi": 0, ".cue": 1, ".iso": 2, ".chd": 3}
+        files.sort(key=lambda p: (priority.get(os.path.splitext(p)[1].lower(), 99), p.lower()))
+        return files
+
+    def is_archive_start(self, filename):
+        lower = filename.lower()
+        part_match = re.search(r"\.part0*(\d+)\.rar$", lower)
+        if part_match:
+            return int(part_match.group(1)) == 1
+
+        split_match = re.search(r"\.(7z|zip)\.0*(\d+)$", lower)
+        if split_match:
+            return int(split_match.group(2)) == 1
+
+        return lower.endswith((".zip", ".rar", ".7z"))
+
+    def build_chdman_cmd(self, mode, input_file, dst, overwrite, chd_threads):
+        cmd = [CHDMAN_EXE]
+        name = os.path.splitext(os.path.basename(input_file))[0]
+
+        if mode == "Info":
+            cmd.extend(["info", "-i", input_file])
+        elif mode == "Verify":
+            cmd.extend(["verify", "-i", input_file])
+        elif mode == "Convert":
+            out_file = os.path.join(dst, name + ".chd")
+            if not overwrite and os.path.exists(out_file):
+                return None, f"Déjà existant, ignoré: {out_file}\n"
+            cmd.extend(["createcd", "--numprocessors", str(chd_threads), "-i", input_file, "-o", out_file])
+        elif mode == "Extract":
+            out_file = os.path.join(dst, name + ".cue")
+            if not overwrite and os.path.exists(out_file):
+                return None, f"Déjà existant, ignoré: {out_file}\n"
+            cmd.extend(["extractcd", "-i", input_file, "-o", out_file])
+
+        return cmd, None
+
+    def process_input_file(self, input_file, dst, mode, overwrite, chd_threads):
+        self.wait_if_paused()
+        if not self.is_running:
+            return f"--- {os.path.basename(input_file)} ---\nArrêté.\n\n"
+
+        self.update_status(f"Conversion: {os.path.basename(input_file)}" if mode == "Convert" else f"Traitement: {os.path.basename(input_file)}")
+        cmd, skipped = self.build_chdman_cmd(mode, input_file, dst, overwrite, chd_threads)
+        if skipped:
+            return f"--- {os.path.basename(input_file)} ---\n{skipped}\n"
+        if not cmd or len(cmd) == 1:
+            return f"--- {os.path.basename(input_file)} ---\nMode inconnu: {mode}\n\n"
+
+        out, err, returncode = self.run_tracked_process(cmd)
+        return f"--- {os.path.basename(input_file)} ---\nCMD: {' '.join(cmd)}\nReturn code: {returncode}\n{out}\n{err}\n\n"
+
+    def process_task(self, task, dst, mode, overwrite, chd_threads, seven_za_path):
+        path = task["path"]
+        logs = []
+        temp_dir = None
+        try:
+            if task["type"] == "archive":
+                self.wait_if_paused()
+                if not self.is_running:
+                    return f"--- {os.path.basename(path)} ---\nArrêté avant extraction.\n\n"
+
+                self.update_status(f"Extraction: {os.path.basename(path)}")
+                temp_dir = tempfile.mkdtemp(prefix="chdmanager_")
+                out, err, returncode = self.run_tracked_process([seven_za_path, "x", path, f"-o{temp_dir}", "-y"])
+                logs.append(f"--- Extraction {os.path.basename(path)} ---\nReturn code: {returncode}\n{out}\n{err}\n\n")
+                if returncode != 0:
+                    return "".join(logs)
+
+                input_files = self.find_disc_inputs(temp_dir, mode)
+                if mode == "Convert" and input_files:
+                    input_files = input_files[:1]
+                if not input_files:
+                    logs.append(f"Aucun fichier compatible trouvé dans {path}\n\n")
+                    return "".join(logs)
+            else:
+                input_files = [path]
+
+            for input_file in input_files:
+                logs.append(self.process_input_file(input_file, dst, mode, overwrite, chd_threads))
+                if not self.is_running:
+                    break
+            return "".join(logs)
+        except Exception as e:
+            return f"--- {os.path.basename(path)} ---\nError: {e}\n\n"
+        finally:
+            if temp_dir and os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir, ignore_errors=True)
+
     def run_logic(self):
         src, dst = self.source_folder.get(), self.destination_folder.get()
         if not src or not dst:
-            self.reset_buttons()
-            return messagebox.showerror("Err", "Dossiers requis")
+            self.root.after(0, self.reset_buttons)
+            return self.root.after(0, lambda: messagebox.showerror("Err", "Dossiers requis"))
 
-        # Extract archives
-        self.status_label.configure(text="Extraction des archives...")
-        for f in os.listdir(src):
-            fp = os.path.join(src, f)
-            if f.lower().endswith((".zip", ".rar", ".7z")):
-                try: utils.extract_with_7za(fp, src, root=self.root)
-                except: pass
-        
-        # Identify files
-        exts = (".chd", ".cue", ".gdi", ".iso")
-        files = [os.path.join(src, f) for f in os.listdir(src) if f.lower().endswith(exts)]
-        total = len(files)
-        
-        log_path = os.path.join(dst, "chdman_log.txt")
-        self.status_label.configure(text="Traitement en cours...")
-        
-        with open(log_path, "w") as log:
-            for i, f in enumerate(files):
-                if not self.is_running: break
-                while self.is_paused: time.sleep(0.1)
-                
-                self.update_progress((i)/total)
-                self.status_label.configure(text=f"Traitement: {os.path.basename(f)}")
-                
-                try:
-                    mode = self.option.get()
-                    cmd = [CHDMAN_EXE]
-                    
-                    if mode == "Info":
-                        cmd.extend(["info", "-i", f])
-                    elif mode == "Verify":
-                        cmd.extend(["verify", "-i", f])
-                    elif mode == "Convert":
-                        out = os.path.join(dst, os.path.splitext(os.path.basename(f))[0] + ".chd")
-                        if self.overwrite.get() or not os.path.exists(out):
-                            cmd.extend(["createcd", "--numprocessors", str(self.num_cores.get()), "-i", f, "-o", out])
-                    elif mode == "Extract":
-                        out = os.path.join(dst, os.path.splitext(os.path.basename(f))[0] + ".cue")
-                        if self.overwrite.get() or not os.path.exists(out):
-                            cmd.extend(["extractcd", "-i", f, "-o", out])
+        mode = self.option.get()
+        overwrite = self.overwrite.get()
+        workers = max(1, min(self.num_cores.get(), self.max_cores))
 
-                    # Run
-                    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                    self.current_process = p
-                    out, err = p.communicate()
-                    log.write(f"--- {os.path.basename(f)} ---\n{out}\n{err}\n\n")
-                    
-                except Exception as e:
-                    log.write(f"Error {f}: {e}\n")
+        try:
+            os.makedirs(dst, exist_ok=True)
 
-                self.update_progress((i+1)/total)
+            seven_za_path = None
+            if 'utils' in sys.modules:
+                manager = utils.DependencyManager(self.root)
+                if manager.bootstrap_7za():
+                    seven_za_path = manager.seven_za_path
 
-        self.reset_buttons()
-        self.status_label.configure(text="Terminé.")
-        messagebox.showinfo("Fini", "Opération terminée.")
+            direct_exts = (".chd", ".gdi", ".cue", ".iso")
+            tasks = []
+            for name in os.listdir(src):
+                path = os.path.join(src, name)
+                if not os.path.isfile(path):
+                    continue
+                lower = name.lower()
+                if self.is_archive_start(name):
+                    if seven_za_path:
+                        tasks.append({"type": "archive", "path": path})
+                elif lower.endswith(direct_exts):
+                    if mode == "Convert" and lower.endswith(".chd"):
+                        continue
+                    if mode == "Extract" and not lower.endswith(".chd"):
+                        continue
+                    tasks.append({"type": "file", "path": path})
+
+            total = len(tasks)
+            if total == 0:
+                self.update_status("Aucun fichier compatible trouvé.")
+                self.root.after(0, self.reset_buttons)
+                return
+
+            active_workers = min(workers, total)
+            chd_threads = max(1, workers // active_workers)
+            log_path = os.path.join(dst, "chdman_log.txt")
+            self.update_progress(0)
+            self.update_status(f"Traitement de {total} élément(s) avec {active_workers} worker(s)...")
+
+            done = 0
+            executor = concurrent.futures.ThreadPoolExecutor(max_workers=active_workers)
+            futures = []
+            try:
+                for task in tasks:
+                    futures.append(executor.submit(
+                        self.process_task,
+                        task,
+                        dst,
+                        mode,
+                        overwrite,
+                        chd_threads,
+                        seven_za_path
+                    ))
+
+                with open(log_path, "w", encoding="utf-8") as log:
+                    for future in concurrent.futures.as_completed(futures):
+                        done += 1
+                        try:
+                            log.write(future.result())
+                        except Exception as e:
+                            log.write(f"Erreur worker: {e}\n\n")
+                        self.update_progress(done / total)
+                        if not self.is_running:
+                            break
+            finally:
+                for future in futures:
+                    future.cancel()
+                executor.shutdown(wait=True, cancel_futures=True)
+
+            if self.is_running:
+                self.update_status("Terminé.")
+                self.root.after(0, lambda: messagebox.showinfo("Fini", "Opération terminée."))
+            else:
+                self.update_status("Arrêté.")
+        finally:
+            self.root.after(0, self.reset_buttons)
 
 def main():
     root = ctk.CTk()

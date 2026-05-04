@@ -228,6 +228,7 @@ class VideoConvertApp(ctk.CTk, TkinterDnD.DnDWrapper):
             profile_frame,
             values=self.profile_names,
             width=260,
+            state="readonly",
             command=self.apply_profile,
         )
         self.combo_profile.pack(side="left")
