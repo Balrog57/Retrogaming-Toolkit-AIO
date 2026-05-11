@@ -2,8 +2,11 @@
 
 def main():
     import os
+    import shutil
     import subprocess
     import sys
+    import tempfile
+    import zipfile
     import customtkinter as ctk
     from tkinter import filedialog, messagebox
     
@@ -23,6 +26,17 @@ def main():
         return p
 
     DOLPHIN_TOOL_NAME = get_dolphin_tool_path()
+    RVZ_BLOCK_SIZES = [
+        ("32 Kio", "32768"),
+        ("64 Kio", "65536"),
+        ("128 Kio", "131072"),
+        ("256 Kio", "262144"),
+        ("512 Kio", "524288"),
+        ("1 Mio", "1048576"),
+        ("2 Mio", "2097152"),
+    ]
+    RVZ_BLOCK_SIZE_LABELS = [label for label, _ in RVZ_BLOCK_SIZES]
+    RVZ_BLOCK_SIZE_BY_LABEL = dict(RVZ_BLOCK_SIZES)
 
     def check_and_download_dolphintool(root):
         if os.path.exists(DOLPHIN_TOOL_NAME): return
@@ -34,31 +48,96 @@ def main():
         except Exception as e:
             messagebox.showerror("Err", str(e)); root.destroy()
 
+    def run_dolphin_convert(args):
+        result = subprocess.run(args, capture_output=True, text=True)
+        if result.returncode != 0:
+            details = (result.stderr or result.stdout or "").strip()
+            if details:
+                raise RuntimeError(details)
+            raise RuntimeError(f"DolphinTool a échoué avec le code {result.returncode}.")
+
+    def iter_direct_files(inp, extensions):
+        for name in sorted(os.listdir(inp)):
+            path = os.path.join(inp, name)
+            if os.path.isfile(path) and name.lower().endswith(extensions):
+                yield path
+
+    def iter_zip_members(inp, extensions):
+        for zip_name in sorted(os.listdir(inp)):
+            zip_path = os.path.join(inp, zip_name)
+            if not os.path.isfile(zip_path) or not zip_name.lower().endswith(".zip"):
+                continue
+            try:
+                with zipfile.ZipFile(zip_path) as archive:
+                    for member in archive.infolist():
+                        if member.is_dir() or not member.filename.lower().endswith(extensions):
+                            continue
+                        yield zip_path, member.filename
+            except zipfile.BadZipFile:
+                raise RuntimeError(f"Archive ZIP invalide: {zip_name}")
+
+    def extract_zip_member_to_temp(zip_path, member_name, temp_dir):
+        base_name = os.path.basename(member_name.replace("\\", "/"))
+        if not base_name:
+            raise RuntimeError(f"Fichier invalide dans l'archive: {member_name}")
+        temp_path = os.path.join(temp_dir, base_name)
+        with zipfile.ZipFile(zip_path) as archive:
+            with archive.open(member_name) as source, open(temp_path, "wb") as target:
+                shutil.copyfileobj(source, target)
+        return temp_path
+
+    def convert_one_rvz_to_iso(source_path, out):
+        o = os.path.join(out, f"{os.path.splitext(os.path.basename(source_path))[0]}.iso")
+        if os.path.exists(o): os.remove(o)
+        run_dolphin_convert([DOLPHIN_TOOL_NAME, "convert", "--format=iso", f"--input={source_path}", f"--output={o}"])
+
     def convert_rvz_to_iso(inp, out):
-        files = [os.path.join(inp, f) for f in os.listdir(inp) if f.endswith(".rvz")]
-        for f in files:
-            o = os.path.join(out, f"{os.path.splitext(os.path.basename(f))[0]}.iso")
-            if os.path.exists(o): os.remove(o)
-            subprocess.run([DOLPHIN_TOOL_NAME, "convert", "--format=iso", f"--input={f}", f"--output={o}"])
+        count = 0
+        for f in iter_direct_files(inp, (".rvz",)):
+            convert_one_rvz_to_iso(f, out)
+            count += 1
+        for zip_path, member_name in iter_zip_members(inp, (".rvz",)):
+            with tempfile.TemporaryDirectory(prefix="dolphinconvert_") as temp_dir:
+                temp_path = extract_zip_member_to_temp(zip_path, member_name, temp_dir)
+                convert_one_rvz_to_iso(temp_path, out)
+                count += 1
+        return count
+
+    def convert_one_iso_to_rvz(source_path, out, fmt, lvl, blk):
+        o = os.path.join(out, f"{os.path.splitext(os.path.basename(source_path))[0]}.rvz")
+        if os.path.exists(o): os.remove(o)
+        run_dolphin_convert([DOLPHIN_TOOL_NAME, "convert", "--format=rvz", f"--input={source_path}", f"--output={o}", f"--block_size={blk}", f"--compression={fmt}", f"--compression_level={lvl}"])
 
     def convert_iso_to_rvz(inp, out, fmt, lvl, blk):
-        files = [os.path.join(inp, f) for f in os.listdir(inp) if f.endswith(".iso")]
-        for f in files:
-            o = os.path.join(out, f"{os.path.splitext(os.path.basename(f))[0]}.rvz")
-            if os.path.exists(o): os.remove(o)
-            subprocess.run([DOLPHIN_TOOL_NAME, "convert", "--format=rvz", f"--input={f}", f"--output={o}", f"--block_size={blk}", f"--compression={fmt}", f"--compression_level={lvl}"])
+        count = 0
+        for f in iter_direct_files(inp, (".iso", ".gcm")):
+            convert_one_iso_to_rvz(f, out, fmt, lvl, blk)
+            count += 1
+        for zip_path, member_name in iter_zip_members(inp, (".iso", ".gcm")):
+            with tempfile.TemporaryDirectory(prefix="dolphinconvert_") as temp_dir:
+                temp_path = extract_zip_member_to_temp(zip_path, member_name, temp_dir)
+                convert_one_iso_to_rvz(temp_path, out, fmt, lvl, blk)
+                count += 1
+        return count
 
     def start_conversion():
         inp, out = input_dir_var.get(), output_dir_var.get()
         if not inp or not out: return messagebox.showerror("Err", "Dirs missing")
+        if not os.path.isdir(inp): return messagebox.showerror("Err", "Dossier d'entrée invalide")
+        if not os.path.isdir(out): return messagebox.showerror("Err", "Dossier de sortie invalide")
         
         op = operation_var.get()
-        if op == "ISO vers RVZ":
-            convert_iso_to_rvz(inp, out, compression_format_var.get(), compression_level_var.get(), block_size_var.get())
-        elif op == "RVZ vers ISO":
-            convert_rvz_to_iso(inp, out)
-        else: return
-        messagebox.showinfo("Fini", "Conversion terminée.")
+        try:
+            if op == "ISO vers RVZ":
+                count = convert_iso_to_rvz(inp, out, compression_format_var.get(), compression_level_var.get(), RVZ_BLOCK_SIZE_BY_LABEL[block_size_var.get()])
+            elif op == "RVZ vers ISO":
+                count = convert_rvz_to_iso(inp, out)
+            else: return
+        except Exception as e:
+            return messagebox.showerror("Erreur", str(e))
+        if count == 0:
+            return messagebox.showinfo("Info", "Aucun fichier compatible trouvé.")
+        messagebox.showinfo("Fini", f"Conversion terminée ({count} fichier(s)).")
 
     root = ctk.CTk()
     if theme:
@@ -73,8 +152,8 @@ def main():
     output_dir_var = ctk.StringVar()
     operation_var = ctk.StringVar(value="ISO vers RVZ")
     compression_format_var = ctk.StringVar(value="zstd")
-    compression_level_var = ctk.IntVar(value=5)
-    block_size_var = ctk.StringVar(value="131072")
+    compression_level_var = ctk.StringVar(value="19")
+    block_size_var = ctk.StringVar(value="128 Kio")
 
     main_fr = ctk.CTkFrame(root, fg_color="transparent")
     main_fr.pack(padx=20, pady=20)
@@ -89,9 +168,9 @@ def main():
     mk_row(0, "Entrée:", input_dir_var, cmd=lambda: input_dir_var.set(filedialog.askdirectory()))
     mk_row(1, "Sortie:", output_dir_var, cmd=lambda: output_dir_var.set(filedialog.askdirectory()))
     mk_row(2, "Opération:", operation_var, vals=["ISO vers RVZ", "RVZ vers ISO"])
-    mk_row(3, "Format:", compression_format_var, vals=["zstd", "lzma2", "lzma", "bzip", "none"])
+    mk_row(3, "Format:", compression_format_var, vals=["zstd", "lzma2", "lzma", "bzip2", "none"])
     mk_row(4, "Niveau:", compression_level_var, vals=[str(i) for i in range(1, 23)])
-    mk_row(5, "Block Size:", block_size_var, vals=["32768", "65536", "131072", "262144", "524288", "1048576", "2097152", "8388608", "16777216", "33554432"])
+    mk_row(5, "Taille des blocs:", block_size_var, vals=RVZ_BLOCK_SIZE_LABELS)
 
     ctk.CTkButton(root, text="DÉMARRER", command=start_conversion, width=200, fg_color=theme.COLOR_SUCCESS if theme else "green").pack(pady=20)
 
