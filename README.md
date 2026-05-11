@@ -54,6 +54,7 @@ Optimisez votre stockage et gérez vos fichiers de jeux avec des outils de compr
     * Conversion "sans perte" pour GameCube et Wii via **DolphinTool**.
     * Transforme les ISO/GCM en **RVZ** (et inversement) pour une compression optimale compatible avec Dolphin.
     * Prend en charge les ISO/GCM/RVZ stockés dans des archives **ZIP** en les extrayant temporairement fichier par fichier.
+    * Permet d'arrêter une conversion en cours puis de reprendre plus tard en ignorant les fichiers déjà générés.
     * Aligne les tailles de blocs RVZ sur Dolphin (`32 Kio` à `2 Mio`) avec le profil par défaut **zstd-19-128k**.
     * Téléchargement automatique de DolphinTool si absent.
 * **📦 FolderToZip :**
