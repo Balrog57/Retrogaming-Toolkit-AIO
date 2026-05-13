@@ -401,7 +401,8 @@ def main():
             return
 
         report_path = None
-        if op in ("Vérifier RVZ", "Vérifier ISO/GCM"):
+        should_write_report = op in ("Vérifier RVZ", "Vérifier ISO/GCM", "Comparer RVZ -> ISO", "Comparer ISO -> RVZ") or (op == "ISO vers RVZ" and verify_after)
+        if should_write_report:
             try:
                 report_path = write_report(out, op, stats, errors)
             except Exception as e:
