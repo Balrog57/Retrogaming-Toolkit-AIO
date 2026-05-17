@@ -45,6 +45,8 @@ Optimisez votre stockage et gérez vos fichiers de jeux avec des outils de compr
     * Convertit les images disques (ISO, CUE, GDI) en format **CHD** compressé pour économiser de l'espace (PS1, Dreamcast, Saturn...).
     * Gère l'extraction automatique des archives **ZIP/RAR/7Z** en entrée.
     * Permet l'opération inverse (CHD vers CUE/BIN).
+    * Génère les infos, vérifie les CHD ou les sources, et compare les SHA1 de données dans les deux sens (**CHD -> Source** ou **Source -> CHD**).
+    * Peut vérifier automatiquement le CHD généré après une conversion et écrit toujours un rapport horodaté dans le dossier destination/rapport.
     * Utilisation multi-cœurs pour une vitesse maximale.
 * **🗜️ MaxCSO :**
     * Compression ultra-rapide des ISO (PSP/PS2) en format **CSO** ou **ZSO**.

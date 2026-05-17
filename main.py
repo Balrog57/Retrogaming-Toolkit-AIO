@@ -53,7 +53,7 @@ except ImportError:
     utils = None
     theme = None
 
-VERSION = "3.0.24"
+VERSION = "3.0.25"
 
 # Configuration du logging
 local_app_data = os.getenv('LOCALAPPDATA')

@@ -2,7 +2,6 @@ import os
 import subprocess
 import multiprocessing
 import concurrent.futures
-import urllib.request
 import shutil
 import zipfile
 import tempfile
@@ -38,6 +37,20 @@ def get_chdman_path():
 
 CHDMAN_EXE = get_chdman_path()
 
+DISC_EXTS = (".gdi", ".cue", ".iso")
+CHD_EXTS = (".chd",)
+ALL_INPUT_EXTS = CHD_EXTS + DISC_EXTS
+OPERATIONS = [
+    "Info CHD",
+    "Vérifier CHD",
+    "Vérifier Source",
+    "Convertir vers CHD",
+    "Extraire CHD vers CUE/BIN",
+    "Comparer CHD -> Source",
+    "Comparer Source -> CHD",
+]
+REPORT_STAT_KEYS = ("converted", "extracted", "skipped", "info", "verified", "matched", "failed", "missing")
+
 class CHDmanGUI:
     def __init__(self, root):
         self.root = root
@@ -57,8 +70,9 @@ class CHDmanGUI:
         self.source_folder = StringVar()
         self.destination_folder = StringVar()
         self.num_cores = IntVar(value=self.max_cores)
-        self.option = StringVar(value="Info")
+        self.option = StringVar(value="Convertir vers CHD")
         self.overwrite = BooleanVar(value=True)
+        self.verify_after = BooleanVar(value=False)
         
         # Main Layout
         root.grid_rowconfigure(0, weight=1)
@@ -96,11 +110,21 @@ class CHDmanGUI:
         opts_container = ctk.CTkFrame(mid_frame, fg_color="transparent")
         opts_container.pack(fill="x", padx=15, pady=5)
         
-        modes = [("Info", "Info"), ("Vérifier", "Verify"), ("Convertir", "Convert"), ("Extraire", "Extract")]
-        for text, val in modes:
-            ctk.CTkRadioButton(opts_container, text=text, variable=self.option, value=val, fg_color=theme.COLOR_ACCENT_PRIMARY if theme else None).pack(side="left", padx=10)
-            
-        ctk.CTkCheckBox(mid_frame, text="Écraser les fichiers existants (Overwrite)", variable=self.overwrite, fg_color=theme.COLOR_ACCENT_PRIMARY if theme else None).pack(anchor="w", padx=25, pady=10)
+        ctk.CTkLabel(opts_container, text="Opération :").pack(side="left", padx=(0, 10))
+        self.operation_menu = ctk.CTkOptionMenu(
+            opts_container,
+            variable=self.option,
+            values=OPERATIONS,
+            command=lambda _: self.update_operation_options(),
+            fg_color=theme.COLOR_ACCENT_PRIMARY if theme else None
+        )
+        self.operation_menu.pack(side="left", fill="x", expand=True)
+
+        self.overwrite_check = ctk.CTkCheckBox(mid_frame, text="Écraser les fichiers existants (Overwrite)", variable=self.overwrite, fg_color=theme.COLOR_ACCENT_PRIMARY if theme else None)
+        self.overwrite_check.pack(anchor="w", padx=25, pady=(10, 3))
+
+        self.verify_after_check = ctk.CTkCheckBox(mid_frame, text="Vérifier après conversion", variable=self.verify_after, fg_color=theme.COLOR_ACCENT_PRIMARY if theme else None)
+        self.verify_after_check.pack(anchor="w", padx=25, pady=(3, 10))
         
         # CPU
         cpu_frame = ctk.CTkFrame(mid_frame, fg_color="transparent")
@@ -151,6 +175,7 @@ class CHDmanGUI:
         self.processes_lock = threading.Lock()
         
         self.verifier_chdman()
+        self.update_operation_options()
 
     # --- Methods (Logic Preserved) ---
     def parcourir_dossier_source(self):
@@ -225,6 +250,15 @@ class CHDmanGUI:
         self.btn_pause.configure(state="disabled", text="⏸ Pause")
         self.is_running = False
 
+    def update_operation_options(self):
+        mode = self.option.get()
+        conversion_mode = mode == "Convertir vers CHD"
+        output_mode = mode in ("Convertir vers CHD", "Extraire CHD vers CUE/BIN")
+        self.verify_after_check.configure(state="normal" if conversion_mode else "disabled")
+        if not conversion_mode:
+            self.verify_after.set(False)
+        self.overwrite_check.configure(state="normal" if output_mode else "disabled")
+
     def create_startupinfo(self):
         startupinfo = None
         if os.name == 'nt':
@@ -259,13 +293,56 @@ class CHDmanGUI:
                 if self.current_process is process:
                     self.current_process = None
 
+    def empty_result(self):
+        return {"stats": {key: 0 for key in REPORT_STAT_KEYS}, "logs": []}
+
+    def merge_result(self, target, source):
+        for key, value in source["stats"].items():
+            target["stats"][key] += value
+        target["logs"].extend(source["logs"])
+
+    def summary_message(self, stats):
+        return "\n".join([
+            f"Convertis: {stats['converted']}",
+            f"Extraits: {stats['extracted']}",
+            f"Ignorés: {stats['skipped']}",
+            f"Infos générées: {stats['info']}",
+            f"Vérifiés OK: {stats['verified']}",
+            f"Comparaisons OK: {stats['matched']}",
+            f"Échecs: {stats['failed']}",
+            f"Sources manquantes: {stats['missing']}",
+        ])
+
+    def write_report(self, dst, mode, result):
+        safe_mode = re.sub(r"[^A-Za-z0-9_-]+", "_", mode).strip("_")
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        report_path = os.path.join(dst, f"chdmanager_{safe_mode}_{timestamp}.txt")
+        lines = [
+            f"Operation: {mode}",
+            f"Date: {time.strftime('%Y-%m-%d %H:%M:%S')}",
+            f"Source: {self.source_folder.get()}",
+            f"Destination / rapport: {dst}",
+            "",
+            self.summary_message(result["stats"]),
+            "",
+            "Détails:",
+            "",
+        ]
+        lines.extend(result["logs"])
+        with open(report_path, "w", encoding="utf-8") as report:
+            report.write("\n".join(lines))
+            report.write("\n")
+        return report_path
+
+    def input_exts_for_mode(self, mode):
+        if mode in ("Convertir vers CHD", "Vérifier Source", "Comparer Source -> CHD"):
+            return DISC_EXTS
+        if mode in ("Info CHD", "Vérifier CHD", "Extraire CHD vers CUE/BIN", "Comparer CHD -> Source"):
+            return CHD_EXTS
+        return ALL_INPUT_EXTS
+
     def find_disc_inputs(self, folder, mode):
-        if mode == "Convert":
-            exts = (".gdi", ".cue", ".iso")
-        elif mode == "Extract":
-            exts = (".chd",)
-        else:
-            exts = (".chd", ".gdi", ".cue", ".iso")
+        exts = self.input_exts_for_mode(mode)
 
         files = []
         for root_dir, _, names in os.walk(folder):
@@ -292,72 +369,251 @@ class CHDmanGUI:
     def build_chdman_cmd(self, mode, input_file, dst, overwrite, chd_threads):
         cmd = [CHDMAN_EXE]
         name = os.path.splitext(os.path.basename(input_file))[0]
+        out_file = None
 
-        if mode == "Info":
+        if mode == "Info CHD":
             cmd.extend(["info", "-i", input_file])
-        elif mode == "Verify":
+        elif mode == "Vérifier CHD":
             cmd.extend(["verify", "-i", input_file])
-        elif mode == "Convert":
+        elif mode == "Convertir vers CHD":
             out_file = os.path.join(dst, name + ".chd")
             if not overwrite and os.path.exists(out_file):
-                return None, f"Déjà existant, ignoré: {out_file}\n"
+                return None, f"Déjà existant, ignoré: {out_file}\n", out_file
             cmd.extend(["createcd", "--numprocessors", str(chd_threads), "-i", input_file, "-o", out_file])
-        elif mode == "Extract":
+        elif mode == "Extraire CHD vers CUE/BIN":
             out_file = os.path.join(dst, name + ".cue")
             if not overwrite and os.path.exists(out_file):
-                return None, f"Déjà existant, ignoré: {out_file}\n"
+                return None, f"Déjà existant, ignoré: {out_file}\n", out_file
             cmd.extend(["extractcd", "-i", input_file, "-o", out_file])
 
-        return cmd, None
+        return cmd, None, out_file
 
-    def process_input_file(self, input_file, dst, mode, overwrite, chd_threads):
+    def command_log(self, title, cmd, out, err, returncode):
+        return f"--- {title} ---\nCMD: {' '.join(cmd)}\nReturn code: {returncode}\n{out}\n{err}\n\n"
+
+    def run_required(self, cmd, cleanup_path=None):
+        out, err, returncode = self.run_tracked_process(cmd)
+        if returncode != 0:
+            if cleanup_path and os.path.exists(cleanup_path):
+                try:
+                    os.remove(cleanup_path)
+                except OSError:
+                    pass
+            details = (err or out or "").strip()
+            raise RuntimeError(details or f"chdman a échoué avec le code {returncode}.")
+        return out, err, returncode
+
+    def parse_data_sha1(self, text):
+        data_matches = re.findall(r"Data SHA1\s*:\s*([a-fA-F0-9]{40})", text, flags=re.IGNORECASE)
+        if data_matches:
+            return data_matches[-1].lower()
+        matches = re.findall(r"\b[a-fA-F0-9]{40}\b", text)
+        if matches:
+            return matches[-1].lower()
+        raise RuntimeError("SHA1 CHD introuvable dans la sortie chdman info.")
+
+    def chd_data_sha1(self, chd_file):
+        cmd = [CHDMAN_EXE, "info", "-i", chd_file]
+        out, err, _ = self.run_required(cmd)
+        return self.parse_data_sha1(f"{out}\n{err}"), self.command_log(f"Info {os.path.basename(chd_file)}", cmd, out, err, 0)
+
+    def create_temp_chd_from_source(self, source_file, temp_dir, chd_threads):
+        temp_chd = os.path.join(temp_dir, os.path.splitext(os.path.basename(source_file))[0] + ".chd")
+        cmd = [CHDMAN_EXE, "createcd", "--numprocessors", str(chd_threads), "-i", source_file, "-o", temp_chd]
+        out, err, returncode = self.run_required(cmd, cleanup_path=temp_chd)
+        return temp_chd, self.command_log(f"CHD temporaire {os.path.basename(source_file)}", cmd, out, err, returncode)
+
+    def source_data_sha1(self, source_file, chd_threads):
+        with tempfile.TemporaryDirectory(prefix="chdmanager_compare_") as temp_dir:
+            temp_chd, create_log = self.create_temp_chd_from_source(source_file, temp_dir, chd_threads)
+            sha1, info_log = self.chd_data_sha1(temp_chd)
+        return sha1, create_log + info_log
+
+    def verify_chd_file(self, chd_file):
+        cmd = [CHDMAN_EXE, "verify", "-i", chd_file]
+        out, err, returncode = self.run_required(cmd)
+        return self.command_log(f"Verify {os.path.basename(chd_file)}", cmd, out, err, returncode)
+
+    def verify_source_file(self, source_file, chd_threads):
+        with tempfile.TemporaryDirectory(prefix="chdmanager_verify_") as temp_dir:
+            temp_chd, create_log = self.create_temp_chd_from_source(source_file, temp_dir, chd_threads)
+            verify_log = self.verify_chd_file(temp_chd)
+        return create_log + verify_log
+
+    def find_counterpart(self, base_name, folder, extensions):
+        if not folder or not os.path.isdir(folder):
+            return None
+
+        candidates = []
+        for root_dir, _, names in os.walk(folder):
+            for name in names:
+                stem, ext = os.path.splitext(name)
+                if stem.lower() == base_name.lower() and ext.lower() in extensions:
+                    candidates.append(os.path.join(root_dir, name))
+
+        priority = {".gdi": 0, ".cue": 1, ".iso": 2, ".chd": 3}
+        candidates.sort(key=lambda p: (priority.get(os.path.splitext(p)[1].lower(), 99), p.lower()))
+        return candidates[0] if candidates else None
+
+    def compare_input_file(self, input_file, dst, mode, chd_threads):
+        result = self.empty_result()
+        name = os.path.basename(input_file)
+        base = os.path.splitext(name)[0]
+        src = self.source_folder.get()
+        try:
+            if mode == "Comparer CHD -> Source":
+                counterpart = self.find_counterpart(base, dst, DISC_EXTS) or self.find_counterpart(base, src, DISC_EXTS)
+                missing_label = "source ISO/CUE/GDI"
+                if not counterpart:
+                    result["stats"]["missing"] += 1
+                    result["logs"].append(f"--- {name} ---\n{missing_label} introuvable.\n\n")
+                    return result
+                primary_sha1, primary_log = self.chd_data_sha1(input_file)
+                counterpart_sha1, counterpart_log = self.source_data_sha1(counterpart, chd_threads)
+            else:
+                counterpart = self.find_counterpart(base, dst, CHD_EXTS) or self.find_counterpart(base, src, CHD_EXTS)
+                missing_label = "CHD"
+                if not counterpart:
+                    result["stats"]["missing"] += 1
+                    result["logs"].append(f"--- {name} ---\n{missing_label} introuvable.\n\n")
+                    return result
+                primary_sha1, primary_log = self.source_data_sha1(input_file, chd_threads)
+                counterpart_sha1, counterpart_log = self.chd_data_sha1(counterpart)
+
+            log = [
+                f"--- Comparaison {name} ---",
+                f"Primaire: {input_file}",
+                f"Contrepartie: {counterpart}",
+                f"SHA1 primaire: {primary_sha1}",
+                f"SHA1 contrepartie: {counterpart_sha1}",
+                "",
+                primary_log,
+                counterpart_log,
+            ]
+            if primary_sha1 == counterpart_sha1:
+                result["stats"]["matched"] += 1
+                log.insert(5, "Résultat: OK")
+            else:
+                result["stats"]["failed"] += 1
+                log.insert(5, "Résultat: ÉCHEC")
+            result["logs"].append("\n".join(log) + "\n")
+        except Exception as e:
+            result["stats"]["failed"] += 1
+            result["logs"].append(f"--- Comparaison {name} ---\nErreur: {e}\n\n")
+        return result
+
+    def process_input_file(self, input_file, dst, mode, overwrite, chd_threads, verify_after):
+        result = self.empty_result()
         self.wait_if_paused()
         if not self.is_running:
-            return f"--- {os.path.basename(input_file)} ---\nArrêté.\n\n"
+            result["logs"].append(f"--- {os.path.basename(input_file)} ---\nArrêté.\n\n")
+            return result
 
-        self.update_status(f"Conversion: {os.path.basename(input_file)}" if mode == "Convert" else f"Traitement: {os.path.basename(input_file)}")
-        cmd, skipped = self.build_chdman_cmd(mode, input_file, dst, overwrite, chd_threads)
+        if mode in ("Comparer CHD -> Source", "Comparer Source -> CHD"):
+            self.update_status(f"Comparaison: {os.path.basename(input_file)}")
+            return self.compare_input_file(input_file, dst, mode, chd_threads)
+
+        if mode == "Vérifier Source":
+            self.update_status(f"Vérification source: {os.path.basename(input_file)}")
+            try:
+                result["logs"].append(self.verify_source_file(input_file, chd_threads))
+                result["stats"]["verified"] += 1
+            except Exception as e:
+                result["stats"]["failed"] += 1
+                result["logs"].append(f"--- {os.path.basename(input_file)} ---\nErreur: {e}\n\n")
+            return result
+
+        self.update_status(f"Conversion: {os.path.basename(input_file)}" if mode == "Convertir vers CHD" else f"Traitement: {os.path.basename(input_file)}")
+        cmd, skipped, output_file = self.build_chdman_cmd(mode, input_file, dst, overwrite, chd_threads)
         if skipped:
-            return f"--- {os.path.basename(input_file)} ---\n{skipped}\n"
+            result["stats"]["skipped"] += 1
+            result["logs"].append(f"--- {os.path.basename(input_file)} ---\n{skipped}\n")
+            if mode == "Convertir vers CHD" and verify_after and output_file and os.path.exists(output_file):
+                try:
+                    result["logs"].append(self.verify_chd_file(output_file))
+                    result["stats"]["verified"] += 1
+                except Exception as e:
+                    result["stats"]["failed"] += 1
+                    result["logs"].append(f"--- Vérification {os.path.basename(output_file)} ---\nErreur: {e}\n\n")
+            return result
         if not cmd or len(cmd) == 1:
-            return f"--- {os.path.basename(input_file)} ---\nMode inconnu: {mode}\n\n"
+            result["stats"]["failed"] += 1
+            result["logs"].append(f"--- {os.path.basename(input_file)} ---\nMode inconnu: {mode}\n\n")
+            return result
+
+        if output_file and overwrite and os.path.exists(output_file):
+            try:
+                os.remove(output_file)
+            except OSError as e:
+                result["stats"]["failed"] += 1
+                result["logs"].append(f"--- {os.path.basename(input_file)} ---\nImpossible de remplacer {output_file}: {e}\n\n")
+                return result
 
         out, err, returncode = self.run_tracked_process(cmd)
-        return f"--- {os.path.basename(input_file)} ---\nCMD: {' '.join(cmd)}\nReturn code: {returncode}\n{out}\n{err}\n\n"
+        result["logs"].append(self.command_log(os.path.basename(input_file), cmd, out, err, returncode))
+        if returncode == 0:
+            if mode == "Info CHD":
+                result["stats"]["info"] += 1
+            elif mode == "Vérifier CHD":
+                result["stats"]["verified"] += 1
+            elif mode == "Convertir vers CHD":
+                result["stats"]["converted"] += 1
+                if verify_after and output_file and os.path.exists(output_file):
+                    try:
+                        result["logs"].append(self.verify_chd_file(output_file))
+                        result["stats"]["verified"] += 1
+                    except Exception as e:
+                        result["stats"]["failed"] += 1
+                        result["logs"].append(f"--- Vérification {os.path.basename(output_file)} ---\nErreur: {e}\n\n")
+            elif mode == "Extraire CHD vers CUE/BIN":
+                result["stats"]["extracted"] += 1
+        else:
+            result["stats"]["failed"] += 1
+            if output_file and os.path.exists(output_file):
+                try:
+                    os.remove(output_file)
+                except OSError:
+                    pass
+        return result
 
-    def process_task(self, task, dst, mode, overwrite, chd_threads, seven_za_path):
+    def process_task(self, task, dst, mode, overwrite, chd_threads, seven_za_path, verify_after):
         path = task["path"]
-        logs = []
+        result = self.empty_result()
         temp_dir = None
         try:
             if task["type"] == "archive":
                 self.wait_if_paused()
                 if not self.is_running:
-                    return f"--- {os.path.basename(path)} ---\nArrêté avant extraction.\n\n"
+                    result["logs"].append(f"--- {os.path.basename(path)} ---\nArrêté avant extraction.\n\n")
+                    return result
 
                 self.update_status(f"Extraction: {os.path.basename(path)}")
                 temp_dir = tempfile.mkdtemp(prefix="chdmanager_")
                 out, err, returncode = self.run_tracked_process([seven_za_path, "x", path, f"-o{temp_dir}", "-y"])
-                logs.append(f"--- Extraction {os.path.basename(path)} ---\nReturn code: {returncode}\n{out}\n{err}\n\n")
+                result["logs"].append(f"--- Extraction {os.path.basename(path)} ---\nReturn code: {returncode}\n{out}\n{err}\n\n")
                 if returncode != 0:
-                    return "".join(logs)
+                    result["stats"]["failed"] += 1
+                    return result
 
                 input_files = self.find_disc_inputs(temp_dir, mode)
-                if mode == "Convert" and input_files:
+                if mode == "Convertir vers CHD" and input_files:
                     input_files = input_files[:1]
                 if not input_files:
-                    logs.append(f"Aucun fichier compatible trouvé dans {path}\n\n")
-                    return "".join(logs)
+                    result["logs"].append(f"Aucun fichier compatible trouvé dans {path}\n\n")
+                    result["stats"]["missing"] += 1
+                    return result
             else:
                 input_files = [path]
 
             for input_file in input_files:
-                logs.append(self.process_input_file(input_file, dst, mode, overwrite, chd_threads))
+                self.merge_result(result, self.process_input_file(input_file, dst, mode, overwrite, chd_threads, verify_after))
                 if not self.is_running:
                     break
-            return "".join(logs)
+            return result
         except Exception as e:
-            return f"--- {os.path.basename(path)} ---\nError: {e}\n\n"
+            result["stats"]["failed"] += 1
+            result["logs"].append(f"--- {os.path.basename(path)} ---\nError: {e}\n\n")
+            return result
         finally:
             if temp_dir and os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir, ignore_errors=True)
@@ -370,7 +626,10 @@ class CHDmanGUI:
 
         mode = self.option.get()
         overwrite = self.overwrite.get()
+        verify_after = self.verify_after.get()
         workers = max(1, min(self.num_cores.get(), self.max_cores))
+        aggregate = self.empty_result()
+        report_path = None
 
         try:
             os.makedirs(dst, exist_ok=True)
@@ -381,7 +640,7 @@ class CHDmanGUI:
                 if manager.bootstrap_7za():
                     seven_za_path = manager.seven_za_path
 
-            direct_exts = (".chd", ".gdi", ".cue", ".iso")
+            input_exts = self.input_exts_for_mode(mode)
             tasks = []
             for name in os.listdir(src):
                 path = os.path.join(src, name)
@@ -391,22 +650,20 @@ class CHDmanGUI:
                 if self.is_archive_start(name):
                     if seven_za_path:
                         tasks.append({"type": "archive", "path": path})
-                elif lower.endswith(direct_exts):
-                    if mode == "Convert" and lower.endswith(".chd"):
-                        continue
-                    if mode == "Extract" and not lower.endswith(".chd"):
-                        continue
+                elif lower.endswith(input_exts):
                     tasks.append({"type": "file", "path": path})
 
             total = len(tasks)
             if total == 0:
+                aggregate["logs"].append("Aucun fichier compatible trouvé.\n")
+                report_path = self.write_report(dst, mode, aggregate)
                 self.update_status("Aucun fichier compatible trouvé.")
+                self.root.after(0, lambda: messagebox.showinfo("Info", f"Aucun fichier compatible trouvé.\n\nRapport: {report_path}"))
                 self.root.after(0, self.reset_buttons)
                 return
 
             active_workers = min(workers, total)
             chd_threads = max(1, workers // active_workers)
-            log_path = os.path.join(dst, "chdman_log.txt")
             self.update_progress(0)
             self.update_status(f"Traitement de {total} élément(s) avec {active_workers} worker(s)...")
 
@@ -422,29 +679,34 @@ class CHDmanGUI:
                         mode,
                         overwrite,
                         chd_threads,
-                        seven_za_path
+                        seven_za_path,
+                        verify_after
                     ))
 
-                with open(log_path, "w", encoding="utf-8") as log:
-                    for future in concurrent.futures.as_completed(futures):
-                        done += 1
-                        try:
-                            log.write(future.result())
-                        except Exception as e:
-                            log.write(f"Erreur worker: {e}\n\n")
-                        self.update_progress(done / total)
-                        if not self.is_running:
-                            break
+                for future in concurrent.futures.as_completed(futures):
+                    done += 1
+                    try:
+                        self.merge_result(aggregate, future.result())
+                    except Exception as e:
+                        aggregate["stats"]["failed"] += 1
+                        aggregate["logs"].append(f"Erreur worker: {e}\n\n")
+                    self.update_progress(done / total)
+                    if not self.is_running:
+                        break
             finally:
                 for future in futures:
                     future.cancel()
                 executor.shutdown(wait=True, cancel_futures=True)
 
+            report_path = self.write_report(dst, mode, aggregate)
+            message = self.summary_message(aggregate["stats"]) + f"\n\nRapport: {report_path}"
             if self.is_running:
                 self.update_status("Terminé.")
-                self.root.after(0, lambda: messagebox.showinfo("Fini", "Opération terminée."))
+                title = "Fini" if aggregate["stats"]["failed"] == 0 and aggregate["stats"]["missing"] == 0 else "Fini avec erreurs"
+                self.root.after(0, lambda t=title, m=message: messagebox.showinfo(t, m))
             else:
                 self.update_status("Arrêté.")
+                self.root.after(0, lambda m=message: messagebox.showinfo("Arrêté", m))
         finally:
             self.root.after(0, self.reset_buttons)
 
